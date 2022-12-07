@@ -1,0 +1,36 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<lccdd>
+
+  <!-- Luminosity Virtual Plane -->
+
+  <define>
+	  
+	  <constant name="LumiVP_DXY" value="LumiWin_DXY"/>
+	  <constant name="LumiVP_DZ" value="1*mm"/>
+	  <constant name="LumiVP_Z" value="LumiWin_Z - (2.0*LumiWin_thickness)"/>
+
+  </define>
+
+  <detectors>
+	  <detector
+		  id="LumiSpecVirtPlane_ID"
+		  name="LumiSpecVirtPlane"
+		  type="LumiSpecVirtPlane"
+		  material="Silicon"
+		  vis="TrackerVis"
+		  readout="LumiSpecVirtPlaneHits">
+	  <dimensions x="LumiVP_DXY/2.0" y="LumiVP_DXY/2.0" z="LumiVP_DZ/2.0" />
+	  <position   x="0.0" y="0.0" z="LumiVP_Z" />
+	  <rotation   x="0*rad" y="0*rad" z="0*rad" />
+  </detector>
+  </detectors>
+
+  <readouts>
+    <readout name="LumiSpecVirtPlaneHits">
+      <segmentation type="CartesianGridXY" grid_size_x="0.5*mm" grid_size_y="0.5*mm"/>
+      <id>system:8,x:32:-16,y:-16</id>
+    </readout>
+  </readouts>
+
+</lccdd>
