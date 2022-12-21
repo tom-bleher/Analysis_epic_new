@@ -28,17 +28,24 @@ std::tuple <int, double> extract_particle_parameters(std::string particle_name);
 std::tuple<double, double> DD_BH();
 std::tuple<double, double> SD_BH();
 std::tuple<double, double> SD_BH_trf();
+std::vector<GenParticlePtr> GenBHphoton();
+std::vector<GenParticlePtr> GenConvertedElectrons();
 void InitializeFunctions();
+
 
 TF1 *BH_E_trf;
 TF1 *BH_E;
 TF1 *BH_Theta;
 TF1 *BH_Phi;
 TF2 *QED_BH;
+TF1 *PDGsplitting;
 
 TLorentzVector electron;
 TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
+
+// converter center: -55610, starting edge: -55609.5
+double Vz = -55610; // Primary vertex location in mm
 
 double Z = 1;
 double electronPz = -18;
@@ -53,7 +60,7 @@ double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
 
-void hepmc_particles(int n_events = 1e5, double e_start = 2.0, double e_end = 2.0, std::string particle_name = "photon") {
+void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, double Egamma_start = 10.0, double Egamma_end = 10.0, string out_fname="genParticles.hepmc") {
  
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   TH1D *BH_h1 = new TH1D("BH_h1","E",100,0,10);
@@ -62,7 +69,6 @@ void hepmc_particles(int n_events = 1e5, double e_start = 2.0, double e_end = 2.
   TH2D *QED_BH_h2 = new TH2D("QED_BH_h2","E vs theta",100,0,10, 100,0,0.0035);
   TH1D *QED_BH_h1 = new TH1D("QED_BH_h1","E",100,0,10);
 
-  std::string out_fname = "genParticles.hepmc";
   WriterAscii hepmc_output(out_fname);
   
   int events_parsed = 0;
@@ -74,58 +80,78 @@ void hepmc_particles(int n_events = 1e5, double e_start = 2.0, double e_end = 2.
 
   InitializeFunctions();
 
+  
+  // Create events
   for (events_parsed = 0; events_parsed < n_events; events_parsed++) {
     // FourVector( px, py, pz, e, pdgid, status )
-    // status 1(final state particle), 4(beam particle)
 
-    // Add beam particles
+    // container for particles of interest
+    vector<GenParticlePtr> poi;
+
+    // Create one vertex and add beam particles to it
+    GenVertexPtr v1 = std::make_shared<GenVertex>();
+    
+    // Generate beam particles
+    // status 1(final state particle), 4(beam particle)
     GenParticlePtr p1 = std::make_shared<GenParticle>(
         FourVector(0.0, 0.0, electronPz, sqrt( pow(electronPz, 2) + pow(electronMass, 2) ) ), 11, 4);
     GenParticlePtr p2 = std::make_shared<GenParticle>(
         FourVector(0.0, 0.0, hadronPz, sqrt( pow(hadronPz, 2) + pow(protonMass, 2) ) ), 2212, 4);
-
-    auto [E1, Th1] = SD_BH();
-    auto [E1_trf, Th1_trf] = SD_BH_trf();
-    auto [E2, Th2] = DD_BH();
-    //cout<<"SD: "<<E1<<"  "<<Th1<<endl;
-    //cout<<"DD: "<<E2<<"  "<<Th2<<endl;
-    BH_h2->Fill(E1, Th1);
-    QED_BH_h2->Fill(E2, Th2);
-    BH_h1->Fill(E1);
-    BH_trf_h1->Fill(E1_trf);
-    QED_BH_h1->Fill(E2);
-
-    // Create random kinematics
-    //Double_t p        = r1->Uniform(e_start, e_end);
-    //Double_t phi      = r1->Uniform(0.0, 2.0 * M_PI);
-    //Double_t theta    = TMath::Pi();
-    //Double_t px       = p * std::cos(phi) * std::sin(theta);
-    //Double_t py       = p * std::sin(phi) * std::sin(theta);
-    //Double_t pz       = p * std::cos(theta);
     
-    // Create Bethe-Heitler kinematics
-    Double_t phi      = r1->Uniform(0.0, 2.0 * M_PI);
-    Double_t px       = E2 * std::cos(phi) * std::sin(Th2);
-    Double_t py       = E2 * std::sin(phi) * std::sin(Th2);
-    Double_t pz       = E2 * std::cos(Th2);
-    
-    // Add particle of interest
-    auto [id, mass] = extract_particle_parameters(particle_name);
-    //GenParticlePtr p3 = std::make_shared<GenParticle>( 
-    //    FourVector(px, py, pz, sqrt(p * p + (mass * mass))), id, 1);
-    GenParticlePtr p3 = std::make_shared<GenParticle>( 
-        FourVector(px, py, pz, E2), id, 1);
-
-
-    // Add all particles to one vertex
-    GenVertexPtr v1 = std::make_shared<GenVertex>();
     v1->add_particle_in( p1 );
     v1->add_particle_in( p2 );
-    v1->add_particle_out( p3 );
+
+
+    // E and theta of photon
+    Double_t E, theta;
+    if( flat ) { // Flat
+      E = r1->Uniform(Egamma_start, Egamma_end); 
+      theta = TMath::Pi();
+    }
+    else { // Bethe-Heitler
+      std::tie(E, theta) = SD_BH();
+      //std::tie(E, theta) = DD_BH();
+      theta = TMath::Pi() - theta; // photons go toward -Z
+    }
+
+    Double_t phi = BH_Phi->GetRandom();
+
+    if( convert) { // converted photons (e+ e-), conversion according to PDG Eq 34.31, primoridal pT = 0
+      
+      Double_t E_electron = E * PDGsplitting->GetRandom();
+      Double_t E_positron = E - E_electron;
+      
+      // Remove very low energy electrons
+      if( E_electron < 0.001 || E_positron < 0.001 ) { continue; }
+      
+      Double_t p_electron = sqrt( pow(E_electron,2) - pow(electronMass,2) );
+      Double_t p_positron = sqrt( pow(E_positron,2) - pow(electronMass,2) );
+      
+      // Add particles of interest
+      auto [id, mass] = extract_particle_parameters( "electron" );
+      GenParticlePtr p3 = std::make_shared<GenParticle>( 
+          FourVector(p_electron*sin(theta)*cos(phi), p_electron*sin(theta)*sin(phi), p_electron*cos(theta), E_electron), id, 1);
+      GenParticlePtr p4 = std::make_shared<GenParticle>( 
+          FourVector(p_positron*sin(theta)*cos(phi), p_positron*sin(theta)*sin(phi), p_positron*cos(theta), E_positron), -id, 1);
+
+      poi.push_back( p3 );
+      poi.push_back( p4 );
+    }
+    else { // unconverted photons
+
+      auto [id, mass] = extract_particle_parameters( "photon" );
+      GenParticlePtr p3 = std::make_shared<GenParticle>( 
+          FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 1);
+
+      // Add particle of interest
+      poi.push_back( p3 );
+    }
+
+    for( auto el : poi ) { v1->add_particle_out( el ); }
     evt.add_vertex( v1 );
 
     // Shift the whole event to specific point
-    //evt.shift_position_to( FourVector(0,0,-19000, 0) );
+    evt.shift_position_to( FourVector(0,0, Vz, 0) );
 
     if (events_parsed == 0) {
       std::cout << "First event: " << std::endl;
@@ -209,6 +235,9 @@ void InitializeFunctions() {
   // Flat azimuthal angle
   BH_Phi = new TF1("BH_Phi","1", 0, 2*TMath::Pi() );
 
+  // photon splitting fuction from PDG Eq 34.31
+  PDGsplitting = new TF1("PDGsplitting","1 - 4/3.*x*(1-x)", 0,1);
+
 }
 
 // Double-Differential Bethe-Heitler (target rest frame)
@@ -235,8 +264,8 @@ std::tuple<double, double> DD_BH() {
   //E = gamma_Lab.E();
   //theta = TMath::Pi() - gamma_Lab.Theta();
 
-  cout<<"TRF E,Theta: "<<E<<", "<<theta<<"    Lab E,Theta: "<<gamma_Lab.E()<<", "<<gamma_Lab.Theta()<<endl;
-  cout<<"Beta: "<<hadron.Beta()<<endl;
+  //cout<<"TRF E,Theta: "<<E<<", "<<theta<<"    Lab E,Theta: "<<gamma_Lab.E()<<", "<<gamma_Lab.Theta()<<endl;
+  //cout<<"Beta: "<<hadron.Beta()<<endl;
 
   return std::make_tuple( E, theta );
 }
