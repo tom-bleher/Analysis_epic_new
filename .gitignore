@@ -1,5 +1,11 @@
 *.root
 *.hepmc
+**/CMakeFiles/**
+**/calibrations/**
+**/fieldmaps/**
+*.cmake
+*.txt
+*.swp
 
 # Prerequisites
 *.d

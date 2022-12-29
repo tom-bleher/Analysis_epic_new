@@ -26,22 +26,70 @@ double muonMass = 0.1056583745;
 double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
-void BH_plotter() {
+void BH_plotter(bool plotFromFile = false) {
 
-  TF1 *BH_E = new TF1("BH_E", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5)", 0.1,20);
-  BH_E->SetParameter( 0, Z*Z*prefactor );
-  BH_E->SetParameter( 1, fabs( electronPz ) );
-  BH_E->SetParameter( 2, fabs( hadronPz ) );
-  BH_E->SetParameter( 3, protonMass );
-  BH_E->SetParameter( 4, electronMass );
-  BH_E->SetNpx( 10000 );
-  BH_E->GetXaxis()->SetTitle("E (GeV)");
-  BH_E->GetYaxis()->SetTitle("d#sigma/dE (mb/GeV)");
-  BH_E->SetTitle("Bethe-Heitler");
-  BH_E->GetXaxis()->SetRangeUser(0.1,18);
+  gStyle->SetOptStat(0);
 
-  BH_E->Draw();
+  TFile *fin = nullptr;
+  TH1D *acc = nullptr;
 
-  gPad->SetLogy();
+  TCanvas *c2 = new TCanvas("c2","c2",10,10,700,500);
+ 
+  gPad->DrawFrame(0.,0.,35,0.55);
+
+  if(plotFromFile) {
+    fin = new TFile("../recoPlugins/eicrecon.root","READ");
+    acc = (TH1D*)fin->Get("hCAL_Acceptance");
+    acc->Scale(1/1000.);
+    acc->SetMarkerStyle(20);
+    acc->GetXaxis()->SetRangeUser(0,35);
+    acc->GetYaxis()->SetRangeUser(0,0.55);
+    acc->GetYaxis()->SetTitle("CAL acceptance");
+    acc->SetTitle("");
+    acc->Draw("p");
+  }
+
+    TF1 *BH_E = new TF1("BH_E", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5)", 0.1,20);
+    TF1 *BH_E_scaled = new TF1("BH_E_scaled", "1/10.*log([0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5))", 0.1,20);
+    vector<TF1*> funcs = {BH_E, BH_E_scaled};
+    for( auto el : funcs ) {
+      el->SetParameter( 0, Z*Z*prefactor );
+      el->SetParameter( 1, fabs( electronPz ) );
+      el->SetParameter( 2, fabs( hadronPz ) );
+      el->SetParameter( 3, protonMass );
+      el->SetParameter( 4, electronMass );
+      el->SetNpx( 10000 );
+      el->GetXaxis()->SetTitle("E (GeV)");
+      el->GetYaxis()->SetTitle("d#sigma/dE (mb/GeV)");
+      el->SetTitle("Bethe-Heitler");
+      el->GetXaxis()->SetRangeUser(0.1,18);
+    }
+
+  if(plotFromFile) {
+    BH_E_scaled->Draw("same"); 
+    
+    double Emin_eff = BH_E_scaled->GetX(0.55);
+    double Emax_eff = BH_E_scaled->GetX(0.04);
+    TGaxis *A3 = new TGaxis(35,0.04,34.999,0.55,BH_E->Eval(Emax_eff),BH_E->Eval(Emin_eff),50510,"G");
+    A3->SetTitle("Bethe-Heitler d#sigma/dE (mb/GeV)");
+    A3->SetLabelSize(0.04);
+    A3->SetTitleSize(0.04);
+    A3->SetTitleOffset(0.5);
+    A3->SetLabelOffset(0.025);
+    A3->Draw("same");
+  
+    TLegend *leg = new TLegend(0.6,0.7,0.83,0.9);
+    leg->AddEntry(acc,"CAL acceptance","p");
+    leg->AddEntry(BH_E,"Bethe-Heitler d#sigma/dE","l");
+    leg->Draw("same");
+  }
+  else { 
+    BH_E->Draw(); 
+    gPad->SetLogy();
+  }
+
+
+  gPad->SetGridx();
+  gPad->SetGridy();
 
 }
