@@ -21,11 +21,11 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
 
   // Create histograms here. e.g.
   hCAL_Acceptance = new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50);
-  hTrackers_Eres = new TH2D("hTracker_Eres","Tracker E resolution;E_{#gamma} (GeV);E_{gen}-E_{rec}/E_{gen}",200,0,50, 2000,-1,1);
+  hTrackers_Eres = new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 2000,-1,1);
   
   hTrackers_E = new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 2500,0,50);
-  hTrackersTop_E = new TH2D("hTrackerTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 2500,0,50);
-  hTrackersBot_E = new TH2D("hTrackerBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 2500,0,50);
+  hTrackersTop_E = new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 2500,0,50);
+  hTrackersBot_E = new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 2500,0,50);
 
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {

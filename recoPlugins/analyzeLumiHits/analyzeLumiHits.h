@@ -33,7 +33,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecMag_DZ = 78;
     double LumiSpecCAL_Z = -6500;
     double LumiSpecCALTower_DZ = 20;
-    double pT = 0.09; // GeV. 0.3*B(T)*dZ(m)
+    double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
 
     double LumiSpecTracker_Z1;
     double LumiSpecTracker_Z2;

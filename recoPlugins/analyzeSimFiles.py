@@ -8,7 +8,6 @@ simPath = "/home/dhevan/eic/Analysis_epic/eventGen/simEvents"
 inFiles = ""
 
 for file in sorted(os.listdir(simPath)):
-  #inFiles += simPath + "/" + file + " "
   inFile = simPath + "/" + file
   E = re.search("\d+\.+\d", inFile).group()
   # run eicrecon
