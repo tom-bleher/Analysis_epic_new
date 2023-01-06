@@ -39,7 +39,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecTracker_Z2;
     double LumiSpecTracker_Z3;
 
-    double E_PluginInput;
+    double Einput;
+    int Ntrackers;
 
     // Declare histogram and tree pointers here. e.g.
     TH1D *hCAL_Acceptance = nullptr;

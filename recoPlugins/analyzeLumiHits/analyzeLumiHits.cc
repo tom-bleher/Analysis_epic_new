@@ -65,7 +65,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double E_CALdw  	= 0.0;
 
   // Trackers
-    int counts_Tr[maxModules][maxSectors] = {0};
+  int counts_Tr[maxModules][maxSectors] = {0};
   //global position
   double gpos_x[maxModules][maxSectors] = {0.0};
   double gpos_y[maxModules][maxSectors] = {0.0};
@@ -76,9 +76,11 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   auto app = GetApplication();
   m_geoSvc 		= app->template GetService<JDD4hep_service>();
 
-  E_PluginInput = 0;
-  app->SetDefaultParameter("analyzeLumiHits:Egen", E_PluginInput);
-  //cout<<"E gen = "<<Egen<<endl;
+  Einput = 0;
+  Ntrackers = 0;
+  app->SetDefaultParameter("analyzeLumiHits:Egen", Einput);
+  app->SetDefaultParameter("analyzeLumiHits:Ntrackers", Ntrackers);
+  //cout<<"E gen = "<<Einput<<"   Ntrackers = "<<Ntrackers<<endl;
 
   //Calorimeter Input___________________________________________
   for( auto hit : CALhits()  ) {
@@ -156,7 +158,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
       if( counts_Tr[i][j] <= 0 ) { 
         
-        AllTrackersHit = false;
+        // i==0 corresponds to tracker closest to IP
+        if( i >= (maxModules - Ntrackers) ) { AllTrackersHit = false; }
         if( i == 0 ) { Mod1TrackerHit = false; }
         if( i == 1 ) { Mod2TrackerHit = false; }
         if( i == 2 ) { Mod3TrackerHit = false; }
@@ -172,20 +175,20 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   }
 
   if( GoodCALsHit ) {
-    hCAL_Acceptance->Fill( E_PluginInput );
+    hCAL_Acceptance->Fill( Einput );
   }
 
   if( AllTrackersHit ){
 
     double E_trackers = TrackerErec( gpos_y );
-    cout<<"Egen = "<<E_PluginInput<<"  Etrackers = "<<E_trackers<<endl;
-    hTrackers_Eres->Fill( E_PluginInput, (E_PluginInput - E_trackers)/E_PluginInput );
-    hTrackers_E->Fill( E_PluginInput, E_trackers );
+    cout<<"Egen = "<<Einput<<"  E_trackers = "<<E_trackers<<endl;
+    hTrackers_Eres->Fill( Einput, (Einput - E_trackers)/Einput );
+    hTrackers_E->Fill( Einput, E_trackers );
 
     // Fill the energy histograms
     if( (E_CALup > 0) && (E_CALdw > 0) ){
       hEnergy->Fill( E_CALup + E_CALdw );
-      hCAL_Eres->Fill( E_PluginInput, E_CALup + E_CALdw );
+      hCAL_Eres->Fill( Einput, E_CALup + E_CALdw );
       hEup->Fill( E_CALup );
       hEdw->Fill( E_CALdw );
 
@@ -216,24 +219,33 @@ double analyzeLumiHits::TrackerErec( double y[maxModules][maxSectors] ) {
     double sumY = 0;
     double sumZ = 0;
 
-    double Zs[3] = {LumiSpecTracker_Z3, LumiSpecTracker_Z2, LumiSpecTracker_Z1};
+    double Zs[3] = {LumiSpecTracker_Z1, LumiSpecTracker_Z2, LumiSpecTracker_Z3};
 
-    for( int mod = 0; mod < maxModules; mod++ ) {
-      sumZY += Zs[mod] * y[maxModules - 1 - mod][sec];
+    for( int mod = maxModules - Ntrackers; mod < maxModules; mod++ ) {
+      sumZY += Zs[mod] * y[mod][sec];
       sumZZ += Zs[mod] * Zs[mod];
-      sumY += y[maxModules - 1 - mod][sec];
+      sumY += y[mod][sec];
       sumZ += Zs[mod];
     }
  
     // least-squares regression formula
-    slopes[sec] = (maxModules * sumZY - sumZ*sumY) / (maxModules * sumZZ - sumZ*sumZ); 
+    if( Ntrackers > 1 ) {
+      slopes[sec] = (Ntrackers * sumZY - sumZ*sumY) / (Ntrackers * sumZZ - sumZ*sumZ);
+    }
+    else if( Ntrackers == 1 ) {
+      double Zrel = fabs(sumZ) - fabs(LumiSpecMag_Z) + fabs(LumiSpecMag_DZ/2.0);
+      slopes[sec] = tan( asin( sumY / (Zrel - LumiSpecMag_DZ/2.0) ) );
+    }
+    else {
+      slopes[sec] = 0;
+    }
   }
 
   double Etop = pT / fabs( sin( atan(slopes[0]) ) ); 
   double Ebot = pT / fabs( sin( atan(slopes[1]) ) ); 
   
-  hTrackersTop_E->Fill( E_PluginInput, Etop );
-  hTrackersBot_E->Fill( E_PluginInput, Ebot );
+  hTrackersTop_E->Fill( Einput, Etop );
+  hTrackersBot_E->Fill( Einput, Ebot );
   
   return (Etop + Ebot);
 }

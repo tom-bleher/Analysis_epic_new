@@ -57,10 +57,10 @@ double CB_Fit_Function(double *x, double *par){
 
 
 //Driver Code
-void CrystalBall_MultiFit(){
+void CrystalBall_MultiFit(TString fname){
 
   //Read the file and store the data
-  TFile *file = new TFile("../recoPlugins/eicrecon.root", "READ");
+  TFile *file = new TFile(fname, "READ");
   TH2D *hist2D = (TH2D*)file->Get("hCAL_Eres"); //The histogram to be fitted.
   std::vector<TCanvas*> cans;
 

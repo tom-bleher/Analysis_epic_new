@@ -45,7 +45,7 @@ TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
 
 // converter center: -55610, starting edge: -55609.5
-double Vz = -55610; // Primary vertex location in mm
+double Vz = 0;//-55609.5; // Primary vertex location in mm
 
 double Z = 1;
 double electronPz = -18;
