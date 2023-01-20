@@ -11,12 +11,12 @@
 #include <TProfile.h>
 #include <TFile.h>
 
-// Include appropirate class headers. e.g.
-// #include <edm4hep/SimCalorimeterHit.h>
-// #include <detectors/BEMC/BEMCRawCalorimeterHit.h>
-
 #include <edm4hep/SimTrackerHit.h>
 #include <edm4hep/SimCalorimeterHit.h>
+#include <edm4hep/RawCalorimeterHit.h>
+
+#include <edm4eic/Cluster.h>
+#include <edm4eic/RawCalorimeterHit.h>
 
 #include <services/geometry/dd4hep/JDD4hep_service.h>
 
@@ -59,11 +59,14 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH2D *hTrackersTop_E;
     TH2D *hTrackersBot_E;
 
+    TH1D *hADCsignal;
+    TH1D *hRecClusterEnergy;
 
     // Data objects we will need from JANA e.g.
-    PrefetchT<edm4hep::SimCalorimeterHit> CALhits   = {this, "LumiSpecCALHits"};
-    PrefetchT<edm4hep::SimTrackerHit> Trackerhits   = {this, "LumiSpecTrackerHits"};
-
+    PrefetchT<edm4hep::SimCalorimeterHit> CALhits   = {this, "EcalLumiSpecHits"};
+    PrefetchT<edm4hep::SimTrackerHit> Trackerhits   = {this, "TrackerLumiSpecHits"};
+    PrefetchT<edm4hep::RawCalorimeterHit> ADCsignal = {this, "EcalLumiSpecRawHits"};
+    PrefetchT<edm4eic::Cluster> Clusters            = {this, "EcalLumiSpecClusters"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }

@@ -48,6 +48,8 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   LumiSpecTracker_Z2 = LumiSpecMag_Z - LumiSpecMag_DZ/2.0 - 11/12.0*SpecMag_to_SpecCAL_DZ;
   LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 1;
 
+  hADCsignal  = new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5);
+  hRecClusterEnergy  = new TH1D("hRecClusterEnergy", "Cluster energy (MeV)", 2000,0.0,20.0);
 
 }
 
@@ -90,7 +92,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const auto id       = hit->getCellID();
 
     //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+    auto id_dec 	= m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
     int module_idx 	= id_dec->index( "module" ); //8x8 Matrix of bars (0-127)
@@ -116,7 +118,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const auto id 	= hit->getCellID();
 
     //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
+    auto id_dec 	= m_geoSvc->detector()->readout( "TrackerLumiSpecHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom Layer (1)
     int module_idx 	= id_dec->index( "module" ); //Front(0) and Back (1)
@@ -204,6 +206,10 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     } //Energy check
 
   } // AllTrackersHit
+
+
+  for( auto adc : ADCsignal() ) hADCsignal->Fill( adc->getAmplitude() );
+  for( auto cluster : Clusters() ) hRecClusterEnergy->Fill( cluster->getEnergy() / dd4hep::GeV );
 
   //End of the Sequential Process Function
 } //sequence close
