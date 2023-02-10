@@ -42,6 +42,8 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hEnergy  = new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
   hCAL_Eres = new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50);
 
+  hClusterCount = new TH1D("hClusterCount", "Number of clusters / event", 20,-0.5,19.5);
+
   // spectrometer dimensions/placements in cm
   double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
   LumiSpecTracker_Z1 = LumiSpecMag_Z - LumiSpecMag_DZ/2.0 - 5/6.0*SpecMag_to_SpecCAL_DZ;
@@ -49,7 +51,37 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 1;
 
   hADCsignal  = new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5);
-  hRecClusterEnergy  = new TH1D("hRecClusterEnergy", "Cluster energy (MeV)", 2000,0.0,20.0);
+
+  hCALCluster_Eres = new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50);
+ 
+  tree_Hits = new TTree("tree_Hits","Hits");
+  tree_Hits->Branch("E", &E_hit);
+  tree_Hits->Branch("x", &x_hit);
+  tree_Hits->Branch("y", &y_hit);
+  tree_Hits->Branch("r", &r_hit);
+
+  tree_RecHits = new TTree("tree_RecHits","RecHits");
+  tree_RecHits->Branch("E", &E_hit);
+  tree_RecHits->Branch("x", &x_hit);
+  tree_RecHits->Branch("y", &y_hit);
+  tree_RecHits->Branch("r", &r_hit);
+  tree_RecHits->Branch("t", &t_hit);
+
+  tree_Clusters = new TTree("tree_Clusters","Clusters");
+  tree_Clusters->Branch("Nhits", &Nhits_cluster);
+  tree_Clusters->Branch("E", &E_cluster);
+  tree_Clusters->Branch("x", &x_cluster);
+  tree_Clusters->Branch("y", &y_cluster);
+  tree_Clusters->Branch("r", &r_cluster);
+  tree_Clusters->Branch("t", &t_cluster);
+  
+  tree_MergedClusters = new TTree("tree_MergedClusters","MergedClusters");
+  tree_MergedClusters->Branch("Nhits", &Nhits_cluster);
+  tree_MergedClusters->Branch("E", &E_cluster);
+  tree_MergedClusters->Branch("x", &x_cluster);
+  tree_MergedClusters->Branch("y", &y_cluster);
+  tree_MergedClusters->Branch("r", &r_cluster);
+  tree_MergedClusters->Branch("t", &t_cluster);
 
 }
 
@@ -85,7 +117,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //cout<<"E gen = "<<Einput<<"   Ntrackers = "<<Ntrackers<<endl;
 
   //Calorimeter Input___________________________________________
-  for( auto hit : CALhits()  ) {
+  for( auto hit : CAL_hits()  ) {
 
     hitcount++;
 
@@ -113,7 +145,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   } //Calorimeter hits close
 
   //Tracker Input Section______________________________________
-  for( auto hit : Trackerhits() ){
+  for( auto hit : Tracker_hits() ){
 
     const auto id 	= hit->getCellID();
 
@@ -207,9 +239,81 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   } // AllTrackersHit
 
+  // Digitized ADC raw hits
+  for( auto adc : CAL_adc() ) hADCsignal->Fill( adc->getAmplitude() );
+  
 
-  for( auto adc : ADCsignal() ) hADCsignal->Fill( adc->getAmplitude() );
-  for( auto cluster : Clusters() ) hRecClusterEnergy->Fill( cluster->getEnergy() / dd4hep::GeV );
+  ///////////////////////////////////////////////////////////////////////
+  // G4 Hits
+  for( auto hit : CAL_hits() ) {
+    E_hit = hit->getEnergy() / dd4hep::GeV;
+    edm4hep::Vector3f vec = hit->getPosition();// mm
+    x_hit = vec.x / dd4hep::mm;
+    y_hit = vec.y / dd4hep::mm;
+    r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
+
+    tree_Hits->Fill();
+  }
+
+  ///////////////////////////////////////////////////////////////////////
+  // Rec Hits
+  for( auto hit : CAL_rechits() ) {
+    E_hit = hit->getEnergy() / dd4hep::GeV;
+    edm4hep::Vector3f vec = hit->getPosition();// mm
+    x_hit = vec.x / dd4hep::mm;
+    y_hit = vec.y / dd4hep::mm;
+    r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
+    t_hit = hit->getTime();
+
+    tree_RecHits->Fill();
+  }
+
+  ///////////////////////////////////////////////////////////////////////
+  // Reconstructed Clusters
+  double top_E = 0, bottom_E = 0;
+  double photon_E = 0;
+
+  for( auto cluster : CAL_clusters() ) {
+    Nhits_cluster = cluster->getNhits();
+    E_cluster = cluster->getEnergy() / dd4hep::GeV;
+    edm4hep::Vector3f vec = cluster->getPosition();// mm
+    x_cluster = vec.x / dd4hep::mm;
+    y_cluster = vec.y / dd4hep::mm;
+    r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
+    t_cluster = cluster->getTime();
+
+    tree_Clusters->Fill();
+
+    if( Nhits_cluster < Nhits_min ) { continue; }
+
+    if( y_cluster > LumiSpecCAL_DXY + LumiSpecCAL_FiveSigma ) {
+      top_E = E_cluster;
+    }
+    if( y_cluster < -(LumiSpecCAL_DXY + LumiSpecCAL_FiveSigma) ) {
+      bottom_E = E_cluster;
+    }
+  }
+
+  hClusterCount->Fill( CAL_clusters().size() );
+
+  if( top_E > 0 && bottom_E > 0 ) { 
+    photon_E = top_E + bottom_E; 
+    hCALCluster_Eres->Fill( Einput, photon_E );
+  }
+
+  ///////////////////////////////////////////////////////////////////////
+  // Merged Clusters
+  for( auto cluster : CAL_mergedClusters() ) {
+    Nhits_cluster = cluster->getNhits();
+    E_cluster = cluster->getEnergy() / dd4hep::GeV;
+    edm4hep::Vector3f vec = cluster->getPosition();// mm
+    x_cluster = vec.x / dd4hep::mm;
+    y_cluster = vec.y / dd4hep::mm;
+    r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
+    t_cluster = cluster->getTime();
+    
+    tree_MergedClusters->Fill();
+  }
 
   //End of the Sequential Process Function
 } //sequence close
@@ -263,4 +367,5 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
 
   // Do any final calculations here.
 }
+
 

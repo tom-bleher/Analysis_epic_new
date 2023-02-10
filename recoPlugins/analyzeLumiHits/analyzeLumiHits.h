@@ -10,6 +10,7 @@
 #include <TH2D.h>
 #include <TProfile.h>
 #include <TFile.h>
+#include <TTree.h>
 
 #include <edm4hep/SimTrackerHit.h>
 #include <edm4hep/SimCalorimeterHit.h>
@@ -27,12 +28,16 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
 
     static const int maxModules = 3;
     static const int maxSectors = 2;
-    
+   
+    int Nhits_min = 15;
+
     // spectrometer dimensions/placements in cm
     double LumiSpecMag_Z = -5600;
     double LumiSpecMag_DZ = 78;
     double LumiSpecCAL_Z = -6500;
     double LumiSpecCALTower_DZ = 20;
+    double LumiSpecCAL_DXY = 20;
+    double LumiSpecCAL_FiveSigma = 6.9;
     double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
 
     double LumiSpecTracker_Z1;
@@ -53,6 +58,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH1D* hEdw	        = nullptr;
     TH1D* hEnergy 	= nullptr;
 
+    TH1D *hClusterCount;
+
     TH2D *hTrackers_Eres;
     TH2D *hCAL_Eres;
     TH2D *hTrackers_E;
@@ -60,13 +67,34 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH2D *hTrackersBot_E;
 
     TH1D *hADCsignal;
-    TH1D *hRecClusterEnergy;
+    TH2D *hCALCluster_Eres;
+
+    TTree *tree_Hits;
+    TTree *tree_RecHits;
+    TTree *tree_Clusters;
+    TTree *tree_MergedClusters;
+
+    double E_hit;
+    double x_hit;
+    double y_hit;
+    double r_hit;
+    double t_hit;
+
+    int Nhits_cluster;
+    double E_cluster;
+    double x_cluster;
+    double y_cluster;
+    double r_cluster;
+    double t_cluster;
 
     // Data objects we will need from JANA e.g.
-    PrefetchT<edm4hep::SimCalorimeterHit> CALhits   = {this, "EcalLumiSpecHits"};
-    PrefetchT<edm4hep::SimTrackerHit> Trackerhits   = {this, "TrackerLumiSpecHits"};
-    PrefetchT<edm4hep::RawCalorimeterHit> ADCsignal = {this, "EcalLumiSpecRawHits"};
-    PrefetchT<edm4eic::Cluster> Clusters            = {this, "EcalLumiSpecClusters"};
+    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};
+    PrefetchT<edm4hep::RawCalorimeterHit> CAL_adc       = {this, "EcalLumiSpecRawHits"};
+    PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
+    PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
+    PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
+    
+    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "TrackerLumiSpecHits"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
