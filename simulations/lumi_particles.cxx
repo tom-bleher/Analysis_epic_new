@@ -45,8 +45,9 @@ TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
 
 // converter center: -55610, starting edge: -55609.5
-double Vz = 0;//-55609.5; // Primary vertex location in mm
+double Vz = -55610; // Primary vertex location in mm
 
+int PhotonsPerEvent = 2;
 double Z = 1;
 double electronPz = -18;
 double hadronPz = 275;
@@ -101,50 +102,52 @@ void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, do
     v1->add_particle_in( p1 );
     v1->add_particle_in( p2 );
 
+    
+    for( int ph = 0; ph < PhotonsPerEvent; ph++ ) { // photons per event
+      // E and theta of photon
+      Double_t E, theta;
+      if( flat ) { // Flat
+        E = r1->Uniform(Egamma_start, Egamma_end); 
+        theta = TMath::Pi();
+      }
+      else { // Bethe-Heitler
+        std::tie(E, theta) = SD_BH();
+        //std::tie(E, theta) = DD_BH();
+        theta = TMath::Pi() - theta; // photons go toward -Z
+      }
 
-    // E and theta of photon
-    Double_t E, theta;
-    if( flat ) { // Flat
-      E = r1->Uniform(Egamma_start, Egamma_end); 
-      theta = TMath::Pi();
-    }
-    else { // Bethe-Heitler
-      std::tie(E, theta) = SD_BH();
-      //std::tie(E, theta) = DD_BH();
-      theta = TMath::Pi() - theta; // photons go toward -Z
-    }
+      Double_t phi = BH_Phi->GetRandom();
 
-    Double_t phi = BH_Phi->GetRandom();
+      if( convert ) { // converted photons (e+ e-), conversion according to PDG Eq 34.31, primoridal pT = 0
 
-    if( convert) { // converted photons (e+ e-), conversion according to PDG Eq 34.31, primoridal pT = 0
-      
-      Double_t E_electron = E * PDGsplitting->GetRandom();
-      Double_t E_positron = E - E_electron;
-      
-      // Remove very low energy electrons
-      if( E_electron < 0.001 || E_positron < 0.001 ) { continue; }
-      
-      Double_t p_electron = sqrt( pow(E_electron,2) - pow(electronMass,2) );
-      Double_t p_positron = sqrt( pow(E_positron,2) - pow(electronMass,2) );
-      
-      // Add particles of interest
-      auto [id, mass] = extract_particle_parameters( "electron" );
-      GenParticlePtr p3 = std::make_shared<GenParticle>( 
-          FourVector(p_electron*sin(theta)*cos(phi), p_electron*sin(theta)*sin(phi), p_electron*cos(theta), E_electron), id, 1);
-      GenParticlePtr p4 = std::make_shared<GenParticle>( 
-          FourVector(p_positron*sin(theta)*cos(phi), p_positron*sin(theta)*sin(phi), p_positron*cos(theta), E_positron), -id, 1);
+        Double_t E_electron = E * PDGsplitting->GetRandom();
+        Double_t E_positron = E - E_electron;
 
-      poi.push_back( p3 );
-      poi.push_back( p4 );
-    }
-    else { // unconverted photons
+        // Remove very low energy electrons
+        if( E_electron < 0.001 || E_positron < 0.001 ) { continue; }
 
-      auto [id, mass] = extract_particle_parameters( "photon" );
-      GenParticlePtr p3 = std::make_shared<GenParticle>( 
-          FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 1);
+        Double_t p_electron = sqrt( pow(E_electron,2) - pow(electronMass,2) );
+        Double_t p_positron = sqrt( pow(E_positron,2) - pow(electronMass,2) );
 
-      // Add particle of interest
-      poi.push_back( p3 );
+        // Add particles of interest
+        auto [id, mass] = extract_particle_parameters( "electron" );
+        GenParticlePtr p3 = std::make_shared<GenParticle>( 
+            FourVector(p_electron*sin(theta)*cos(phi), p_electron*sin(theta)*sin(phi), p_electron*cos(theta), E_electron), id, 1);
+        GenParticlePtr p4 = std::make_shared<GenParticle>( 
+            FourVector(p_positron*sin(theta)*cos(phi), p_positron*sin(theta)*sin(phi), p_positron*cos(theta), E_positron), -id, 1);
+
+        poi.push_back( p3 );
+        poi.push_back( p4 );
+      }
+      else { // unconverted photons
+
+        auto [id, mass] = extract_particle_parameters( "photon" );
+        GenParticlePtr p3 = std::make_shared<GenParticle>( 
+            FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 1);
+
+        // Add particle of interest
+        poi.push_back( p3 );
+      }
     }
 
     for( auto el : poi ) { v1->add_particle_out( el ); }

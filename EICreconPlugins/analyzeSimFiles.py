@@ -20,7 +20,8 @@ for file in sorted(os.listdir(simPath)):
 #E = re.search("\d+\.+\d", inFile).group()
   E = re.search("\d+", inFile).group()
   # run eicrecon
-  cmd = "eicrecon -Pplugins=analyzeLumiHits -PanalyzeLumiHits:Egen={0} -PanalyzeLumiHits:Ntrackers={1} -Phistfile=eicrecon.root {2}".format(E, Ntrackers, inFile)
+# eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -PanalyzeLumiHits:Egen=18 -PanalyzeLumiHits:Ntrackers=3  ../eventGen/test.edm4hep.root
+  cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -PanalyzeLumiHits:Egen={0} -PanalyzeLumiHits:Ntrackers={1} -Phistfile=eicrecon.root {2}".format(E, Ntrackers, inFile)
   os.system(cmd)  
 #print(cmd)
   # rename output file

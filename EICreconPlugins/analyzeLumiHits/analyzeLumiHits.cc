@@ -37,6 +37,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   }
 
   hEraw  = new TH1D("Eraw",  "hit energy (raw)", 2500, 0, 50);
+  hErawTotal  = new TH1D("ErawTotal",  "summed hit energy (raw)", 2500, 0, 50);
   hEup  = new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
   hEdw  = new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
   hEnergy  = new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
@@ -90,6 +91,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
 //-------------------------------------------
 void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& event) {
 
+  //cout<<"New Event"<<endl;
   int hitcount = 0;
 
   // CALs
@@ -97,6 +99,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   int counts_CALdw	= 0;
   double E_CALup  	= 0.0;
   double E_CALdw  	= 0.0;
+  double E_total        = 0.0;
 
   // Trackers
   int counts_Tr[maxModules][maxSectors] = {0};
@@ -108,7 +111,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double lpos_y[maxModules][maxSectors] = {0.0};
 
   auto app = GetApplication();
-  m_geoSvc 		= app->template GetService<JDD4hep_service>();
+  m_geoSvc = app->template GetService<JDD4hep_service>();
 
   Einput = 0;
   Ntrackers = 0;
@@ -124,7 +127,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const auto id       = hit->getCellID();
 
     //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
+    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
     int module_idx 	= id_dec->index( "module" ); //8x8 Matrix of bars (0-127)
@@ -133,6 +136,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const int mod_id 	= (int) id_dec->get( id, module_idx );
 
     hEraw->Fill( hit->getEnergy() );
+
+    E_total += hit->getEnergy();
 
     if(sec_id == 0) { 
       E_CALup += hit->getEnergy(); 
@@ -144,13 +149,15 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     }
   } //Calorimeter hits close
 
+  if( E_total > 0 ) { hErawTotal->Fill( E_total ); }
+
   //Tracker Input Section______________________________________
   for( auto hit : Tracker_hits() ){
 
     const auto id 	= hit->getCellID();
 
     //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "TrackerLumiSpecHits" ).idSpec().decoder();
+    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom Layer (1)
     int module_idx 	= id_dec->index( "module" ); //Front(0) and Back (1)
@@ -241,7 +248,6 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   // Digitized ADC raw hits
   for( auto adc : CAL_adc() ) hADCsignal->Fill( adc->getAmplitude() );
-  
 
   ///////////////////////////////////////////////////////////////////////
   // G4 Hits
@@ -301,8 +307,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     hCALCluster_Eres->Fill( Einput, photon_E );
   }
 
-  ///////////////////////////////////////////////////////////////////////
-  // Merged Clusters
+  /////////////////////////////////////////////////////////////////////////
+  //// Merged Clusters
   for( auto cluster : CAL_mergedClusters() ) {
     Nhits_cluster = cluster->getNhits();
     E_cluster = cluster->getEnergy() / dd4hep::GeV;

@@ -18,6 +18,7 @@
 
 #include <edm4eic/Cluster.h>
 #include <edm4eic/RawCalorimeterHit.h>
+#include <edm4eic/ProtoCluster.h>
 
 #include <services/geometry/dd4hep/JDD4hep_service.h>
 
@@ -50,6 +51,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     // Declare histogram and tree pointers here. e.g.
     TH1D *hCAL_Acceptance = nullptr;
     TH1D* hEraw  	= nullptr;
+    TH1D* hErawTotal  	= nullptr;
 
     TH2D *hGlobalXY[maxModules][maxSectors] = {{nullptr}};
     //TH2D *hLocalXY[maxModules][maxSectors] = {{nullptr}};
@@ -71,6 +73,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
 
     TTree *tree_Hits;
     TTree *tree_RecHits;
+    TTree *tree_ProtoClusters;
     TTree *tree_Clusters;
     TTree *tree_MergedClusters;
 
@@ -88,13 +91,14 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double t_cluster;
 
     // Data objects we will need from JANA e.g.
-    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};
+    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
     PrefetchT<edm4hep::RawCalorimeterHit> CAL_adc       = {this, "EcalLumiSpecRawHits"};
     PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
+    PrefetchT<edm4eic::ProtoCluster> CAL_protoClusters  = {this, "EcalLumiSpecIslandProtoClusters"};
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
     PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
     
-    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "TrackerLumiSpecHits"};
+    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }

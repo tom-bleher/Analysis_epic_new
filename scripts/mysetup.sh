@@ -6,3 +6,4 @@ source /opt/detector/setup.sh
 source $HOME/eic/epic/install/setup.sh
 export EICrecon_MY=$HOME/eic/EICrecon_MY
 export JANA_PLUGIN_PATH=$JANA_PLUGIN_PATH:/usr/local/lib/EICrecon/plugins
+export JANA_PLUGIN_PATH=$HOME/eic/EICrecon/lib/EICrecon/plugins:$JANA_PLUGIN_PATH
