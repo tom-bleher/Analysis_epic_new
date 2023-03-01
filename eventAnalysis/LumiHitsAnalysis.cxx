@@ -26,7 +26,9 @@ R__LOAD_LIBRARY(libfmt)
 #include <fmt/format.h>
 
 int LumiHitsAnalysis() {
-  
+
+  TString simFile = "../simulations/Output.edm4hep.root";
+  TString geomFile = "/home/dhevan/eic/epic/epic_ip6.xml";
   TFile *fout = new TFile("anaOutput.root","RECREATE");
 
   THashList *gHistList = new THashList();
@@ -37,7 +39,7 @@ int LumiHitsAnalysis() {
   dd4hep::Detector* det = &(dd4hep::Detector::getInstance());
 
   // specify detector geometry file
-  det->fromCompact("/home/dhevan/eic/epic/epic_ip6.xml");
+  det->fromCompact(geomFile.Data());
   
   det->volumeManager();
   det->apply("DD4hepVolumeManager", 0, 0);
@@ -74,7 +76,7 @@ int LumiHitsAnalysis() {
       };
 
   // Create a Root DataFrame from a root file with a tree of name "events". 
-  ROOT::RDataFrame df{"events", "../eventGen/Output.edm4hep.root"};
+  ROOT::RDataFrame df{"events", simFile.Data()};
 
   // Run the Lambda function over the contents of the DataFrame
   df.Foreach( LumiSpecCALroutine, {"LumiSpecCALHits"} );
