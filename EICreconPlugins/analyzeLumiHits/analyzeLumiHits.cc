@@ -151,6 +151,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   if( E_total > 0 ) { hErawTotal->Fill( E_total ); }
 
+  /*
   //Tracker Input Section______________________________________
   for( auto hit : Tracker_hits() ){
 
@@ -245,17 +246,17 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     } //Energy check
 
   } // AllTrackersHit
-
+*/
   // Digitized ADC raw hits
   for( auto adc : CAL_adc() ) hADCsignal->Fill( adc->getAmplitude() );
 
   ///////////////////////////////////////////////////////////////////////
   // G4 Hits
   for( auto hit : CAL_hits() ) {
-    E_hit = hit->getEnergy() / dd4hep::GeV;
+    E_hit = hit->getEnergy();
     edm4hep::Vector3f vec = hit->getPosition();// mm
-    x_hit = vec.x / dd4hep::mm;
-    y_hit = vec.y / dd4hep::mm;
+    x_hit = vec.x;
+    y_hit = vec.y;
     r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
 
     tree_Hits->Fill();
@@ -264,10 +265,10 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   ///////////////////////////////////////////////////////////////////////
   // Rec Hits
   for( auto hit : CAL_rechits() ) {
-    E_hit = hit->getEnergy() / dd4hep::GeV;
+    E_hit = hit->getEnergy();
     edm4hep::Vector3f vec = hit->getPosition();// mm
-    x_hit = vec.x / dd4hep::mm;
-    y_hit = vec.y / dd4hep::mm;
+    x_hit = vec.x;
+    y_hit = vec.y;
     r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
     t_hit = hit->getTime();
 
@@ -281,10 +282,10 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   for( auto cluster : CAL_clusters() ) {
     Nhits_cluster = cluster->getNhits();
-    E_cluster = cluster->getEnergy() / dd4hep::GeV;
+    E_cluster = cluster->getEnergy();
     edm4hep::Vector3f vec = cluster->getPosition();// mm
-    x_cluster = vec.x / dd4hep::mm;
-    y_cluster = vec.y / dd4hep::mm;
+    x_cluster = vec.x;
+    y_cluster = vec.y;
     r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
     t_cluster = cluster->getTime();
 
@@ -311,10 +312,10 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //// Merged Clusters
   for( auto cluster : CAL_mergedClusters() ) {
     Nhits_cluster = cluster->getNhits();
-    E_cluster = cluster->getEnergy() / dd4hep::GeV;
+    E_cluster = cluster->getEnergy();
     edm4hep::Vector3f vec = cluster->getPosition();// mm
-    x_cluster = vec.x / dd4hep::mm;
-    y_cluster = vec.y / dd4hep::mm;
+    x_cluster = vec.x;
+    y_cluster = vec.y;
     r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
     t_cluster = cluster->getTime();
     

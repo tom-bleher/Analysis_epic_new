@@ -98,7 +98,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
     PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
     
-    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
+    //PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
