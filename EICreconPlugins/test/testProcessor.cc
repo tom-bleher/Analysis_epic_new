@@ -187,9 +187,7 @@ void testProcessor::ProcessSequential(const std::shared_ptr<const JEvent>& event
 		r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
 		t_cluster = cluster->getTime();
 
-		TProfile2D *hCentroid = new TProfile2D("hCentroid", "hCentroid", 10, -100.0, 100.0, 10, 69.0, 269.0, 0.0, 10.0);
-		hCentroid->Fill(x_cluster, y_cluster, E_cluster, 1);
-		ETrue_cluster = ClusterEnergyCalibration(hCentroid);
+		ETrue_cluster = E_cluster/ ( ClusterEnergyCalibration(x_cluster, y_cluster) );
 
 		tree_Clusters->Fill();
 		
@@ -230,24 +228,16 @@ void testProcessor::ProcessSequential(const std::shared_ptr<const JEvent>& event
 
 } //sequence function close
 
-double testProcessor::ClusterEnergyCalibration(TProfile2D *hCentroid){
+double testProcessor::ClusterEnergyCalibration(double x_cluster, double y_cluster){
 
-	double ETruth = 0.0;
-	double Efficiency = 0.0;
-	int nxy = 10;
+	double Correction = 0.0;
+ 
+	int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
+	int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
 
-	TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
-	TProfile2D *hEfficiency = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid");
-
-	for(int i=1; i<=nxy; i++){
-		for(int j=1; j<=nxy; j++){
-			if( (hCentroid->GetBinContent(i,j)) != 0.0 ){
-				ETruth = ( hCentroid->GetBinContent(i,j) )/( hEfficiency->GetBinContent(i,j) );
-			}
-		}
-	}
+	Correction = hCALCalibration->GetBinContent( binX, binY );
 	
-	return ETruth;
+	return Correction;
 
 }
 double testProcessor::TrackerErec( double y[maxModules][maxSectors] ) {

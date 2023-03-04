@@ -97,6 +97,9 @@ class testProcessor: public JEventProcessorSequentialRoot {
     double t_cluster;
     double ETrue_cluster;
 
+    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
+    TProfile2D *hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid");
+
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};
     PrefetchT<edm4hep::RawCalorimeterHit> CAL_adc       = {this, "EcalLumiSpecRawHits"};
@@ -113,7 +116,7 @@ class testProcessor: public JEventProcessorSequentialRoot {
     void FinishWithGlobalRootLock() override;
    
     double TrackerErec( double y[maxModules][maxSectors] );
-    double ClusterEnergyCalibration(TProfile2D *hCentroid);
+    double ClusterEnergyCalibration(double x_cluster, double y_cluster);
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
