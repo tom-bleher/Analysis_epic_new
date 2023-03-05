@@ -83,6 +83,10 @@ class testProcessor: public JEventProcessorSequentialRoot {
     TTree *tree_Clusters;
     TTree *tree_MergedClusters;
 
+    //Calibration Matrix
+    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
+    TProfile2D *hCALCalibration;
+
     double E_hit;
     double x_hit;
     double y_hit;
@@ -96,9 +100,6 @@ class testProcessor: public JEventProcessorSequentialRoot {
     double r_cluster;
     double t_cluster;
     double ETrue_cluster;
-
-    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
-    TProfile2D *hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid");
 
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};

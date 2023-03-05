@@ -54,7 +54,10 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hADCsignal  = new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5);
 
   hCALCluster_Eres = new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50);
- 
+
+  //Calibration Matrix
+  hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid"); 
+
   tree_Hits = new TTree("tree_Hits","Hits");
   tree_Hits->Branch("E", &E_hit);
   tree_Hits->Branch("x", &x_hit);
@@ -75,6 +78,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("y", &y_cluster);
   tree_Clusters->Branch("r", &r_cluster);
   tree_Clusters->Branch("t", &t_cluster);
+  tree_Clusters->Branch("ETrue",&ETrue_cluster);
   
   tree_MergedClusters = new TTree("tree_MergedClusters","MergedClusters");
   tree_MergedClusters->Branch("Nhits", &Nhits_cluster);
@@ -289,6 +293,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
     t_cluster = cluster->getTime();
 
+    ETrue_cluster = E_cluster/ ( ClusterEnergyCalibration(x_cluster, y_cluster) );
+
     tree_Clusters->Fill();
 
     if( Nhits_cluster < Nhits_min ) { continue; }
@@ -324,6 +330,19 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   //End of the Sequential Process Function
 } //sequence close
+
+double analyzeLumiHits::ClusterEnergyCalibration(double x_cluster, double y_cluster){
+
+	double Correction = 0.0;
+ 
+	int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
+	int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
+
+	Correction = hCALCalibration->GetBinContent( binX, binY );
+	
+	return Correction;
+
+}
 
 double analyzeLumiHits::TrackerErec( double y[maxModules][maxSectors] ) {
 

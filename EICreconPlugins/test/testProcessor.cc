@@ -39,6 +39,9 @@ void testProcessor::InitWithGlobalRootLock(){
 	hEnergy  = new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
 	hCAL_Eres = new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50);
 
+	//Calibration Matrix
+	hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid");
+
 	// spectrometer dimensions/placements in cm
 	double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
 	LumiSpecTracker_Z1 = LumiSpecMag_Z - LumiSpecMag_DZ/2.0 - 5/6.0*SpecMag_to_SpecCAL_DZ;

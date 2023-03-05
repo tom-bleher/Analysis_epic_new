@@ -77,6 +77,10 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_Clusters;
     TTree *tree_MergedClusters;
 
+     //Calibration Matrix
+    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
+    TProfile2D *hCALCalibration;
+
     double E_hit;
     double x_hit;
     double y_hit;
@@ -89,6 +93,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double y_cluster;
     double r_cluster;
     double t_cluster;
+    double ETrue_cluster;
 
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
@@ -106,7 +111,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void InitWithGlobalRootLock() override;
     void ProcessSequential(const std::shared_ptr<const JEvent>& event) override;
     void FinishWithGlobalRootLock() override;
-    
+    double ClusterEnergyCalibration(double x_cluster, double y_cluster); 
     double TrackerErec( double y[maxModules][maxSectors] );
   protected:
 
