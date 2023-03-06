@@ -9,6 +9,7 @@
 #include <JANA/JEventProcessorSequentialRoot.h>
 #include <TH2D.h>
 #include <TProfile.h>
+#include <TProfile2D.h>
 #include <TFile.h>
 #include <TTree.h>
 
@@ -78,7 +79,6 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_MergedClusters;
 
      //Calibration Matrix
-    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
     TProfile2D *hCALCalibration;
 
     double E_hit;

@@ -15,9 +15,17 @@ extern "C" {
 //-------------------------------------------
 void analyzeLumiHits::InitWithGlobalRootLock(){
 
+
+
   auto rootfile_svc = GetApplication()->GetService<RootFile_service>();
   auto rootfile = rootfile_svc->GetHistFile();
   //rootfile->mkdir("LumiHits")->cd();
+  
+  //Calibration Matrix
+  //TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
+  //hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid"); 
+  //hCALCalibration->SetDirectory(0);
+  //file_in->Close();
 
   // Create histograms here. e.g.
   hCAL_Acceptance = new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50);
@@ -55,8 +63,6 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
 
   hCALCluster_Eres = new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50);
 
-  //Calibration Matrix
-  hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid"); 
 
   tree_Hits = new TTree("tree_Hits","Hits");
   tree_Hits->Branch("E", &E_hit);
@@ -333,15 +339,19 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
 double analyzeLumiHits::ClusterEnergyCalibration(double x_cluster, double y_cluster){
 
-	double Correction = 0.0;
+	double Correction = 1.0;
  
-	int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
-	int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
+	//int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
+	//int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
 
-	Correction = hCALCalibration->GetBinContent( binX, binY );
-	
-	return Correction;
+	//Correction = hCALCalibration->GetBinContent( binX, binY );
 
+        if( Correction == 0 ) { 
+          cout<<"BAD CAL CALIBRATION!!!!!!!"<<endl;
+          return 1.0;
+        } else {
+	  return Correction;
+        }
 }
 
 double analyzeLumiHits::TrackerErec( double y[maxModules][maxSectors] ) {
