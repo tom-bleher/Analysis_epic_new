@@ -151,6 +151,15 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   if( E_total > 0 ) { hErawTotal->Fill( E_total ); }
 
+
+
+  // Prepare and sort tracker hits: vector<pair<double, double>> TopTracker1, TopTracker2, ...
+  // Form tracker chain vector<vector<pair<double, double>>> TrackChain
+  // Loop over all possible tracks in TrackChain and retain good candidates
+  // Store track info in TrackClass
+  // Extract Particle info and store in ParticleClass
+
+
   /*
   //Tracker Input Section______________________________________
   for( auto hit : Tracker_hits() ){

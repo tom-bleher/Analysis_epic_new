@@ -112,3 +112,14 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
 };
+
+struct TrackClass {
+
+  int charge;
+  double x0;
+  double y0;
+  double z0;
+  double theta;
+  double phi;
+
+};
