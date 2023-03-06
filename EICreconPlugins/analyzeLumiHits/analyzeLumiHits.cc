@@ -15,17 +15,9 @@ extern "C" {
 //-------------------------------------------
 void analyzeLumiHits::InitWithGlobalRootLock(){
 
-
-
   auto rootfile_svc = GetApplication()->GetService<RootFile_service>();
   auto rootfile = rootfile_svc->GetHistFile();
   //rootfile->mkdir("LumiHits")->cd();
-  
-  //Calibration Matrix
-  //TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
-  //hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid"); 
-  //hCALCalibration->SetDirectory(0);
-  //file_in->Close();
 
   // Create histograms here. e.g.
   hCAL_Acceptance = new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50);
@@ -94,6 +86,15 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_MergedClusters->Branch("r", &r_cluster);
   tree_MergedClusters->Branch("t", &t_cluster);
 
+  //Calibration Matrix
+  string homedir = getenv("HOME");
+  string CALfile = homedir + "/eic/Analysis_epic/eventAnalysis/TProfile2DCAlibrationMatrix.root";
+  TFile *file_in = new TFile(CALfile.data(), "READ");
+  hCALCalibration = (TProfile2D*)file_in->Get("hEfficiencyVsCentroid"); 
+  hCALCalibration->SetDirectory(0);
+  if( ! hCALCalibration ) { cout<<"NO LUMI CAL CALIBRATION FILE!!!!!!!!!!!"<<endl; }
+  file_in->Close();
+
 }
 
 //-------------------------------------------
@@ -136,7 +137,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
     const auto id       = hit->getCellID();
 
-    //m_geoSvc 		= app->template GetService<JDD4hep_service>();
+    //m_geoSvc 		= app->template GetService<JDD4hep_service>(); // not used, just for reference
+
     auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
@@ -339,19 +341,19 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
 double analyzeLumiHits::ClusterEnergyCalibration(double x_cluster, double y_cluster){
 
-	double Correction = 1.0;
- 
-	//int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
-	//int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
+  double Correction = 1.0;
 
-	//Correction = hCALCalibration->GetBinContent( binX, binY );
+  int binX = hCALCalibration->GetXaxis()->FindBin( x_cluster );
+  int binY = hCALCalibration->GetYaxis()->FindBin( y_cluster );
 
-        if( Correction == 0 ) { 
-          cout<<"BAD CAL CALIBRATION!!!!!!!"<<endl;
-          return 1.0;
-        } else {
-	  return Correction;
-        }
+  Correction = hCALCalibration->GetBinContent( binX, binY );
+
+  if( Correction == 0 ) { 
+    cout<<"BAD CAL CALIBRATION!!!!!!!"<<endl;
+    return 1.0;
+  } else {
+    return Correction;
+  }
 }
 
 double analyzeLumiHits::TrackerErec( double y[maxModules][maxSectors] ) {
