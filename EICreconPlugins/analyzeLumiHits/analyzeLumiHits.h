@@ -24,6 +24,16 @@
 
 using namespace std;
 
+typedef std::tuple<double,double,double> MyHit;
+
+struct TrackClass {
+  double X0;
+  double Y0;
+  double slopeX;
+  double slopeY;
+  double Chi2;
+};
+
 class analyzeLumiHits: public JEventProcessorSequentialRoot {
   private:
 
@@ -44,7 +54,13 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecTracker_Z1;
     double LumiSpecTracker_Z2;
     double LumiSpecTracker_Z3;
+    vector<double> Tracker_Zs;
+    double Tracker_meanZ;
 
+    double Tracker_pixelSize = 0.5; // mm
+    //maximal reduced chi^2 for tracks
+    double max_chi2ndf = 0.01;
+    
     double Einput;
     int Ntrackers;
 
@@ -62,6 +78,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
 
     TH1D *hClusterCount;
 
+    TH1D *hTrackChi2;
+
     TH2D *hTrackers_Eres;
     TH2D *hCAL_Eres;
     TH2D *hTrackers_E;
@@ -75,7 +93,6 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_RecHits;
     TTree *tree_ProtoClusters;
     TTree *tree_Clusters;
-    TTree *tree_MergedClusters;
 
     double E_hit;
     double x_hit;
@@ -96,9 +113,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
     PrefetchT<edm4eic::ProtoCluster> CAL_protoClusters  = {this, "EcalLumiSpecIslandProtoClusters"};
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
-    PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
     
-    //PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
+    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
@@ -106,20 +122,13 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void InitWithGlobalRootLock() override;
     void ProcessSequential(const std::shared_ptr<const JEvent>& event) override;
     void FinishWithGlobalRootLock() override;
-    
-    double TrackerErec( double y[maxModules][maxSectors] );
+    bool PixelOverlap( MyHit hit, vector<MyHit> trackerSet );
+    void AssembleTracks( vector<TrackClass> *tracks, vector<vector<MyHit>> hitSet );
+
+    double TrackerErec( TrackClass top, TrackClass bot );
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
 };
 
-struct TrackClass {
 
-  int charge;
-  double x0;
-  double y0;
-  double z0;
-  double theta;
-  double phi;
-
-};
