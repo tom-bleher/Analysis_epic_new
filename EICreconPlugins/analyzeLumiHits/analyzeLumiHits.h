@@ -27,6 +27,7 @@ using namespace std;
 typedef std::tuple<double,double,double> MyHit;
 
 struct TrackClass {
+  double charge;
   double X0;
   double Y0;
   double slopeX;
@@ -49,7 +50,11 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecCALTower_DZ = 20;
     double LumiSpecCAL_DXY = 20;
     double LumiSpecCAL_FiveSigma = 6.9;
+    double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
+    double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
     double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
+    // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
+    double RmagPreFactor = 667.079; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in cm
 
     double LumiSpecTracker_Z1;
     double LumiSpecTracker_Z2;
@@ -57,7 +62,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     vector<double> Tracker_Zs;
     double Tracker_meanZ;
 
-    double Tracker_pixelSize = 0.5; // mm
+    double Tracker_pixelSize = 0.005; // cm
     //maximal reduced chi^2 for tracks
     double max_chi2ndf = 0.01;
     
@@ -79,12 +84,16 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH1D *hClusterCount;
 
     TH1D *hTrackChi2;
+    TH1D *hTrackersSlope;
 
     TH2D *hTrackers_Eres;
     TH2D *hCAL_Eres;
     TH2D *hTrackers_E;
     TH2D *hTrackersTop_E;
     TH2D *hTrackersBot_E;
+
+    TH2D *hTrackers_X_BotVsTop;
+    TH2D *hTrackers_Y_BotVsTop;
 
     TH1D *hADCsignal;
     TH2D *hCALCluster_Eres;
@@ -122,10 +131,11 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void InitWithGlobalRootLock() override;
     void ProcessSequential(const std::shared_ptr<const JEvent>& event) override;
     void FinishWithGlobalRootLock() override;
-    bool PixelOverlap( MyHit hit, vector<MyHit> trackerSet );
+    bool PixelOverlap( MyHit hit, vector<MyHit> trackSet );
     void AssembleTracks( vector<TrackClass> *tracks, vector<vector<MyHit>> hitSet );
 
-    double TrackerErec( TrackClass top, TrackClass bot );
+    double TrackerErec( TrackClass track );
+    double DeltaYmagnet( double E, double charge );
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;

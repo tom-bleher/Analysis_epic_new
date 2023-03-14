@@ -28,6 +28,9 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hTrackersTop_E = new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
   hTrackersBot_E = new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
 
+  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X bottom (mm);X top (mm)", 400,-200,200, 600,-300,300);
+  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y bottom (mm);Y top (mm)", 400,-200,200, 600,-300,300);
+
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
       hGlobalXY[i][j] = new TH2D( 
@@ -45,6 +48,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hClusterCount = new TH1D("hClusterCount", "Number of clusters / event", 20,-0.5,19.5);
 
   hTrackChi2 = new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1);
+  hTrackersSlope = new TH1D("hTrackersSlope", "", 1000,0,1);
 
   // spectrometer dimensions/placements in cm
   double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
@@ -128,7 +132,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     tree_RecHits->Fill();
   }
 
-   ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
   // Reconstructed Clusters
   double E_CALup  	= 0.0;
   double E_CALdw  	= 0.0;
@@ -202,7 +206,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
     const auto id 	= hit->getCellID();
     int quality         = hit->getQuality(); // 1 << 30 if produced by secondary (edm4hep docs)
-
+    
     auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom Layer (1)
@@ -212,7 +216,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const int mod_id 	= (int) id_dec->get( id, module_idx ); // layer, closet to furthest from IP
 
     //for global positions
-    const auto gpos 	= m_geoSvc->cellIDPositionConverter()->position(id);
+    const auto gpos 	= m_geoSvc->cellIDPositionConverter()->position(id); // cm
 
     //for local positions
     const auto volman 	= m_geoSvc->detector()->volumeManager();
@@ -221,7 +225,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
     if( sec_id < maxSectors && mod_id < maxModules ) {
 
-      MyHit myhit = {gpos.x(), gpos.y(), Tracker_Zs[mod_id]};
+      MyHit myhit = {gpos.x(), gpos.y(), Tracker_Zs[mod_id]}; // cm
+      //cout<<setprecision(6)<<get<0>(myhit)<<"  "<<get<1>(myhit)<<"  "<<get<2>(myhit)<<endl;
 
       if( sec_id == 0 ) { // top
         if( mod_id == 0 ) { // closest to IP
@@ -262,6 +267,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   AssembleTracks( &AllTopTracks, TopHitSet );
   AssembleTracks( &AllBotTracks, BotHitSet );
+  
   for( auto track : AllTopTracks ) { hTrackChi2->Fill( track.Chi2/3. ); }
   for( auto track : AllBotTracks ) { hTrackChi2->Fill( track.Chi2/3. ); }
 
@@ -286,18 +292,39 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //}
 
 
-  if( TopTracks.size() > 0 && BotTracks.size() > 0 ){
+  for( auto track : TopTracks ) {
+    double Etop = TrackerErec( track );
+    hTrackersTop_E->Fill( Einput, Etop );
+    hTrackersSlope->Fill( track.slopeY );
+  }
+  for( auto track : BotTracks ) {
+    double Ebot = TrackerErec( track );
+    hTrackersBot_E->Fill( Einput, Ebot );
+    hTrackersSlope->Fill( track.slopeY );
+  }
 
-    for( auto topTrack : TopTracks ) {
-      for( auto botTrack : BotTracks ) {
+  for( auto topTrack : TopTracks ) {
+    
+    double Etop = TrackerErec( topTrack );
+    double xtop_c = (topTrack.slopeX * LumiConverter_Z + topTrack.X0);
+    double ytop_c = (topTrack.slopeY * LumiSpecMagEnd_Z + topTrack.Y0) - DeltaYmagnet( Etop, topTrack.charge );
 
-        double E_trackers = TrackerErec( topTrack, botTrack );
+    for( auto botTrack : BotTracks ) {
 
-        cout<<"Egen = "<<Einput<<"  E_trackers = "<<E_trackers<<endl;
-        hTrackers_Eres->Fill( Einput, (Einput - E_trackers)/Einput );
-        hTrackers_E->Fill( Einput, E_trackers );
-      }
+      double Ebot = TrackerErec( botTrack );
+      double xbot_c = (botTrack.slopeX * LumiConverter_Z + botTrack.X0);
+      double ybot_c = (botTrack.slopeY * LumiSpecMagEnd_Z + botTrack.Y0) - DeltaYmagnet( Ebot, botTrack.charge );
+
+      //cout<<"Egen = "<<Einput<<"  E_trackers = "<<E_trackers<<endl;
+      cout<<xtop_c<<"  "<<xbot_c<<"    "<<ytop_c<<"  "<<ybot_c<<endl;
+      hTrackers_Eres->Fill( Einput, (Einput - (Etop + Ebot) )/Einput );
+      hTrackers_E->Fill( Einput, Etop + Ebot );
+      hTrackers_X_BotVsTop->Fill( xtop_c, xbot_c );
+      hTrackers_Y_BotVsTop->Fill( ytop_c, ybot_c );
     }
+  }
+
+  if( TopTracks.size() > 0 && BotTracks.size() > 0 ){
     // Fill of XY-histograms.
     for( int i=0; i < maxModules; i++ ) {
       for( int j=0; j < maxSectors; j++ ) {
@@ -321,26 +348,21 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 } // End of the Sequential Process Function
 
 //-------------------------------------------------------------------------
-double analyzeLumiHits::TrackerErec( TrackClass top, TrackClass bot ) {
+double analyzeLumiHits::TrackerErec( TrackClass track ) {
 
-  double sinThetaTop = fabs( sin( atan(top.slopeY) ) );
-  double sinThetaBot = fabs( sin( atan(bot.slopeY) ) );
-  
-  if( sinThetaTop == 0 || sinThetaBot == 0 ) { return 0.0; }
+  double sinTheta = fabs( sin( atan(track.slopeY) ) );
+ 
+  if( sinTheta == 0 ) { return 0.0; }
 
-  double Etop = pT / sinThetaTop; 
-  double Ebot = pT / sinThetaBot; 
+  double E = pT / sinTheta;
   
-  hTrackersTop_E->Fill( Einput, Etop );
-  hTrackersBot_E->Fill( Einput, Ebot );
-  
-  return (Etop + Ebot);
+  return E;
 }
 
 //-------------------------------------------------------------------------
-bool analyzeLumiHits::PixelOverlap( MyHit hit, vector<MyHit> trackerSet ) {
-   
-  for( auto el : trackerSet ) {
+bool analyzeLumiHits::PixelOverlap( MyHit hit, vector<MyHit> trackSet ) {
+
+  for( auto el : trackSet ) {
     double delta = pow( std::get<0>(hit) - std::get<0>(el), 2);
     delta += pow( std::get<1>(hit) - std::get<1>(el), 2);
 
@@ -362,8 +384,8 @@ void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<
         double sum_x = std::get<0>(hit1) + std::get<0>(hit2) + std::get<0>(hit3);
         double sum_y = std::get<1>(hit1) + std::get<1>(hit2) + std::get<1>(hit3);
         double sum_z = std::get<2>(hit1) + std::get<2>(hit2) + std::get<2>(hit3);
-        double sum_zx = std::get<2>(hit1) * std::get<0>(hit1) + std::get<2>(hit2) * std::get<0>(hit2) + std::get<2>(hit3) * std::get<0>(hit3);
-        double sum_zy = std::get<2>(hit1) * std::get<1>(hit1) + std::get<2>(hit2) * std::get<1>(hit2) + std::get<2>(hit3) * std::get<1>(hit3);
+        double sum_zx = std::get<2>(hit1)*std::get<0>(hit1) + std::get<2>(hit2)*std::get<0>(hit2) + std::get<2>(hit3)*std::get<0>(hit3);
+        double sum_zy = std::get<2>(hit1)*std::get<1>(hit1) + std::get<2>(hit2)*std::get<1>(hit2) + std::get<2>(hit3)*std::get<1>(hit3);
         double sum_zz = pow(std::get<2>(hit1), 2) + pow(std::get<2>(hit2), 2) + pow(std::get<2>(hit3), 2);
 
         // Least squares regression algorithm: assumes equal Gaussian errors with each hit point
@@ -375,6 +397,8 @@ void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<
         //     = ( Sum(y_i) - m_y*Sum(z_i) ) / N
 
         TrackClass track;
+        if( sum_y > 0 ) { track.charge = -1; }// electrons go to top CAL (B in +x direction)
+        else { track.charge = +1; }
         track.slopeX = (3. * sum_zx - sum_z * sum_x) / (3. * sum_zz - sum_z * sum_z);
         track.slopeY = (3. * sum_zy - sum_z * sum_y) / (3. * sum_zz - sum_z * sum_z);
         track.X0 = (sum_x - track.slopeX * sum_z) / 3.0;
@@ -394,6 +418,17 @@ void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<
       }
     }
   }
+}
+
+//-------------------------------------------------------------------------
+// returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
+double analyzeLumiHits::DeltaYmagnet( double E, double charge ) {
+
+  double R = E * RmagPreFactor; // cyclotron radius of curvature
+  double dy = R - sqrt( R*R - pow(LumiSpecMag_DZ,2) );
+
+  // electrons go to the top CAL (B in +x direction), positrons to bottom CAL
+  return -charge * dy; // cm
 }
 
 //-------------------------------------------
