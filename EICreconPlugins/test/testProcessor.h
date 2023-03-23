@@ -13,19 +13,24 @@
 #include <TFile.h>
 #include <TTree.h>
 
+// Include appropirate class headers. e.g.
+// #include <edm4hep/SimCalorimeterHit.h>
+// #include <detectors/BEMC/BEMCRawCalorimeterHit.h>
+
 #include <edm4hep/SimTrackerHit.h>
 #include <edm4hep/SimCalorimeterHit.h>
 #include <edm4hep/RawCalorimeterHit.h>
 
 #include <edm4eic/Cluster.h>
-#include <edm4eic/RawCalorimeterHit.h>
 #include <edm4eic/ProtoCluster.h>
+#include <edm4eic/CalorimeterHit.h>
+#include <edm4eic/RawCalorimeterHit.h>
 
 #include <services/geometry/dd4hep/JDD4hep_service.h>
 
 using namespace std;
 
-class analyzeLumiHits: public JEventProcessorSequentialRoot {
+class testProcessor: public JEventProcessorSequentialRoot {
   private:
 
     static const int maxModules = 3;
@@ -78,7 +83,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_Clusters;
     TTree *tree_MergedClusters;
 
-     //Calibration Matrix
+    //Calibration Matrix
+    TFile *file_in = new TFile("TProfile2DCAlibrationMatrix.root","READ");
     TProfile2D *hCALCalibration;
 
     double E_hit;
@@ -96,35 +102,23 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double ETrue_cluster;
 
     // Data objects we will need from JANA e.g.
-    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
+    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};
     PrefetchT<edm4hep::RawCalorimeterHit> CAL_adc       = {this, "EcalLumiSpecRawHits"};
     PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
     PrefetchT<edm4eic::ProtoCluster> CAL_protoClusters  = {this, "EcalLumiSpecIslandProtoClusters"};
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
     PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
     
-    //PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
-
   public:
-    analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
+    testProcessor() { SetTypeName(NAME_OF_THIS); }
 
     void InitWithGlobalRootLock() override;
     void ProcessSequential(const std::shared_ptr<const JEvent>& event) override;
     void FinishWithGlobalRootLock() override;
-    double ClusterEnergyCalibration(double x_cluster, double y_cluster); 
+   
     double TrackerErec( double y[maxModules][maxSectors] );
+    double ClusterEnergyCalibration(double x_cluster, double y_cluster);
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
-};
-
-struct TrackClass {
-
-  int charge;
-  double x0;
-  double y0;
-  double z0;
-  double theta;
-  double phi;
-
 };
