@@ -8,6 +8,8 @@
 *.cmake
 *.txt
 *.swp
+*.tgz
+*.pcm
 
 # Prerequisites
 *.d

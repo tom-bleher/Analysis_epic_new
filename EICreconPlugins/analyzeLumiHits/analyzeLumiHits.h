@@ -9,7 +9,6 @@
 #include <JANA/JEventProcessorSequentialRoot.h>
 #include <TH2D.h>
 #include <TProfile.h>
-#include <TProfile2D.h>
 #include <TFile.h>
 #include <TTree.h>
 
@@ -25,13 +24,24 @@
 
 using namespace std;
 
+typedef std::tuple<double,double,double> MyHit;
+
+struct TrackClass {
+  double charge;
+  double X0;
+  double Y0;
+  double slopeX;
+  double slopeY;
+  double Chi2;
+};
+
 class analyzeLumiHits: public JEventProcessorSequentialRoot {
   private:
 
     static const int maxModules = 3;
     static const int maxSectors = 2;
    
-    int Nhits_min = 15;
+    int Nhits_min = 1; // 15
 
     // spectrometer dimensions/placements in cm
     double LumiSpecMag_Z = -5600;
@@ -40,12 +50,22 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecCALTower_DZ = 20;
     double LumiSpecCAL_DXY = 20;
     double LumiSpecCAL_FiveSigma = 6.9;
+    double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
+    double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
     double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
+    // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
+    double RmagPreFactor = 667.079; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in cm
 
     double LumiSpecTracker_Z1;
     double LumiSpecTracker_Z2;
     double LumiSpecTracker_Z3;
+    vector<double> Tracker_Zs;
+    double Tracker_meanZ;
 
+    double Tracker_pixelSize = 0.005; // cm
+    //maximal reduced chi^2 for tracks
+    double max_chi2ndf = 0.01;
+    
     double Einput;
     int Ntrackers;
 
@@ -61,13 +81,22 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH1D* hEdw	        = nullptr;
     TH1D* hEnergy 	= nullptr;
 
+    TH1D *hProtoClusterCount;
     TH1D *hClusterCount;
+
+    TH1D *hTrackChi2;
+    TH1D *hTrackersSlope;
 
     TH2D *hTrackers_Eres;
     TH2D *hCAL_Eres;
     TH2D *hTrackers_E;
     TH2D *hTrackersTop_E;
     TH2D *hTrackersBot_E;
+
+    TH1D *hTrackers_X;
+    TH1D *hTrackers_Y;
+    TH2D *hTrackers_X_BotVsTop;
+    TH2D *hTrackers_Y_BotVsTop;
 
     TH1D *hADCsignal;
     TH2D *hCALCluster_Eres;
@@ -76,10 +105,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_RecHits;
     TTree *tree_ProtoClusters;
     TTree *tree_Clusters;
-    TTree *tree_MergedClusters;
-
-     //Calibration Matrix
-    TProfile2D *hCALCalibration;
+    TTree *tree_Tracks;
 
     double E_hit;
     double x_hit;
@@ -93,7 +119,15 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double y_cluster;
     double r_cluster;
     double t_cluster;
-    double ETrue_cluster;
+
+    double X_mean;
+    double Y_mean;
+    double X_electron;
+    double Y_electron;
+    double Chi2_electron;
+    double X_positron;
+    double Y_positron;
+    double Chi2_positron;
 
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
@@ -101,9 +135,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
     PrefetchT<edm4eic::ProtoCluster> CAL_protoClusters  = {this, "EcalLumiSpecIslandProtoClusters"};
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
-    PrefetchT<edm4eic::Cluster> CAL_mergedClusters      = {this, "EcalLumiSpecMergedClusters"};
     
-    //PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
+    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
@@ -111,9 +144,14 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void InitWithGlobalRootLock() override;
     void ProcessSequential(const std::shared_ptr<const JEvent>& event) override;
     void FinishWithGlobalRootLock() override;
-    double ClusterEnergyCalibration(double x_cluster, double y_cluster); 
-    double TrackerErec( double y[maxModules][maxSectors] );
+    bool PixelOverlap( MyHit hit, vector<MyHit> trackSet );
+    void AssembleTracks( vector<TrackClass> *tracks, vector<vector<MyHit>> hitSet );
+
+    double TrackerErec( TrackClass track );
+    double DeltaYmagnet( double E, double charge );
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
 };
+
+

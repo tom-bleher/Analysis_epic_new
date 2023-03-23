@@ -44,11 +44,12 @@ TLorentzVector electron;
 TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
 
-// converter center: -55610, starting edge: -55609.5
-double Vz = -55610; // Primary vertex location in mm
+// converter center: -55609.5, full thickness = 1 mm
+// end of spectrometer magnet: -56390
+double Vz = -56095; // Primary vertex location in mm
 
-int PhotonsPerEvent = 2;
-double Z = 1;
+int PhotonsPerEvent = 1;
+double Z = 1; // ion beam particle charge
 double electronPz = -18;
 double hadronPz = 275;
 

@@ -17,6 +17,6 @@ for mod in range(startModule, endModule + 1):
 
   print(cmd)
   os.system(cmd)
-  cmd = "mv eicrecon.root calibrationsPbWO4/eicrecon_{0}.root".format(mod)
+  cmd = "mv eicrecon.root calibrationsPbWO4_ClosureTest/eicrecon_{0}.root".format(mod)
   print(cmd)
   os.system(cmd)
