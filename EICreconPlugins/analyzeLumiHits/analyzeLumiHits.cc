@@ -2,7 +2,6 @@
 #include "analyzeLumiHits.h"
 #include <services/rootfile/RootFile_service.h>
 
-
 // The following just makes this a JANA plugin
 extern "C" {
   void InitPlugin(JApplication *app) {
@@ -107,7 +106,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
 void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& event) {
 
   //cout<<"New Event"<<endl;
-  
+
   auto app = GetApplication();
   m_geoSvc = app->template GetService<JDD4hep_service>();
 
@@ -222,6 +221,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double gpos_y[maxModules][maxSectors] = {0.0};
   int counts_Tr[maxModules][maxSectors] = {0};
 
+  
   for( auto hit : Tracker_hits() ){
 
     const auto id 	= hit->getCellID();
