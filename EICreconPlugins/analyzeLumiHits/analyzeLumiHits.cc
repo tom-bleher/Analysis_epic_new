@@ -28,8 +28,11 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hTrackersTop_E = new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
   hTrackersBot_E = new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
 
-  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X bottom (mm);X top (mm)", 400,-200,200, 600,-300,300);
-  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y bottom (mm);Y top (mm)", 400,-200,200, 600,-300,300);
+  hTrackers_X = new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 (mm);counts",1000,-50,50);
+  hTrackers_Y = new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (mm);counts",1000,-50,50);
+  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (mm);X electron (mm)", 1000,-50,50, 1000,-50,50);
+  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (mm);Y electron (mm)", 1000,-50,50, 1000,-50,50);
+
 
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
@@ -45,6 +48,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hEnergy  = new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
   hCAL_Eres = new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50);
 
+  hProtoClusterCount = new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5);
   hClusterCount = new TH1D("hClusterCount", "Number of clusters / event", 20,-0.5,19.5);
 
   hTrackChi2 = new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1);
@@ -84,6 +88,16 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("y", &y_cluster);
   tree_Clusters->Branch("r", &r_cluster);
   tree_Clusters->Branch("t", &t_cluster);
+
+  tree_Tracks = new TTree("tree_Tracks","Tracks");
+  tree_Tracks->Branch("X", &X_mean);
+  tree_Tracks->Branch("Y", &Y_mean);
+  tree_Tracks->Branch("Xe", &X_electron);
+  tree_Tracks->Branch("Ye", &Y_electron);
+  tree_Tracks->Branch("Xp", &X_positron);
+  tree_Tracks->Branch("Yp", &Y_positron);
+  tree_Tracks->Branch("Chi2e", &Chi2_electron);
+  tree_Tracks->Branch("Chi2p", &Chi2_positron);
   
 }
 
@@ -131,6 +145,12 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
     tree_RecHits->Fill();
   }
+
+  ///////////////////////////////////////////////////////////////////////
+  // Proto Island Clusters
+
+  hProtoClusterCount->Fill( CAL_protoClusters().size() );
+
 
   ///////////////////////////////////////////////////////////////////////
   // Reconstructed Clusters
@@ -205,8 +225,9 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   for( auto hit : Tracker_hits() ){
 
     const auto id 	= hit->getCellID();
-    int quality         = hit->getQuality(); // 1 << 30 if produced by secondary (edm4hep docs)
     
+    bool secondary = (hit->getQuality() == 0) ? false : true; // 1 << 30 if produced by secondary (edm4hep docs)
+
     auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
 
     int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom Layer (1)
@@ -316,11 +337,24 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
       double ybot_c = (botTrack.slopeY * LumiSpecMagEnd_Z + botTrack.Y0) - DeltaYmagnet( Ebot, botTrack.charge );
 
       //cout<<"Egen = "<<Einput<<"  E_trackers = "<<E_trackers<<endl;
-      cout<<xtop_c<<"  "<<xbot_c<<"    "<<ytop_c<<"  "<<ybot_c<<endl;
+      //cout<<xtop_c<<"  "<<xbot_c<<"    "<<ytop_c<<"  "<<ybot_c<<endl;
+      hTrackers_X->Fill( (xtop_c + xbot_c)/2. );
+      hTrackers_Y->Fill( (ytop_c + ybot_c)/2. );
       hTrackers_Eres->Fill( Einput, (Einput - (Etop + Ebot) )/Einput );
       hTrackers_E->Fill( Einput, Etop + Ebot );
       hTrackers_X_BotVsTop->Fill( xtop_c, xbot_c );
       hTrackers_Y_BotVsTop->Fill( ytop_c, ybot_c );
+
+      X_mean = (xtop_c + xbot_c) / 2.;
+      Y_mean = (ytop_c + ybot_c) / 2.;
+      X_electron = xtop_c;
+      Y_electron = ytop_c;
+      Chi2_electron = topTrack.Chi2;
+      X_positron = xbot_c;
+      Y_positron = ybot_c;
+      Chi2_positron = botTrack.Chi2;
+
+      tree_Tracks->Fill();
     }
   }
 
@@ -423,6 +457,8 @@ void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<
 //-------------------------------------------------------------------------
 // returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
 double analyzeLumiHits::DeltaYmagnet( double E, double charge ) {
+
+  //return 0;
 
   double R = E * RmagPreFactor; // cyclotron radius of curvature
   double dy = R - sqrt( R*R - pow(LumiSpecMag_DZ,2) );

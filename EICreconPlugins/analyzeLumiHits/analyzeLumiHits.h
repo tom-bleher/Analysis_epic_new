@@ -41,7 +41,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     static const int maxModules = 3;
     static const int maxSectors = 2;
    
-    int Nhits_min = 15;
+    int Nhits_min = 1; // 15
 
     // spectrometer dimensions/placements in cm
     double LumiSpecMag_Z = -5600;
@@ -81,6 +81,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH1D* hEdw	        = nullptr;
     TH1D* hEnergy 	= nullptr;
 
+    TH1D *hProtoClusterCount;
     TH1D *hClusterCount;
 
     TH1D *hTrackChi2;
@@ -92,6 +93,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH2D *hTrackersTop_E;
     TH2D *hTrackersBot_E;
 
+    TH1D *hTrackers_X;
+    TH1D *hTrackers_Y;
     TH2D *hTrackers_X_BotVsTop;
     TH2D *hTrackers_Y_BotVsTop;
 
@@ -102,6 +105,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TTree *tree_RecHits;
     TTree *tree_ProtoClusters;
     TTree *tree_Clusters;
+    TTree *tree_Tracks;
 
     double E_hit;
     double x_hit;
@@ -115,6 +119,15 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double y_cluster;
     double r_cluster;
     double t_cluster;
+
+    double X_mean;
+    double Y_mean;
+    double X_electron;
+    double Y_electron;
+    double Chi2_electron;
+    double X_positron;
+    double Y_positron;
+    double Chi2_positron;
 
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
