@@ -40,9 +40,9 @@ TEvePointSet* AddHits( TTreeReaderArray<T> *xhit, TTreeReaderArray<T> *yhit, TTr
 {
   // Add Hits to vertex
   Int_t nhits = xhit->GetSize();
-  hits = new TEvePointSet(nhits);
+  hits = new TEvePointSet( nhits );
   
-  for (Int_t hitno=0; hitno<nhits; ++hitno) { // Reading hits
+  for (Int_t hitno=0; hitno < nhits; ++hitno) { // Reading hits
     hits->SetPoint( hitno, double(xhit->At(hitno)*0.1), double(yhit->At(hitno)*0.1), double(zhit->At(hitno)*0.1) );
   }
 
@@ -62,6 +62,9 @@ MultiView* gMultiView = 0;
 TEveTrack  *track; TEveRecTrackD *rc;  TEvePointSetArray *hits=0; 
 TEveTrackList *gTrackList = 0; 
 Int_t iEvent = 0;
+TCanvas *can;
+TH2D *Etop_dist;
+TH2D *Ebot_dist;
 
 //==============================================================================
 // Constants.
@@ -82,6 +85,7 @@ TTreeReaderArray<Int_t> pdg(myReader, "MCParticles.PDG");
 
 TTreeReaderArray<Double_t> *lumiTracker_x, *lumiTracker_y, *lumiTracker_z;
 TTreeReaderArray<Float_t> *lumiCAL_x, *lumiCAL_y, *lumiCAL_z;
+TTreeReaderArray<Float_t> *lumiCAL_E;
 
 void epic_display()
 {
@@ -96,6 +100,12 @@ void epic_display()
   lumiCAL_x = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.x"); 
   lumiCAL_y = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.y"); 
   lumiCAL_z = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.z"); 
+  lumiCAL_E = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.energy"); 
+
+  can = new TCanvas("can","Energy dist", 1000,0, 600, 1000);
+  can->Divide(1,2);
+  Etop_dist = new TH2D("Etop_dist", "top CAL E distribution;x (mm);y (mm)",10,-100,100, 10,69,269);
+  Ebot_dist = new TH2D("Ebot_dist", "bottom CAL E distribution;x (mm);y (mm)",10,-100,100, 10,-69,-269);
 
   gROOT->LoadMacro("MultiView.C+");
   run_epic_display();
@@ -221,6 +231,8 @@ void epic_load_event()
   myReader.SetEntry(iEvent);
   gTrackList->DestroyElements();
   hits->DestroyElements();
+  Etop_dist->Reset("ICESM");
+  Ebot_dist->Reset("ICESM");
 
   Int_t propagator = 1; // 0 default, 1 RungeKutta, 2 kHelix
   TEveTrackPropagator *trkProp = gTrackList->GetPropagator(); //default propogator
@@ -262,9 +274,28 @@ void epic_load_event()
   gTrackList->SetLineColor(kMagenta);
   TEvePointSet *hits_EPIC[2];
   if (flag){
-    hits->AddElement( AddHits(lumiTracker_x, lumiTracker_y, lumiTracker_z, hits_EPIC[0],"Lumi Tracker Hits") );
-    hits->AddElement( AddHits(lumiCAL_x, lumiCAL_y, lumiCAL_z, hits_EPIC[1],"Lumi CAL Hits") );
+    hits->AddElement( AddHits(lumiTracker_x, lumiTracker_y, lumiTracker_z, hits_EPIC[0], "Lumi Tracker Hits") );
+    hits->AddElement( AddHits(lumiCAL_x, lumiCAL_y, lumiCAL_z, hits_EPIC[1], "Lumi CAL Hits") );
   }
+
+  for (Int_t hitno=0; hitno < lumiCAL_x->GetSize(); ++hitno) {
+    if( lumiCAL_y->At(hitno) > 0 ) {
+      Etop_dist->Fill( lumiCAL_x->At(hitno), lumiCAL_y->At(hitno), lumiCAL_E->At(hitno));
+      //cout<<"x: "<<lumiCAL_x->At(hitno)<<"   y: "<<lumiCAL_y->At(hitno)<<"    E: "<<lumiCAL_E->At(hitno)<<endl;
+    }
+    else {
+      Ebot_dist->Fill( lumiCAL_x->At(hitno), lumiCAL_y->At(hitno), lumiCAL_E->At(hitno));
+    }
+  }
+
+  gStyle->SetOptStat(0);
+  gStyle->SetPalette(kBird);
+  can->cd(1);
+  Etop_dist->Draw("colz");
+  can->cd(2);
+  Ebot_dist->Draw("colz");
+
+
 
   /////////////////////////////////////////////////////
   // Viewer settings
