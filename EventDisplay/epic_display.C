@@ -105,7 +105,7 @@ void epic_display()
   can = new TCanvas("can","Energy dist", 1000,0, 600, 1000);
   can->Divide(1,2);
   Etop_dist = new TH2D("Etop_dist", "top CAL E distribution;x (mm);y (mm)",10,-100,100, 10,69,269);
-  Ebot_dist = new TH2D("Ebot_dist", "bottom CAL E distribution;x (mm);y (mm)",10,-100,100, 10,-69,-269);
+  Ebot_dist = new TH2D("Ebot_dist", "bottom CAL E distribution;x (mm);y (mm)",10,-100,100, 10,-269,-69);
 
   gROOT->LoadMacro("MultiView.C+");
   run_epic_display();
