@@ -46,9 +46,13 @@ TLorentzVector electron_trf; // target rest frame
 
 // converter center: -55609.5, full thickness = 1 mm
 // end of spectrometer magnet: -56390
-double Vz = -56095; // Primary vertex location in mm
+FourVector PV = {0,0,0,0}; // Primary vertex location (x,y,z,t) in mm or mm/c
 
-int PhotonsPerEvent = 1;
+int PhotonsPerEvent = 2;
+// x,y,z,t location of conversions in mm or mm/c
+vector<FourVector> pos_conversions = { FourVector(10,10,-55610,0), FourVector(-10,-10,-55610,0) };
+//vector<FourVector> pos_conversions = { FourVector(10,10,-55609,0), FourVector(-10,-10,-55609,0) };
+
 double Z = 1; // ion beam particle charge
 double electronPz = -18;
 double hadronPz = 275;
@@ -62,7 +66,7 @@ double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
 
-void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, double Egamma_start = 10.0, double Egamma_end = 10.0, string out_fname="genParticles.hepmc") {
+void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, double Egamma_start = 18.0, double Egamma_end = 18.0, string out_fname="genParticles.hepmc") {
  
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   TH1D *BH_h1 = new TH1D("BH_h1","E",100,0,10);
@@ -88,7 +92,7 @@ void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, do
     // FourVector( px, py, pz, e, pdgid, status )
 
     // container for particles of interest
-    vector<GenParticlePtr> poi;
+    //vector<GenParticlePtr> poi;
 
     // Create one vertex and add beam particles to it
     GenVertexPtr v1 = std::make_shared<GenVertex>();
@@ -99,10 +103,13 @@ void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, do
         FourVector(0.0, 0.0, electronPz, sqrt( pow(electronPz, 2) + pow(electronMass, 2) ) ), 11, 4);
     GenParticlePtr p2 = std::make_shared<GenParticle>(
         FourVector(0.0, 0.0, hadronPz, sqrt( pow(hadronPz, 2) + pow(protonMass, 2) ) ), 2212, 4);
+    GenParticlePtr p2_out = std::make_shared<GenParticle>(
+        FourVector(0.0, 0.0, hadronPz, sqrt( pow(hadronPz, 2) + pow(protonMass, 2) ) ), 2212, 3);
     
     v1->add_particle_in( p1 );
     v1->add_particle_in( p2 );
-
+    v1->add_particle_out( p2_out ); // make the output particle a beam proton (not to be in analysis)
+    evt.add_vertex( v1 );
     
     for( int ph = 0; ph < PhotonsPerEvent; ph++ ) { // photons per event
       // E and theta of photon
@@ -118,6 +125,10 @@ void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, do
       }
 
       Double_t phi = BH_Phi->GetRandom();
+      
+      auto [id, mass] = extract_particle_parameters( "photon" );
+      GenParticlePtr p_photon_in = std::make_shared<GenParticle>( 
+          FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 3);
 
       if( convert ) { // converted photons (e+ e-), conversion according to PDG Eq 34.31, primoridal pT = 0
 
@@ -136,26 +147,36 @@ void lumi_particles(int n_events = 1e6, bool flat=true, bool convert = false, do
             FourVector(p_electron*sin(theta)*cos(phi), p_electron*sin(theta)*sin(phi), p_electron*cos(theta), E_electron), id, 1);
         GenParticlePtr p4 = std::make_shared<GenParticle>( 
             FourVector(p_positron*sin(theta)*cos(phi), p_positron*sin(theta)*sin(phi), p_positron*cos(theta), E_positron), -id, 1);
-
-        poi.push_back( p3 );
-        poi.push_back( p4 );
+        
+        GenVertexPtr vertex = std::make_shared<GenVertex>();
+        vertex->set_position( pos_conversions.at( ph ) );
+        vertex->add_particle_in( p_photon_in );
+        vertex->add_particle_out( p3 );
+        vertex->add_particle_out( p4 );
+        evt.add_vertex( vertex );
+        //poi.push_back( p3 );
+        //poi.push_back( p4 );
       }
       else { // unconverted photons
 
         auto [id, mass] = extract_particle_parameters( "photon" );
-        GenParticlePtr p3 = std::make_shared<GenParticle>( 
+        GenParticlePtr p_photon_out = std::make_shared<GenParticle>( 
             FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 1);
-
+        GenVertexPtr vertex = std::make_shared<GenVertex>();
+        vertex->set_position( pos_conversions.at( ph ) );
+        vertex->add_particle_in( p_photon_in );
+        vertex->add_particle_out( p_photon_out );
+        evt.add_vertex( vertex );
         // Add particle of interest
-        poi.push_back( p3 );
+        //poi.push_back( p3 );
       }
     }
 
-    for( auto el : poi ) { v1->add_particle_out( el ); }
-    evt.add_vertex( v1 );
+    //for( auto el : poi ) { v1->add_particle_out( el ); }
+    //evt.add_vertex( v1 );
 
     // Shift the whole event to specific point
-    evt.shift_position_to( FourVector(0,0, Vz, 0) );
+    evt.shift_position_to( PV );
 
     if (events_parsed == 0) {
       std::cout << "First event: " << std::endl;
