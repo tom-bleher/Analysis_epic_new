@@ -27,11 +27,15 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hTrackersTop_E = new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
   hTrackersBot_E = new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
 
-  hTrackers_X = new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 (mm);counts",1000,-50,50);
-  hTrackers_Y = new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (mm);counts",1000,-50,50);
-  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (mm);X electron (mm)", 1000,-50,50, 1000,-50,50);
-  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (mm);Y electron (mm)", 1000,-50,50, 1000,-50,50);
+  hTrackers_X_allPairs = new TH1D("hTrackers_X_allPairs","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5);
+  hTrackers_Y_allPairs = new TH1D("hTrackers_Y_allPairs","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5);
+  hTrackers_X = new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5);
+  hTrackers_Y = new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5);
+  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (cm);X electron (cm)", 1000,-5,5, 1000,-5,5);
+  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (cm);Y electron (cm)", 1000,-5,5, 1000,-5,5);
 
+  hTrackers_InvMass_allPairs = new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1);
+  hTrackers_InvMass = new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1);
 
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
@@ -48,7 +52,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   hCAL_Eres = new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50);
 
   hProtoClusterCount = new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5);
-  hClusterCount = new TH1D("hClusterCount", "Number of clusters / event", 20,-0.5,19.5);
+  hClusterCount = new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5);
 
   hTrackChi2 = new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1);
   hTrackersSlope = new TH1D("hTrackersSlope", "", 1000,0,1);
@@ -88,16 +92,16 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("r", &r_cluster);
   tree_Clusters->Branch("t", &t_cluster);
 
-  tree_Tracks = new TTree("tree_Tracks","Tracks");
-  tree_Tracks->Branch("X", &X_mean);
-  tree_Tracks->Branch("Y", &Y_mean);
-  tree_Tracks->Branch("Xe", &X_electron);
-  tree_Tracks->Branch("Ye", &Y_electron);
-  tree_Tracks->Branch("Xp", &X_positron);
-  tree_Tracks->Branch("Yp", &Y_positron);
-  tree_Tracks->Branch("Chi2e", &Chi2_electron);
-  tree_Tracks->Branch("Chi2p", &Chi2_positron);
   
+  tree_Tracks = new TTree("tree_Tracks","Tracks");
+  tree_Tracks->Branch("Top_X0", &treeTracks.X0_e);
+  tree_Tracks->Branch("Top_Y0", &treeTracks.Y0_e);
+  tree_Tracks->Branch("Top_slopeX", &treeTracks.slopeX_e);
+  tree_Tracks->Branch("Top_slopeY", &treeTracks.slopeY_e);
+  tree_Tracks->Branch("Bot_X0", &treeTracks.X0_p);
+  tree_Tracks->Branch("Bot_Y0", &treeTracks.Y0_p);
+  tree_Tracks->Branch("Bot_slopeX", &treeTracks.slopeX_p);
+  tree_Tracks->Branch("Bot_slopeY", &treeTracks.slopeY_p);
 }
 
 //-------------------------------------------
@@ -220,7 +224,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double gpos_x[maxModules][maxSectors] = {0.0};
   double gpos_y[maxModules][maxSectors] = {0.0};
   int counts_Tr[maxModules][maxSectors] = {0};
-
+  
   
   for( auto hit : Tracker_hits() ){
 
@@ -247,7 +251,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     if( sec_id < maxSectors && mod_id < maxModules ) {
 
       MyHit myhit = {gpos.x(), gpos.y(), Tracker_Zs[mod_id]}; // cm
-      //cout<<setprecision(6)<<get<0>(myhit)<<"  "<<get<1>(myhit)<<"  "<<get<2>(myhit)<<endl;
+      //cout<<setprecision(6)<<"hit X: "<<get<0>(myhit)<<"   hit Y: "<<get<1>(myhit)<<"   hit Z: "<<get<2>(myhit)<<endl;
 
       if( sec_id == 0 ) { // top
         if( mod_id == 0 ) { // closest to IP
@@ -295,66 +299,70 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   // Remove high Chi2 tracks (likely due to secondary hits)
   vector<TrackClass> TopTracks;
   vector<TrackClass> BotTracks;
-  for( auto track : AllTopTracks ) { if( track.Chi2/3. < max_chi2ndf ) { TopTracks.push_back( track ); } }
-  for( auto track : AllBotTracks ) { if( track.Chi2/3. < max_chi2ndf ) { BotTracks.push_back( track ); } }
+  TreeTrackClass tracks;
+  for( auto track : AllTopTracks ) { 
+    if( track.Chi2/3. < max_chi2ndf ) { 
+      TopTracks.push_back( track );
+      tracks.X0_e.push_back( XatConverter( track ) );
+      tracks.Y0_e.push_back( YatConverter( track ) );
+      tracks.slopeX_e.push_back( track.slopeX );
+      tracks.slopeY_e.push_back( track.slopeY );
+    } 
+  }
+  for( auto track : AllBotTracks ) { 
+    if( track.Chi2/3. < max_chi2ndf ) { 
+      BotTracks.push_back( track ); 
+      tracks.X0_p.push_back( XatConverter( track ) );
+      tracks.Y0_p.push_back( YatConverter( track ) );
+      tracks.slopeX_p.push_back( track.slopeX );
+      tracks.slopeY_p.push_back( track.slopeY );
+    } 
+  }
+  treeTracks = tracks;
 
-  //cout<<"N good TopTracks: "<<TopTracks.size()<<endl;
-  //cout<<"N good BotTracks: "<<BotTracks.size()<<endl;
-  //if( TopTracks.size() > 1 ) {
+  tree_Tracks->Fill();
 
-  //  for( auto el : TopTracks ) {
-  //    cout<<el.slopeX<<"  "<<el.slopeY<<"    "<<el.Chi2<<endl;
-  //  }
-
-  //  for( auto hit : TopTracker1 ) { cout<<"1  x: "<<std::get<0>(hit)<<"   y: "<<std::get<1>(hit)<<endl; }
-  //  for( auto hit : TopTracker2 ) { cout<<"2  x: "<<std::get<0>(hit)<<"   y: "<<std::get<1>(hit)<<endl; }
-  //  for( auto hit : TopTracker3 ) { cout<<"3  x: "<<std::get<0>(hit)<<"   y: "<<std::get<1>(hit)<<endl; }
-
-  //}
-
-
+  //PrintTrackInfo(TopTracks, BotTracks);
+  
   for( auto track : TopTracks ) {
-    double Etop = TrackerErec( track );
+    double Etop = TrackerErec( track.slopeY );
     hTrackersTop_E->Fill( Einput, Etop );
     hTrackersSlope->Fill( track.slopeY );
   }
   for( auto track : BotTracks ) {
-    double Ebot = TrackerErec( track );
+    double Ebot = TrackerErec( track.slopeY );
     hTrackersBot_E->Fill( Einput, Ebot );
     hTrackersSlope->Fill( track.slopeY );
   }
 
   for( auto topTrack : TopTracks ) {
-    
-    double Etop = TrackerErec( topTrack );
-    double xtop_c = (topTrack.slopeX * LumiConverter_Z + topTrack.X0);
-    double ytop_c = (topTrack.slopeY * LumiSpecMagEnd_Z + topTrack.Y0) - DeltaYmagnet( Etop, topTrack.charge );
+
+    double Etop = TrackerErec( topTrack.slopeY );
+    double xtop_c = XatConverter( topTrack );
+    double ytop_c = YatConverter( topTrack );
 
     for( auto botTrack : BotTracks ) {
+      
+      double Ebot = TrackerErec( botTrack.slopeY );
+      double xbot_c = XatConverter( botTrack );
+      double ybot_c = YatConverter( botTrack );
 
-      double Ebot = TrackerErec( botTrack );
-      double xbot_c = (botTrack.slopeX * LumiConverter_Z + botTrack.X0);
-      double ybot_c = (botTrack.slopeY * LumiSpecMagEnd_Z + botTrack.Y0) - DeltaYmagnet( Ebot, botTrack.charge );
+      double pairMass = GetPairMass( topTrack, botTrack );
+      hTrackers_InvMass_allPairs->Fill( pairMass );
+      
+      hTrackers_X_allPairs->Fill( (xtop_c + xbot_c)/2. );
+      hTrackers_Y_allPairs->Fill( (ytop_c + ybot_c)/2. );
 
-      //cout<<"Egen = "<<Einput<<"  E_trackers = "<<E_trackers<<endl;
-      //cout<<xtop_c<<"  "<<xbot_c<<"    "<<ytop_c<<"  "<<ybot_c<<endl;
+      if( fabs(xtop_c - xbot_c) > 2*Tracker_sigma || fabs(ytop_c - ybot_c) > 2*Tracker_sigma ) { continue; }
+      //if( fabs(ytop_c - ybot_c) > 2*Tracker_sigma ) { continue; }
+      
       hTrackers_X->Fill( (xtop_c + xbot_c)/2. );
       hTrackers_Y->Fill( (ytop_c + ybot_c)/2. );
+      hTrackers_InvMass->Fill( pairMass );
       hTrackers_Eres->Fill( Einput, (Einput - (Etop + Ebot) )/Einput );
       hTrackers_E->Fill( Einput, Etop + Ebot );
       hTrackers_X_BotVsTop->Fill( xtop_c, xbot_c );
       hTrackers_Y_BotVsTop->Fill( ytop_c, ybot_c );
-
-      X_mean = (xtop_c + xbot_c) / 2.;
-      Y_mean = (ytop_c + ybot_c) / 2.;
-      X_electron = xtop_c;
-      Y_electron = ytop_c;
-      Chi2_electron = topTrack.Chi2;
-      X_positron = xbot_c;
-      Y_positron = ybot_c;
-      Chi2_positron = botTrack.Chi2;
-
-      tree_Tracks->Fill();
     }
   }
 
@@ -382,9 +390,9 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 } // End of the Sequential Process Function
 
 //-------------------------------------------------------------------------
-double analyzeLumiHits::TrackerErec( TrackClass track ) {
+double analyzeLumiHits::TrackerErec( double slopeY ) {
 
-  double sinTheta = fabs( sin( atan(track.slopeY) ) );
+  double sinTheta = fabs( sin( atan(slopeY) ) );
  
   if( sinTheta == 0 ) { return 0.0; }
 
@@ -409,7 +417,9 @@ bool analyzeLumiHits::PixelOverlap( MyHit hit, vector<MyHit> trackSet ) {
 //-------------------------------------------------------------------------
 void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<MyHit>> hitSet ) {
 
- for( auto hit1 : hitSet[0] ) {
+  // units of hits are in cm
+
+  for( auto hit1 : hitSet[0] ) { // tracker hit closest to IP
 
     for( auto hit2 : hitSet[1] ) {
 
@@ -437,7 +447,13 @@ void analyzeLumiHits::AssembleTracks( vector<TrackClass> *tracks, vector<vector<
         track.slopeY = (3. * sum_zy - sum_z * sum_y) / (3. * sum_zz - sum_z * sum_z);
         track.X0 = (sum_x - track.slopeX * sum_z) / 3.0;
         track.Y0 = (sum_y - track.slopeY * sum_z) / 3.0;
-        
+        // calculate polar (theta) and azimuthal angles (phi)
+        double delta_x = std::get<0>(hit3) - std::get<0>(hit1);
+        double delta_y = std::get<1>(hit3) - std::get<1>(hit1);
+        double delta_z = std::get<2>(hit3) - std::get<2>(hit1);
+        track.phi = atan2( delta_y, delta_x );
+        track.theta = TMath::Pi() + atan( sqrt( pow(delta_x, 2) + pow(delta_y, 2) ) / delta_z );
+
         // Chi2
         double Chi2 = 0;
         auto hit_group = {hit1, hit2, hit3};
@@ -467,6 +483,22 @@ double analyzeLumiHits::DeltaYmagnet( double E, double charge ) {
   return -charge * dy; // cm
 }
 
+//-------------------------------------------------------------------------
+double analyzeLumiHits::XatConverter( TrackClass track ) {
+
+  double x_c = (track.slopeX * LumiConverter_Z + track.X0);
+  
+  return x_c;
+}
+
+//-------------------------------------------------------------------------
+double analyzeLumiHits::YatConverter( TrackClass track ) {
+  double E = TrackerErec( track.slopeY );
+  double y_c = (track.slopeY * LumiSpecMagEnd_Z + track.Y0) - DeltaYmagnet( E, track.charge );
+  
+  return y_c;
+}
+
 //-------------------------------------------
 // FinishWithGlobalRootLock
 //-------------------------------------------
@@ -475,4 +507,52 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
   // Do any final calculations here.
 }
 
+//-------------------------------------------------------------------------
+void analyzeLumiHits::PrintTrackInfo( vector<TrackClass> topTracks, vector<TrackClass> botTracks) {
+  cout<<"N good TopTracks: "<<topTracks.size()<<endl;
+  for( auto el : topTracks ) {
+    cout<<"theta: "<<el.theta<<"    phi: "<<el.phi<<"   slopeX: "<<el.slopeX<<"   slopeY: "<<el.slopeY<<"    Chi2: "<<el.Chi2<<endl;
+  }
 
+  cout<<"N good BotTracks: "<<botTracks.size()<<endl;
+  for( auto el : botTracks ) {
+    cout<<"theta: "<<el.theta<<"    phi: "<<el.phi<<"   slopeX: "<<el.slopeX<<"   slopeY: "<<el.slopeY<<"    Chi2: "<<el.Chi2<<endl;
+  }
+}
+
+//-------------------------------------------------------------------------
+double analyzeLumiHits::GetPairMass( TrackClass top, TrackClass bot ) {
+  
+  double Etop = TrackerErec( top.slopeY );
+  double Ebot = TrackerErec( bot.slopeY );
+  double p_top = sqrt( pow(Etop,2) - pow(constants::mass_electron,2) );
+  double p_bot = sqrt( pow(Ebot,2) - pow(constants::mass_electron,2) );
+
+  TLorentzVector electron_p;
+  TLorentzVector positron_p;
+  
+  electron_p.SetXYZM( 
+      p_top*sin(top.theta)*cos(top.phi), 
+      p_top*sin(top.theta)*sin(top.phi), 
+      p_top*cos(top.theta), 
+      constants::mass_electron );
+  // subtract py induced by B field
+  double pYZ_top = sqrt( pow(electron_p.Y(), 2) + pow(electron_p.Z(), 2) ); // conserved
+  electron_p.SetY( electron_p.Y() - pT );
+  electron_p.SetZ( sqrt( pow(pYZ_top, 2) - pow(electron_p.Y(), 2) ) );
+
+  positron_p.SetXYZM( 
+      p_bot*sin(bot.theta)*cos(bot.phi), 
+      p_bot*sin(bot.theta)*sin(bot.phi), 
+      p_bot*cos(bot.theta), 
+      constants::mass_electron );
+  // subtract py induced by B field
+  double pYZ_bot = sqrt( pow(positron_p.Y(), 2) + pow(positron_p.Z(), 2) ); // conserved
+  positron_p.SetY( positron_p.Y() + pT );
+  positron_p.SetZ( sqrt( pow(pYZ_bot, 2) - pow(positron_p.Y(), 2) ) );
+  
+  //electron_p.Print();
+  //positron_p.Print();
+
+  return (electron_p + positron_p).M();
+}

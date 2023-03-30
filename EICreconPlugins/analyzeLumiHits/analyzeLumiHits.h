@@ -11,6 +11,7 @@
 #include <TProfile.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <TLorentzVector.h>
 
 #include <edm4hep/SimTrackerHit.h>
 #include <edm4hep/SimCalorimeterHit.h>
@@ -22,6 +23,8 @@
 
 #include <services/geometry/dd4hep/JDD4hep_service.h>
 
+#include "../../utilities/constants.h"
+
 using namespace std;
 
 typedef std::tuple<double,double,double> MyHit;
@@ -32,7 +35,21 @@ struct TrackClass {
   double Y0;
   double slopeX;
   double slopeY;
+  double theta;
+  double phi;
   double Chi2;
+};
+
+struct TreeTrackClass {
+  vector<double> X0_e;
+  vector<double> Y0_e;
+  vector<double> slopeX_e;
+  vector<double> slopeY_e;
+
+  vector<double> X0_p;
+  vector<double> Y0_p;
+  vector<double> slopeX_p;
+  vector<double> slopeY_p;
 };
 
 class analyzeLumiHits: public JEventProcessorSequentialRoot {
@@ -65,6 +82,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double Tracker_pixelSize = 0.005; // cm
     //maximal reduced chi^2 for tracks
     double max_chi2ndf = 0.01;
+    double Tracker_sigma = 0.19; // cm from reconstructed photon origins decaying into 2 electrons.
     
     double Einput;
     int Ntrackers;
@@ -93,10 +111,15 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     TH2D *hTrackersTop_E;
     TH2D *hTrackersBot_E;
 
+    TH1D *hTrackers_X_allPairs;
+    TH1D *hTrackers_Y_allPairs;
     TH1D *hTrackers_X;
     TH1D *hTrackers_Y;
     TH2D *hTrackers_X_BotVsTop;
     TH2D *hTrackers_Y_BotVsTop;
+
+    TH1D *hTrackers_InvMass_allPairs;
+    TH1D *hTrackers_InvMass;
 
     TH1D *hADCsignal;
     TH2D *hCALCluster_Eres;
@@ -120,15 +143,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double r_cluster;
     double t_cluster;
 
-    double X_mean;
-    double Y_mean;
-    double X_electron;
-    double Y_electron;
-    double Chi2_electron;
-    double X_positron;
-    double Y_positron;
-    double Chi2_positron;
-
+    TreeTrackClass treeTracks;
+    
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
     PrefetchT<edm4hep::RawCalorimeterHit> CAL_adc       = {this, "EcalLumiSpecRawHits"};
@@ -147,8 +163,12 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     bool PixelOverlap( MyHit hit, vector<MyHit> trackSet );
     void AssembleTracks( vector<TrackClass> *tracks, vector<vector<MyHit>> hitSet );
 
-    double TrackerErec( TrackClass track );
+    double TrackerErec( double slopeY );
     double DeltaYmagnet( double E, double charge );
+    double XatConverter( TrackClass track );
+    double YatConverter( TrackClass track );
+    double GetPairMass( TrackClass top, TrackClass bot );
+    void PrintTrackInfo( vector<TrackClass> topTracks, vector<TrackClass> botTracks );
   protected:
 
     std::shared_ptr<JDD4hep_service> m_geoSvc;
