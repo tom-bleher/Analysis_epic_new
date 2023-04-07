@@ -19,13 +19,29 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   auto rootfile = rootfile_svc->GetHistFile();
   //rootfile->mkdir("LumiHits")->cd();
 
+  // spectrometer dimensions/placements in cm
+  double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
+  LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 21;
+  LumiSpecTracker_Z2 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 11;
+  LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 1;
+
+  Tracker_Zs = {LumiSpecTracker_Z1, LumiSpecTracker_Z2, LumiSpecTracker_Z3};
+  for( auto el : Tracker_Zs ) { Tracker_meanZ += el; }
+  Tracker_meanZ /= double(Tracker_Zs.size()); 
+
+
   gHistList = new THashList();
 
-
-  // Create histograms here. e.g.
-  gHistList->Add( new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
-  gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
   
+  ////////////////////////////////////////////////////////
+  // Tracker histograms
+  rootfile->mkdir("LumiTracker")->cd();
+  
+  gHistList->Add( new TH1D("hTrackerTop_Acceptance","Top tracker electron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hTrackerBot_Acceptance","Bottom tracker positron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hTrackerCoincidence_Acceptance","Tracker coincidence acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
+
   gHistList->Add( new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
   gHistList->Add( new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
   gHistList->Add( new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
@@ -43,6 +59,9 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   gHistList->Add( new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1) );
   gHistList->Add( new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1) );
 
+  gHistList->Add( new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1) );
+  gHistList->Add( new TH1D("hTrackersSlope", "", 1000,0,1) );
+
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
       gHistList->Add( new TH2D( 
@@ -50,32 +69,27 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
     }
   }
 
+  ////////////////////////////////////////////////////////
+  // CAL histograms
+  rootfile->mkdir("LumiSpecCAL")->cd();
+
+  gHistList->Add( new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+
   gHistList->Add( new TH1D("hEraw",  "hit energy (raw)", 2500, 0, 50) );
   gHistList->Add( new TH1D("hErawTotal",  "summed hit energy (raw)", 2500, 0, 50) );
   gHistList->Add( new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
   gHistList->Add( new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
   gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
   gHistList->Add( new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50) );
+  gHistList->Add( new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50) );
+
+  ////////////////////////////////////////////////////////
+  // root dir histograms 
+  rootfile->cd();
 
   gHistList->Add( new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5) );
   gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );
-
-  gHistList->Add( new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1) );
-  gHistList->Add( new TH1D("hTrackersSlope", "", 1000,0,1) );
-
-  // spectrometer dimensions/placements in cm
-  double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
-  LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 21;
-  LumiSpecTracker_Z2 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 11;
-  LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 1;
-
-  Tracker_Zs = {LumiSpecTracker_Z1, LumiSpecTracker_Z2, LumiSpecTracker_Z3};
-  for( auto el : Tracker_Zs ) { Tracker_meanZ += el; }
-  Tracker_meanZ /= double(Tracker_Zs.size()); 
-
   gHistList->Add( new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5) );
-
-  gHistList->Add( new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50) );
  
   tree_Hits = new TTree("tree_Hits","Hits");
   tree_Hits->Branch("E", &E_hit);
@@ -328,17 +342,42 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //PrintTrackInfo(TopTracks, BotTracks);
  
   // Loop over good tracks
+  bool EventWithTopTrackNearConverterCenter = false;
+  bool EventWithBotTrackNearConverterCenter = false;
   for( auto track : TopTracks ) {
+    
     double Etop = TrackerErec( track.slopeY );
     ((TH2D *)gHistList->FindObject("hTrackersTop_E"))->Fill( Einput, Etop );
     ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
+ 
+    if( fabs( XatConverter( track ) ) < LumiConverterCut_DXY / 2. 
+        && fabs( YatConverter( track ) ) < LumiConverterCut_DXY / 2. ) {
+      EventWithTopTrackNearConverterCenter = true;
+    }
   }
   for( auto track : BotTracks ) {
+    
     double Ebot = TrackerErec( track.slopeY );
     ((TH2D *)gHistList->FindObject("hTrackersBot_E"))->Fill( Einput, Ebot );
     ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
+
+    if( fabs( XatConverter( track ) ) < LumiConverterCut_DXY / 2. 
+        && fabs( YatConverter( track ) ) < LumiConverterCut_DXY / 2. ) {
+      EventWithBotTrackNearConverterCenter = true;
+    }
   }
 
+  if( EventWithTopTrackNearConverterCenter ) { 
+    ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( Einput );
+  }
+  if( EventWithBotTrackNearConverterCenter ) { 
+    ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( Einput );
+  }
+  if( EventWithTopTrackNearConverterCenter && EventWithBotTrackNearConverterCenter ) { 
+    ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( Einput );
+  }
+
+  // Loop over good pairs of tracks
   for( auto topTrack : TopTracks ) {
 
     double Etop = TrackerErec( topTrack.slopeY );
@@ -346,7 +385,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     double ytop_c = YatConverter( topTrack );
 
     for( auto botTrack : BotTracks ) {
-      
+
       double Ebot = TrackerErec( botTrack.slopeY );
       double xbot_c = XatConverter( botTrack );
       double ybot_c = YatConverter( botTrack );

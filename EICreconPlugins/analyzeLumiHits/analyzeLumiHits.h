@@ -62,6 +62,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     int Nhits_min = 1; // 15
 
     // spectrometer dimensions/placements in cm
+    // DXY, and DZ stand for FULL widths
     double LumiSpecMag_Z = -5600;
     double LumiSpecMag_DZ = 78;
     double LumiSpecCAL_Z = -6500;
@@ -70,6 +71,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double LumiSpecCAL_FiveSigma = 6.9;
     double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
     double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
+    double LumiConverterCut_DXY = 6;
+
     double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
     // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
     double RmagPreFactor = 667.079; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in cm
