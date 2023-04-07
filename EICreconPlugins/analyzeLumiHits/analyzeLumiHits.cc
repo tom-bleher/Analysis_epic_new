@@ -19,43 +19,49 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   auto rootfile = rootfile_svc->GetHistFile();
   //rootfile->mkdir("LumiHits")->cd();
 
+  gHistList = new THashList();
+
+
   // Create histograms here. e.g.
-  hCAL_Acceptance = new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50);
-  hTrackers_Eres = new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1);
+  gHistList->Add( new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
   
-  hTrackers_E = new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
-  hTrackersTop_E = new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
-  hTrackersBot_E = new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50);
+  gHistList->Add( new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
+  gHistList->Add( new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
+  gHistList->Add( new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
 
-  hTrackers_X_allPairs = new TH1D("hTrackers_X_allPairs","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5);
-  hTrackers_Y_allPairs = new TH1D("hTrackers_Y_allPairs","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5);
-  hTrackers_X = new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5);
-  hTrackers_Y = new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5);
-  hTrackers_X_BotVsTop = new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (cm);X electron (cm)", 1000,-5,5, 1000,-5,5);
-  hTrackers_Y_BotVsTop = new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (cm);Y electron (cm)", 1000,-5,5, 1000,-5,5);
+  gHistList->Add( new TH1D("hTrackers_X_allPairs","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5) );
+  gHistList->Add( new TH1D("hTrackers_Y_allPairs","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5) );
+  gHistList->Add( new TH1D("hTrackers_DX_allPairs","#DeltaX at converter;x_{electron} - x_{positron} (cm);counts",1000,-5,5) );
+  gHistList->Add( new TH1D("hTrackers_DY_allPairs","#DeltaY at converter;y_{electron} - y_{positron} (cm);counts",1000,-5,5) );
 
-  hTrackers_InvMass_allPairs = new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1);
-  hTrackers_InvMass = new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1);
+  gHistList->Add( new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 (cm);counts",1000,-5,5) );
+  gHistList->Add( new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (cm);counts",1000,-5,5) );
+  gHistList->Add( new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (cm);X electron (cm)", 1000,-5,5, 1000,-5,5) );
+  gHistList->Add( new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (cm);Y electron (cm)", 1000,-5,5, 1000,-5,5) );
+  
+  gHistList->Add( new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1) );
+  gHistList->Add( new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1) );
 
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
-      hGlobalXY[i][j] = new TH2D( 
-          Form("hGlobalXY_%d%d", i,j), "Global Tracker Hits X vs Y;X (cm);Y (cm)", 120,-30,30, 120,-30,30);
+      gHistList->Add( new TH2D( 
+          Form("hGlobalXY_%d_%d", i,j), "Global Tracker Hits X vs Y;X (cm);Y (cm)", 120,-30,30, 120,-30,30) );
     }
   }
 
-  hEraw  = new TH1D("Eraw",  "hit energy (raw)", 2500, 0, 50);
-  hErawTotal  = new TH1D("ErawTotal",  "summed hit energy (raw)", 2500, 0, 50);
-  hEup  = new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
-  hEdw  = new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
-  hEnergy  = new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50);
-  hCAL_Eres = new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50);
+  gHistList->Add( new TH1D("hEraw",  "hit energy (raw)", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hErawTotal",  "summed hit energy (raw)", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
+  gHistList->Add( new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
+  gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
+  gHistList->Add( new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50) );
 
-  hProtoClusterCount = new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5);
-  hClusterCount = new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5);
+  gHistList->Add( new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5) );
+  gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );
 
-  hTrackChi2 = new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1);
-  hTrackersSlope = new TH1D("hTrackersSlope", "", 1000,0,1);
+  gHistList->Add( new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1) );
+  gHistList->Add( new TH1D("hTrackersSlope", "", 1000,0,1) );
 
   // spectrometer dimensions/placements in cm
   double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
@@ -67,9 +73,9 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   for( auto el : Tracker_Zs ) { Tracker_meanZ += el; }
   Tracker_meanZ /= double(Tracker_Zs.size()); 
 
-  hADCsignal  = new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5);
+  gHistList->Add( new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5) );
 
-  hCALCluster_Eres = new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50);
+  gHistList->Add( new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50) );
  
   tree_Hits = new TTree("tree_Hits","Hits");
   tree_Hits->Branch("E", &E_hit);
@@ -91,7 +97,6 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("y", &y_cluster);
   tree_Clusters->Branch("r", &r_cluster);
   tree_Clusters->Branch("t", &t_cluster);
-
   
   tree_Tracks = new TTree("tree_Tracks","Tracks");
   tree_Tracks->Branch("Top_X0", &treeTracks.X0_e);
@@ -116,13 +121,13 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   Einput = 0;
   Ntrackers = 0;
-  app->SetDefaultParameter("analyzeLumiHits:Egen", Einput);
-  app->SetDefaultParameter("analyzeLumiHits:Ntrackers", Ntrackers);
+  app->GetParameter("analyzeLumiHits:Egen", Einput);
+  app->GetParameter("analyzeLumiHits:Ntrackers", Ntrackers);
   //cout<<"E gen = "<<Einput<<"   Ntrackers = "<<Ntrackers<<endl;
 
   ///////////////////////////////////////////////////////////////////////
   // Digitized ADC raw hits
-  for( auto adc : CAL_adc() ) hADCsignal->Fill( adc->getAmplitude() );
+  for( auto adc : CAL_adc() ) ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() );
 
   ///////////////////////////////////////////////////////////////////////
   // G4 Hits
@@ -152,8 +157,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   ///////////////////////////////////////////////////////////////////////
   // Proto Island Clusters
 
-  hProtoClusterCount->Fill( CAL_protoClusters().size() );
-
+  ((TH1D *)gHistList->FindObject("hProtoClusterCount"))->Fill( CAL_protoClusters().size() );
 
   ///////////////////////////////////////////////////////////////////////
   // Reconstructed Clusters
@@ -180,11 +184,11 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     }
   }
 
-  hClusterCount->Fill( CAL_clusters().size() );
+  ((TH1D *)gHistList->FindObject("hClusterCount"))->Fill( CAL_clusters().size() );
 
-  if( E_CALup > 0 && E_CALdw > 0 ) { 
-    hCALCluster_Eres->Fill( Einput, E_CALup + E_CALdw );
-    hCAL_Acceptance->Fill( Einput );
+  if( E_CALup > 1 && E_CALdw > 1) { // Emin ~3.7 GeV
+    ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( Einput, E_CALup + E_CALdw );
+    ((TH1D *)gHistList->FindObject("hCAL_Acceptance"))->Fill( Einput );
   }
 
   ///////////////////////////////////////////////////////////////////////
@@ -203,13 +207,13 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     const int sec_id 	= (int) id_dec->get( id, sector_idx );
     const int mod_id 	= (int) id_dec->get( id, module_idx );
 
-    hEraw->Fill( hit->getEnergy() );
+    ((TH1D *)gHistList->FindObject("hEraw"))->Fill( hit->getEnergy() );
 
     E_CALhits_total += hit->getEnergy();
 
   } //Calorimeter hits close
 
-  if( E_CALhits_total > 0 ) { hErawTotal->Fill( E_CALhits_total ); }
+  if( E_CALhits_total > 0 ) { ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total ); }
 
   ///////////////////////////////////////////////////////////////////////
   // Tracker Input Section
@@ -224,7 +228,6 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double gpos_x[maxModules][maxSectors] = {0.0};
   double gpos_y[maxModules][maxSectors] = {0.0};
   int counts_Tr[maxModules][maxSectors] = {0};
-  
   
   for( auto hit : Tracker_hits() ){
 
@@ -293,8 +296,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   AssembleTracks( &AllTopTracks, TopHitSet );
   AssembleTracks( &AllBotTracks, BotHitSet );
   
-  for( auto track : AllTopTracks ) { hTrackChi2->Fill( track.Chi2/3. ); }
-  for( auto track : AllBotTracks ) { hTrackChi2->Fill( track.Chi2/3. ); }
+  for( auto track : AllTopTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
+  for( auto track : AllBotTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
 
   // Remove high Chi2 tracks (likely due to secondary hits)
   vector<TrackClass> TopTracks;
@@ -323,16 +326,17 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   tree_Tracks->Fill();
 
   //PrintTrackInfo(TopTracks, BotTracks);
-  
+ 
+  // Loop over good tracks
   for( auto track : TopTracks ) {
     double Etop = TrackerErec( track.slopeY );
-    hTrackersTop_E->Fill( Einput, Etop );
-    hTrackersSlope->Fill( track.slopeY );
+    ((TH2D *)gHistList->FindObject("hTrackersTop_E"))->Fill( Einput, Etop );
+    ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
   }
   for( auto track : BotTracks ) {
     double Ebot = TrackerErec( track.slopeY );
-    hTrackersBot_E->Fill( Einput, Ebot );
-    hTrackersSlope->Fill( track.slopeY );
+    ((TH2D *)gHistList->FindObject("hTrackersBot_E"))->Fill( Einput, Ebot );
+    ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
   }
 
   for( auto topTrack : TopTracks ) {
@@ -348,21 +352,23 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
       double ybot_c = YatConverter( botTrack );
 
       double pairMass = GetPairMass( topTrack, botTrack );
-      hTrackers_InvMass_allPairs->Fill( pairMass );
       
-      hTrackers_X_allPairs->Fill( (xtop_c + xbot_c)/2. );
-      hTrackers_Y_allPairs->Fill( (ytop_c + ybot_c)/2. );
+      ((TH1D *)gHistList->FindObject("hTrackers_InvMass_allPairs"))->Fill( pairMass );
+      ((TH1D *)gHistList->FindObject("hTrackers_X_allPairs"))->Fill( (xtop_c + xbot_c)/2. );
+      ((TH1D *)gHistList->FindObject("hTrackers_Y_allPairs"))->Fill( (ytop_c + ybot_c)/2. );
+      ((TH1D *)gHistList->FindObject("hTrackers_DX_allPairs"))->Fill( xtop_c - xbot_c );
+      ((TH1D *)gHistList->FindObject("hTrackers_DY_allPairs"))->Fill( ytop_c - ybot_c );
 
       if( fabs(xtop_c - xbot_c) > 2*Tracker_sigma || fabs(ytop_c - ybot_c) > 2*Tracker_sigma ) { continue; }
       //if( fabs(ytop_c - ybot_c) > 2*Tracker_sigma ) { continue; }
       
-      hTrackers_X->Fill( (xtop_c + xbot_c)/2. );
-      hTrackers_Y->Fill( (ytop_c + ybot_c)/2. );
-      hTrackers_InvMass->Fill( pairMass );
-      hTrackers_Eres->Fill( Einput, (Einput - (Etop + Ebot) )/Einput );
-      hTrackers_E->Fill( Einput, Etop + Ebot );
-      hTrackers_X_BotVsTop->Fill( xtop_c, xbot_c );
-      hTrackers_Y_BotVsTop->Fill( ytop_c, ybot_c );
+      ((TH1D *)gHistList->FindObject("hTrackers_InvMass"))->Fill( pairMass );
+      ((TH1D *)gHistList->FindObject("hTrackers_X"))->Fill( (xtop_c + xbot_c)/2. );
+      ((TH1D *)gHistList->FindObject("hTrackers_Y"))->Fill( (ytop_c + ybot_c)/2. );
+      ((TH2D *)gHistList->FindObject("hTrackers_Eres"))->Fill( Einput, (Einput - (Etop + Ebot) )/Einput );
+      ((TH2D *)gHistList->FindObject("hTrackers_E"))->Fill( Einput, Etop + Ebot );
+      ((TH2D *)gHistList->FindObject("hTrackers_X_BotVsTop"))->Fill( xtop_c, xbot_c );
+      ((TH2D *)gHistList->FindObject("hTrackers_Y_BotVsTop"))->Fill( ytop_c, ybot_c );
     }
   }
 
@@ -374,17 +380,17 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
         gpos_x[i][j] /= counts_Tr[i][j];
         gpos_y[i][j] /= counts_Tr[i][j];
 
-        hGlobalXY[i][j]->Fill( gpos_x[i][j], gpos_y[i][j] ); 
+        ((TH1D *)gHistList->FindObject(Form("hGlobalXY_%i_%i",i,j) ))->Fill( gpos_x[i][j], gpos_y[i][j] ); 
       } // j
     } // i
   } // Top and Bottom track check
 
   // Fill the energy histograms
   if( (E_CALup > 0) && (E_CALdw > 0) ){
-    hEnergy->Fill( E_CALup + E_CALdw );
-    hCAL_Eres->Fill( Einput, E_CALup + E_CALdw );
-    hEup->Fill( E_CALup );
-    hEdw->Fill( E_CALdw );
+    ((TH1D *)gHistList->FindObject("hEnergy"))->Fill( E_CALup + E_CALdw );
+    ((TH2D *)gHistList->FindObject("hCAL_Eres"))->Fill( Einput, E_CALup + E_CALdw );
+    ((TH1D *)gHistList->FindObject("hEup"))->Fill( E_CALup );
+    ((TH1D *)gHistList->FindObject("hEdw"))->Fill( E_CALdw );
   } //Energy check
 
 } // End of the Sequential Process Function

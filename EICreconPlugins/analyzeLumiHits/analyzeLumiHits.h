@@ -12,6 +12,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TLorentzVector.h>
+#include <THashList.h>
 
 #include <edm4hep/SimTrackerHit.h>
 #include <edm4hep/SimCalorimeterHit.h>
@@ -82,48 +83,14 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double Tracker_pixelSize = 0.005; // cm
     //maximal reduced chi^2 for tracks
     double max_chi2ndf = 0.01;
-    double Tracker_sigma = 0.19; // cm from reconstructed photon origins decaying into 2 electrons.
+    double Tracker_sigma = 0.39; // cm from reconstructed photon origins decaying into 2 electrons.
     
     double Einput;
     int Ntrackers;
 
-    // Declare histogram and tree pointers here. e.g.
-    TH1D *hCAL_Acceptance = nullptr;
-    TH1D* hEraw  	= nullptr;
-    TH1D* hErawTotal  	= nullptr;
-
-    TH2D *hGlobalXY[maxModules][maxSectors] = {{nullptr}};
-    //TH2D *hLocalXY[maxModules][maxSectors] = {{nullptr}};
-
-    TH1D* hEup 	        = nullptr;
-    TH1D* hEdw	        = nullptr;
-    TH1D* hEnergy 	= nullptr;
-
-    TH1D *hProtoClusterCount;
-    TH1D *hClusterCount;
-
-    TH1D *hTrackChi2;
-    TH1D *hTrackersSlope;
-
-    TH2D *hTrackers_Eres;
-    TH2D *hCAL_Eres;
-    TH2D *hTrackers_E;
-    TH2D *hTrackersTop_E;
-    TH2D *hTrackersBot_E;
-
-    TH1D *hTrackers_X_allPairs;
-    TH1D *hTrackers_Y_allPairs;
-    TH1D *hTrackers_X;
-    TH1D *hTrackers_Y;
-    TH2D *hTrackers_X_BotVsTop;
-    TH2D *hTrackers_Y_BotVsTop;
-
-    TH1D *hTrackers_InvMass_allPairs;
-    TH1D *hTrackers_InvMass;
-
-    TH1D *hADCsignal;
-    TH2D *hCALCluster_Eres;
-
+    // All histograms stored in a THashList
+    THashList *gHistList;
+   
     TTree *tree_Hits;
     TTree *tree_RecHits;
     TTree *tree_ProtoClusters;
