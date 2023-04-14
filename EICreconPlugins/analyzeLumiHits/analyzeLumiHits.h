@@ -112,6 +112,11 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double y_cluster;
     double r_cluster;
     double t_cluster;
+    double Radius_cluster;
+    double Dispersion_cluster;
+    double Sigma1_cluster;
+    double Sigma2_cluster;
+    double Sigma3_cluster;
 
     TreeTrackClass treeTracks;
     

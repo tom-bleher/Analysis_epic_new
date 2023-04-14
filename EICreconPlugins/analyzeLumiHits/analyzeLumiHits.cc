@@ -111,6 +111,11 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("y", &y_cluster);
   tree_Clusters->Branch("r", &r_cluster);
   tree_Clusters->Branch("t", &t_cluster);
+  tree_Clusters->Branch("Radius", &Radius_cluster);
+  tree_Clusters->Branch("Dispersion", &Dispersion_cluster);
+  tree_Clusters->Branch("Sigma2_short", &Sigma2_cluster);
+  tree_Clusters->Branch("Sigma2_long", &Sigma1_cluster);
+  tree_Clusters->Branch("Sigma2_z", &Sigma3_cluster);
   
   tree_Tracks = new TTree("tree_Tracks","Tracks");
   tree_Tracks->Branch("Top_X0", &treeTracks.X0_e);
@@ -185,6 +190,34 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     y_cluster = vec.y;
     r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
     t_cluster = cluster->getTime();
+    if( cluster->shapeParameters_size() > 0 ) {
+	    Radius_cluster = cluster->getShapeParameters(0);
+	    Dispersion_cluster = cluster->getShapeParameters(1);
+	    Sigma1_cluster = cluster->getShapeParameters(2);
+	    Sigma2_cluster = cluster->getShapeParameters(3);
+	    Sigma3_cluster = cluster->getShapeParameters(4);
+    } else {// TODO: find out why this case happens
+	    Radius_cluster = 0;
+	    Dispersion_cluster = 0;
+	    Sigma1_cluster = 0;
+	    Sigma2_cluster = 0;
+	    Sigma3_cluster = 0;
+    }
+
+
+    // Get cluster hits
+    // Loop over hits
+    // grab hit X,Y,E
+    //cout<<"Nhits: "<<cluster->hits_size()<<endl;
+    //cout<<"clusers_size: "<<cluster->clusters_size()<<endl;
+    //cout<<"shapeparameters_size: "<<cluster->shapeParameters_size()<<endl;
+    //cout<<"hitContributions_size: "<<cluster->hitContributions_size()<<endl;
+    //cout<<cluster->getShapeParameters(0)<<"  "<<cluster->getShapeParameters(1)<<endl;
+    //podio::RelationRange<edm4eic::CalorimeterHit> hits = cluster->getHits();
+    //for( auto hit : hits ) {
+    //Disp_cluster
+    //cout<<hit.getCellID()<<endl;
+    //}
 
     tree_Clusters->Fill();
 
