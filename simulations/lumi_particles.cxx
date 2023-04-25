@@ -66,7 +66,7 @@ double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
 
-void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = false, double Egamma_start = 10.0, double Egamma_end = 10.0, string out_fname="genParticles.hepmc") {
+void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, double Egamma_start = 10.0, double Egamma_end = 10.0, string out_fname="genParticles.hepmc") {
  
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   TH1D *BH_h1 = new TH1D("BH_h1","E",100,0,10);
@@ -90,9 +90,6 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = false, do
   // Create events
   for (events_parsed = 0; events_parsed < n_events; events_parsed++) {
     // FourVector( px, py, pz, e, pdgid, status )
-
-    // container for particles of interest
-    //vector<GenParticlePtr> poi;
 
     // Create one vertex and add beam particles to it
     GenVertexPtr v1 = std::make_shared<GenVertex>();
@@ -154,8 +151,6 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = false, do
         vertex->add_particle_out( p3 );
         vertex->add_particle_out( p4 );
         evt.add_vertex( vertex );
-        //poi.push_back( p3 );
-        //poi.push_back( p4 );
       }
       else { // unconverted photons
 
@@ -167,13 +162,8 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = false, do
         vertex->add_particle_in( p_photon_in );
         vertex->add_particle_out( p_photon_out );
         evt.add_vertex( vertex );
-        // Add particle of interest
-        //poi.push_back( p3 );
       }
     }
-
-    //for( auto el : poi ) { v1->add_particle_out( el ); }
-    //evt.add_vertex( v1 );
 
     // Shift the whole event to specific point
     evt.shift_position_to( PV );
