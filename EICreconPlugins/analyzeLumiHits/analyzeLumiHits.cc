@@ -73,7 +73,9 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   // CAL histograms
   rootfile->mkdir("LumiSpecCAL")->cd();
 
-  gHistList->Add( new TH1D("hCAL_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hCALTop_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hCALBot_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+  gHistList->Add( new TH1D("hCALCoincidence_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
 
   gHistList->Add( new TH1D("hEraw",  "hit energy (raw)", 2500, 0, 50) );
   gHistList->Add( new TH1D("hErawTotal",  "summed hit energy (raw)", 2500, 0, 50) );
@@ -86,6 +88,8 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   ////////////////////////////////////////////////////////
   // root dir histograms 
   rootfile->cd();
+
+  gHistList->Add( new TH1D("hGenEventCount", "Number of generated events per Egen;E_{#gamma} (GeV);Nevents", 2500, 0, 50) );
 
   gHistList->Add( new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5) );
   gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );
@@ -113,9 +117,8 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Clusters->Branch("t", &t_cluster);
   tree_Clusters->Branch("Radius", &Radius_cluster);
   tree_Clusters->Branch("Dispersion", &Dispersion_cluster);
-  tree_Clusters->Branch("Sigma2_short", &Sigma2_cluster);
-  tree_Clusters->Branch("Sigma2_long", &Sigma1_cluster);
-  tree_Clusters->Branch("Sigma2_z", &Sigma3_cluster);
+  tree_Clusters->Branch("SigmaThetaPhi_short", &SigmaThetaPhi2_cluster);
+  tree_Clusters->Branch("SigmaThetaPhi_long", &SigmaThetaPhi1_cluster);
   
   tree_Tracks = new TTree("tree_Tracks","Tracks");
   tree_Tracks->Branch("Top_X0", &treeTracks.X0_e);
@@ -144,6 +147,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   app->GetParameter("analyzeLumiHits:Ntrackers", Ntrackers);
   //cout<<"E gen = "<<Einput<<"   Ntrackers = "<<Ntrackers<<endl;
 
+  ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( Einput );
+  
   ///////////////////////////////////////////////////////////////////////
   // Digitized ADC raw hits
   for( auto adc : CAL_adc() ) ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() );
@@ -191,34 +196,17 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     r_cluster = sqrt( pow(x_cluster, 2) + pow(y_cluster, 2) );
     t_cluster = cluster->getTime();
     if( cluster->shapeParameters_size() > 0 ) {
-	    Radius_cluster = cluster->getShapeParameters(0);
-	    Dispersion_cluster = cluster->getShapeParameters(1);
-	    Sigma1_cluster = cluster->getShapeParameters(2);
-	    Sigma2_cluster = cluster->getShapeParameters(3);
-	    Sigma3_cluster = cluster->getShapeParameters(4);
+      Radius_cluster = cluster->getShapeParameters(0);
+      Dispersion_cluster = cluster->getShapeParameters(1);
+      SigmaThetaPhi1_cluster = cluster->getShapeParameters(2);
+      SigmaThetaPhi2_cluster = cluster->getShapeParameters(3);
     } else {// TODO: find out why this case happens
-	    Radius_cluster = 0;
-	    Dispersion_cluster = 0;
-	    Sigma1_cluster = 0;
-	    Sigma2_cluster = 0;
-	    Sigma3_cluster = 0;
+      Radius_cluster = 0;
+      Dispersion_cluster = 0;
+      SigmaThetaPhi1_cluster = 0;
+      SigmaThetaPhi2_cluster = 0;
     }
-
-
-    // Get cluster hits
-    // Loop over hits
-    // grab hit X,Y,E
-    //cout<<"Nhits: "<<cluster->hits_size()<<endl;
-    //cout<<"clusers_size: "<<cluster->clusters_size()<<endl;
-    //cout<<"shapeparameters_size: "<<cluster->shapeParameters_size()<<endl;
-    //cout<<"hitContributions_size: "<<cluster->hitContributions_size()<<endl;
-    //cout<<cluster->getShapeParameters(0)<<"  "<<cluster->getShapeParameters(1)<<endl;
-    //podio::RelationRange<edm4eic::CalorimeterHit> hits = cluster->getHits();
-    //for( auto hit : hits ) {
-    //Disp_cluster
-    //cout<<hit.getCellID()<<endl;
-    //}
-
+   
     tree_Clusters->Fill();
 
     if( Nhits_cluster < Nhits_min ) { continue; }
@@ -233,9 +221,15 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   ((TH1D *)gHistList->FindObject("hClusterCount"))->Fill( CAL_clusters().size() );
 
+  if( E_CALup > 1 ) {
+    ((TH1D *)gHistList->FindObject("hCALTop_Acceptance"))->Fill( Einput );
+  }
+  if( E_CALdw > 1 ) {
+    ((TH1D *)gHistList->FindObject("hCALBot_Acceptance"))->Fill( Einput );
+  }
   if( E_CALup > 1 && E_CALdw > 1) { // Emin ~3.7 GeV
     ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( Einput, E_CALup + E_CALdw );
-    ((TH1D *)gHistList->FindObject("hCAL_Acceptance"))->Fill( Einput );
+    ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance"))->Fill( Einput );
   }
 
   ///////////////////////////////////////////////////////////////////////

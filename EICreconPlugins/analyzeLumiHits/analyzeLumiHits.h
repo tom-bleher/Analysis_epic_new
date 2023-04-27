@@ -114,9 +114,8 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double t_cluster;
     double Radius_cluster;
     double Dispersion_cluster;
-    double Sigma1_cluster;
-    double Sigma2_cluster;
-    double Sigma3_cluster;
+    double SigmaThetaPhi1_cluster;
+    double SigmaThetaPhi2_cluster;
 
     TreeTrackClass treeTracks;
     
@@ -126,7 +125,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     PrefetchT<edm4eic::CalorimeterHit> CAL_rechits      = {this, "EcalLumiSpecRecHits"};
     PrefetchT<edm4eic::ProtoCluster> CAL_protoClusters  = {this, "EcalLumiSpecIslandProtoClusters"};
     PrefetchT<edm4eic::Cluster> CAL_clusters            = {this, "EcalLumiSpecClusters"};
-    
+
     PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
 
   public:

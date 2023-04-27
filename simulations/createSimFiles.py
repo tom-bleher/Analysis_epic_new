@@ -32,6 +32,6 @@ for file in sorted(os.listdir(genPath),):
 # start Pool of processes
 pool = multiprocessing.Pool(8) # 8 processes to start
 
-# run processes
+# run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands ) 
 
