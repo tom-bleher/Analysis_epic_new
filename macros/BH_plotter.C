@@ -26,6 +26,8 @@ double muonMass = 0.1056583745;
 double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
+double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = nullptr );
+
 void BH_plotter(bool plotFromFile = false) {
 
   gStyle->SetOptStat(0);
@@ -88,8 +90,46 @@ void BH_plotter(bool plotFromFile = false) {
     gPad->SetLogy();
   }
 
+  double Elow = 8, Ehigh = 18; // GeV
+  TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Apr28.root","READ");
+  TH1D *hAcc = nullptr;
+  if( fAcc ) {
+     cout<<"Acceptance file found"<<endl;
+     //hAcc = (TH1D*)fAcc->Get("hCALCoincidence_Acceptance");
+  }
+  
+  double crossSection = IntegratedCrossSection( Elow, Ehigh, BH_E, hAcc );
+
+  double LumiInst = 1.54e33; // instantenous lumi (cm^-2*sec^-1)
+  double mbTocm2 = 1e-27;
+  double Tbunch = 44e-9; // spacing between bunch centers in sec
+  double LumiPerBunch = LumiInst * mbTocm2 * Tbunch;
+
+  double photonsPerBunchCrossing = LumiPerBunch * crossSection;
+
+  cout<<"Integrated Bremsstrahlung cross section = "<<crossSection<<" mb"<<endl;
+  cout<<"Number of photons per bunch crossing = "<<photonsPerBunchCrossing<<endl;
 
   gPad->SetGridx();
   gPad->SetGridy();
 
 }
+
+double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = nullptr ) {
+
+  double crossSection = 0;
+
+  if( ! Acc ) { // No acceptance histogram
+    crossSection = BH->Integral(Elow, Ehigh);
+  }
+  else {
+    for( int bin = 1; bin <= Acc->GetNbinsX(); bin++ ) {
+      double E = Acc->GetXaxis()->GetBinCenter(bin);
+      if( E < 0.001 || E > 18 ) continue;
+      crossSection += Acc->GetBinContent(bin) * BH->Eval( E ) * Acc->GetXaxis()->GetBinWidth(bin);
+    }
+  }
+
+  return crossSection;
+}
+
