@@ -105,6 +105,11 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double y_hit;
     double r_hit;
     double t_hit;
+    int sec_id ;
+    int mod_id ;
+    int fiber_x_id;
+    int fiber_y_id;
+    
 
     int Nhits_cluster;
     double E_cluster;
