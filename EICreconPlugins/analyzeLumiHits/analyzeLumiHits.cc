@@ -159,23 +159,29 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   ///////////////////////////////////////////////////////////////////////
   // G4 Hits
- double E_CALhits_total        = 0.0;
+  double E_CALhits_total = 0.0;
+  map<string, int> CALfield_idx_Map{ {"sector", 0}, {"module", 0}, {"fiber_x", 0}, {"fiber_y", 0}};
+
   for( auto hit : CAL_hits() ) {
 
-    const auto id       = hit->getCellID();
+    const auto id = hit->getCellID();
+    auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
 
-    //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+    // field of readout fields
+    vector<dd4hep::BitFieldElement> hitFields = id_dec->fields();
 
-    int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
-    int module_idx 	= id_dec->index( "module" ); //8x8 Matrix of bars (0-127)
-    int fiber_x_idx	= id_dec->index( "fiber_x" );
-    int fiber_y_idx	= id_dec->index( "fiber_y" );
+    // try to find the expected fields and store field index
+    for( auto field : hitFields ) {
+      if( CALfield_idx_Map.find( field.name() ) != CALfield_idx_Map.end() ) {
+        CALfield_idx_Map[ field.name() ] = id_dec->index( field.name() );
+      }
+    }
 
-    sec_id 	= (int) id_dec->get( id, sector_idx );
-    mod_id 	= (int) id_dec->get( id, module_idx );
-    fiber_x_id = (int) id_dec->get(id, fiber_x_idx);
-    fiber_y_id = (int) id_dec->get(id, fiber_y_idx);
+    // look up sector,module,fiber... id of this hit 
+    sec_id 	= (int) id_dec->get( id, CALfield_idx_Map["sector"] ); // Top (0) and Bottom (1)
+    mod_id 	= (int) id_dec->get( id, CALfield_idx_Map["module"] ); // 10x10 Matrix of bars
+    fiber_x_id  = (int) id_dec->get( id, CALfield_idx_Map["fiber_x"] );
+    fiber_y_id  = (int) id_dec->get( id, CALfield_idx_Map["fiber_y"] );
 
     E_hit = hit->getEnergy();
     edm4hep::Vector3f vec = hit->getPosition();// mm
@@ -273,20 +279,28 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   double gpos_x[maxModules][maxSectors] = {0.0};
   double gpos_y[maxModules][maxSectors] = {0.0};
   int counts_Tr[maxModules][maxSectors] = {0};
-  
+  map<string, int> Trackerfield_idx_Map{ {"sector", 0}, {"module", 0}};
+
   for( auto hit : Tracker_hits() ){
 
-    const auto id 	= hit->getCellID();
+    const auto id = hit->getCellID();
+    auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
     
     bool secondary = (hit->getQuality() == 0) ? false : true; // 1 << 30 if produced by secondary (edm4hep docs)
 
-    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
+    // field of readout fields
+    vector<dd4hep::BitFieldElement> hitFields = id_dec->fields();
 
-    int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom Layer (1)
-    int module_idx 	= id_dec->index( "module" ); //Front(0) and Back (1)
+    // try to find the expected fields and store field index
+    for( auto field : hitFields ) {
+      if( Trackerfield_idx_Map.find( field.name() ) != Trackerfield_idx_Map.end() ) {
+        Trackerfield_idx_Map[ field.name() ] = id_dec->index( field.name() );
+      }
+    }
 
-    const int sec_id 	= (int) id_dec->get( id, sector_idx ); // top or bottom
-    const int mod_id 	= (int) id_dec->get( id, module_idx ); // layer, closet to furthest from IP
+    // look up sector,module,fiber... id of this hit 
+    const int sec_id 	= (int) id_dec->get( id, Trackerfield_idx_Map["sector"] ); // top or bottom
+    const int mod_id 	= (int) id_dec->get( id, Trackerfield_idx_Map["module"] ); // layer, closet to furthest from IP
 
     //for global positions
     const auto gpos 	= m_geoSvc->cellIDPositionConverter()->position(id); // cm
