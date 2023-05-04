@@ -100,6 +100,10 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   tree_Hits->Branch("x", &x_hit);
   tree_Hits->Branch("y", &y_hit);
   tree_Hits->Branch("r", &r_hit);
+  tree_Hits->Branch("sec_id", &sec_id);
+  tree_Hits->Branch("mod_id", &mod_id);
+  tree_Hits->Branch("fiber_x_id", &fiber_x_id);
+  tree_Hits->Branch("fiber_y_id", &fiber_y_id);
 
   tree_RecHits = new TTree("tree_RecHits","RecHits");
   tree_RecHits->Branch("E", &E_hit);
@@ -155,12 +159,32 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   ///////////////////////////////////////////////////////////////////////
   // G4 Hits
+ double E_CALhits_total        = 0.0;
   for( auto hit : CAL_hits() ) {
+
+    const auto id       = hit->getCellID();
+
+    //m_geoSvc 		= app->template GetService<JDD4hep_service>();
+    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+
+    int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
+    int module_idx 	= id_dec->index( "module" ); //8x8 Matrix of bars (0-127)
+    int fiber_x_idx	= id_dec->index( "fiber_x" );
+    int fiber_y_idx	= id_dec->index( "fiber_y" );
+
+    sec_id 	= (int) id_dec->get( id, sector_idx );
+    mod_id 	= (int) id_dec->get( id, module_idx );
+    fiber_x_id = (int) id_dec->get(id, fiber_x_idx);
+    fiber_y_id = (int) id_dec->get(id, fiber_y_idx);
+
     E_hit = hit->getEnergy();
     edm4hep::Vector3f vec = hit->getPosition();// mm
     x_hit = vec.x;
     y_hit = vec.y;
     r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
+
+    ((TH1D *)gHistList->FindObject("hEraw"))->Fill( hit->getEnergy() );
+    E_CALhits_total += E_hit;
 
     tree_Hits->Fill();
   }
@@ -233,27 +257,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   }
 
   ///////////////////////////////////////////////////////////////////////
-  //Calorimeter hits
-  double E_CALhits_total        = 0.0;
-  for( auto hit : CAL_hits()  ) {
-
-    const auto id       = hit->getCellID();
-
-    //m_geoSvc 		= app->template GetService<JDD4hep_service>();
-    auto id_dec 	= m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
-
-    int sector_idx 	= id_dec->index( "sector" ); //Top (0) and Bottom (1)
-    int module_idx 	= id_dec->index( "module" ); //8x8 Matrix of bars (0-127)
-
-    const int sec_id 	= (int) id_dec->get( id, sector_idx );
-    const int mod_id 	= (int) id_dec->get( id, module_idx );
-
-    ((TH1D *)gHistList->FindObject("hEraw"))->Fill( hit->getEnergy() );
-
-    E_CALhits_total += hit->getEnergy();
-
-  } //Calorimeter hits close
-
+  
   if( E_CALhits_total > 0 ) { ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total ); }
 
   ///////////////////////////////////////////////////////////////////////
