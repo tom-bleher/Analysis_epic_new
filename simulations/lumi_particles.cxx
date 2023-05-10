@@ -26,7 +26,7 @@ using namespace HepMC3;
 
 std::tuple <int, double> extract_particle_parameters(std::string particle_name);
 std::tuple<double, double> DD_BH();
-std::tuple<double, double> SD_BH();
+std::tuple<double, double> SD_BH(double Emin, double Emax);
 std::tuple<double, double> SD_BH_trf();
 std::vector<GenParticlePtr> GenBHphoton();
 std::vector<GenParticlePtr> GenConvertedElectrons();
@@ -50,8 +50,7 @@ FourVector PV = {0,0,0,0}; // Primary vertex location (x,y,z,t) in mm or mm/c
 
 int PhotonsPerEvent = 1;
 // x,y,z,t location of particle(pair) origin wrt to PV in mm or mm/c
-vector<FourVector> pos_origins = { FourVector(0,0,-55609,0), FourVector(-10,-10,-55610,0) };
-//vector<FourVector> pos_origins = { FourVector(10,10,-55609,0), FourVector(-10,-10,-55609,0) };
+vector<FourVector> pos_origins = { FourVector(10,10,-55609,0), FourVector(-10,-10,-55610,0) };
 
 double Z = 1; // ion beam particle charge
 double electronPz = -18;
@@ -66,7 +65,7 @@ double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
 
-void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, double Egamma_start = 10.0, double Egamma_end = 10.0, string out_fname="genParticles.hepmc") {
+void lumi_particles(int n_events = 1e5, bool flat=false, bool convert = false, bool displaceVertices = false, double Egamma_start = 5.0, double Egamma_end = 18.0, string out_fname="genParticles.hepmc") {
  
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   TH1D *BH_h1 = new TH1D("BH_h1","E",100,0,10);
@@ -85,7 +84,6 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, dou
   TRandom* r1 = new TRandom();
 
   InitializeFunctions();
-
   
   // Create events
   for (events_parsed = 0; events_parsed < n_events; events_parsed++) {
@@ -116,7 +114,7 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, dou
         theta = TMath::Pi();
       }
       else { // Bethe-Heitler
-        std::tie(E, theta) = SD_BH();
+        std::tie(E, theta) = SD_BH(Egamma_start, Egamma_end);
         //std::tie(E, theta) = DD_BH();
         theta = TMath::Pi() - theta; // photons go toward -Z
       }
@@ -146,7 +144,7 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, dou
             FourVector(p_positron*sin(theta)*cos(phi), p_positron*sin(theta)*sin(phi), p_positron*cos(theta), E_positron), -id, 1);
         
         GenVertexPtr vertex = std::make_shared<GenVertex>();
-        vertex->set_position( pos_origins.at( ph ) );
+        if( displaceVertices ) { vertex->set_position( pos_origins.at( ph ) ); }
         vertex->add_particle_in( p_photon_in );
         vertex->add_particle_out( p3 );
         vertex->add_particle_out( p4 );
@@ -158,7 +156,7 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, dou
         GenParticlePtr p_photon_out = std::make_shared<GenParticle>( 
             FourVector(E*sin(theta)*cos(phi), E*sin(theta)*sin(phi), E*cos(theta), E), id, 1);
         GenVertexPtr vertex = std::make_shared<GenVertex>();
-        vertex->set_position( pos_origins.at( ph ) );
+        if( displaceVertices ) { vertex->set_position( pos_origins.at( ph ) ); }
         vertex->add_particle_in( p_photon_in );
         vertex->add_particle_out( p_photon_out );
         evt.add_vertex( vertex );
@@ -191,6 +189,7 @@ void lumi_particles(int n_events = 1e5, bool flat=true, bool convert = true, dou
   QED_BH_h2->Write();
   fout->Close();
 
+  gApplication->Terminate();
 }
 
 //----------------------------------------------------------------------------
@@ -218,7 +217,7 @@ void InitializeFunctions() {
   electron_trf.Boost(0, 0, -hadron.Beta());
 
   // Bethe-Heitler photon energy in the Lab Frame
-  BH_E = new TF1("BH_E", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5)", 0.1,5);
+  BH_E = new TF1("BH_E", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5)", 0.1,18);
   BH_E->SetParameter( 0, Z*Z*prefactor );
   BH_E->SetParameter( 1, fabs( electron.E() ) );
   BH_E->SetParameter( 2, fabs( hadron.E() ) );
@@ -226,7 +225,7 @@ void InitializeFunctions() {
   BH_E->SetParameter( 4, electronMass );
   BH_E->SetNpx( 10000 );
 
-  BH_E_trf = new TF1("BH_E_trf", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(2*[1]*([1] - x)/([2]*x)) - 0.5)", 0.1,5);
+  BH_E_trf = new TF1("BH_E_trf", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(2*[1]*([1] - x)/([2]*x)) - 0.5)", 0.1,18);
   BH_E_trf->SetParameter( 0, Z*Z*prefactor );
   //BH_E_trf->SetParameter( 1, fabs( electron.E() ) );
   //cout<<electron.E()<<"  "<<electron_trf.E()<<endl;
@@ -287,9 +286,9 @@ std::tuple<double, double> DD_BH() {
 
 // Single-Differential Bethe-Heitler (Lab frame)
 //----------------------------------------------------------------------------
-std::tuple<double, double> SD_BH() {
+std::tuple<double, double> SD_BH(double Emin, double Emax) {
 
-  double E = BH_E->GetRandom();
+  double E = BH_E->GetRandom(Emin, Emax);
   double theta = BH_Theta->GetRandom();
 
   return std::make_tuple( E, theta );
