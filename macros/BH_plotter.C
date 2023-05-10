@@ -90,12 +90,13 @@ void BH_plotter(bool plotFromFile = false) {
     gPad->SetLogy();
   }
 
-  double Elow = 8, Ehigh = 18; // GeV
+  double Elow = 1, Ehigh = 18; // GeV
   TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Apr28.root","READ");
   TH1D *hAcc = nullptr;
   if( fAcc ) {
      cout<<"Acceptance file found"<<endl;
      //hAcc = (TH1D*)fAcc->Get("hCALCoincidence_Acceptance");
+     hAcc = (TH1D*)fAcc->Get("hCALTop_Acceptance");
   }
   
   double crossSection = IntegratedCrossSection( Elow, Ehigh, BH_E, hAcc );
@@ -104,10 +105,12 @@ void BH_plotter(bool plotFromFile = false) {
   double mbTocm2 = 1e-27;
   double Tbunch = 44e-9; // spacing between bunch centers in sec
   double LumiPerBunch = LumiInst * mbTocm2 * Tbunch;
+  double photonsPerSec = LumiInst * mbTocm2 * crossSection;
 
   double photonsPerBunchCrossing = LumiPerBunch * crossSection;
 
   cout<<"Integrated Bremsstrahlung cross section = "<<crossSection<<" mb"<<endl;
+  cout<<"Number of photons per second = "<<photonsPerSec<<endl;
   cout<<"Number of photons per bunch crossing = "<<photonsPerBunchCrossing<<endl;
 
   gPad->SetGridx();
@@ -123,11 +126,29 @@ double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = n
     crossSection = BH->Integral(Elow, Ehigh);
   }
   else {
+    int FirstGoodBin = 0;
+    double FirstBinCenter = 0;
+    double SecondBinCenter = 0;
+
     for( int bin = 1; bin <= Acc->GetNbinsX(); bin++ ) {
+      
       double E = Acc->GetXaxis()->GetBinCenter(bin);
       if( E < 0.001 || E > 18 ) continue;
-      crossSection += Acc->GetBinContent(bin) * BH->Eval( E ) * Acc->GetXaxis()->GetBinWidth(bin);
+      
+      if( Acc->GetBinContent(bin) > 0 ) {
+        if( FirstBinCenter == 0 ) {
+          FirstGoodBin = bin;
+          FirstBinCenter = Acc->GetXaxis()->GetBinCenter( bin );
+        }
+        if( SecondBinCenter == 0 && bin != FirstGoodBin ) {
+          SecondBinCenter = Acc->GetXaxis()->GetBinCenter( bin );
+        }
+      }
+      crossSection += Acc->GetBinContent(bin) * BH->Eval( E );
     }
+  
+    // Bin Width correction
+    crossSection *= (SecondBinCenter - FirstBinCenter); 
   }
 
   return crossSection;
