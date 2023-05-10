@@ -87,22 +87,24 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     //maximal reduced chi^2 for tracks
     double max_chi2ndf = 0.01;
     double Tracker_sigma = 0.39; // cm from reconstructed photon origins decaying into 2 electrons.
-    
+
     double Einput;
     int Ntrackers;
 
     // All histograms stored in a THashList
     THashList *gHistList;
    
-    TTree *tree_Hits;
-    TTree *tree_RecHits;
-    TTree *tree_ProtoClusters;
-    TTree *tree_Clusters;
-    TTree *tree_Tracks;
+    TTree *treeCAL_Hits;
+    TTree *treeCAL_RecHits;
+    TTree *treeCAL_ProtoClusters;
+    TTree *treeCAL_Clusters;
+    TTree *treeTracks;
+    TTree *treeTracker_Hits;
 
     double E_hit;
     double x_hit;
     double y_hit;
+    double z_hit;
     double r_hit;
     double t_hit;
     int sec_id ;
@@ -122,7 +124,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     double SigmaThetaPhi1_cluster;
     double SigmaThetaPhi2_cluster;
 
-    TreeTrackClass treeTracks;
+    TreeTrackClass tracks;
     
     // Data objects we will need from JANA e.g.
     PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};

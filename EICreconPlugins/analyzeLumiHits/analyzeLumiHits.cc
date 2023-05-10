@@ -65,7 +65,7 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   for( int i=0; i < maxModules; i++ ) {
     for( int j=0; j < maxSectors; j++ ) {
       gHistList->Add( new TH2D( 
-          Form("hGlobalXY_%d_%d", i,j), "Global Tracker Hits X vs Y;X (cm);Y (cm)", 120,-30,30, 120,-30,30) );
+          Form("hGlobalXY_%d_%d", i,j), "Global Tracker Hits X vs Y;X (cm);Y (cm)", 600,-30,30, 600,-30,30) );
     }
   }
 
@@ -95,44 +95,49 @@ void analyzeLumiHits::InitWithGlobalRootLock(){
   gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );
   gHistList->Add( new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5) );
  
-  tree_Hits = new TTree("tree_Hits","Hits");
-  tree_Hits->Branch("E", &E_hit);
-  tree_Hits->Branch("x", &x_hit);
-  tree_Hits->Branch("y", &y_hit);
-  tree_Hits->Branch("r", &r_hit);
-  tree_Hits->Branch("sec_id", &sec_id);
-  tree_Hits->Branch("mod_id", &mod_id);
-  tree_Hits->Branch("fiber_x_id", &fiber_x_id);
-  tree_Hits->Branch("fiber_y_id", &fiber_y_id);
+  treeCAL_Hits = new TTree("treeCAL_Hits","Hits");
+  treeCAL_Hits->Branch("E", &E_hit);
+  treeCAL_Hits->Branch("x", &x_hit);
+  treeCAL_Hits->Branch("y", &y_hit);
+  treeCAL_Hits->Branch("r", &r_hit);
+  treeCAL_Hits->Branch("sec_id", &sec_id);
+  treeCAL_Hits->Branch("mod_id", &mod_id);
+  treeCAL_Hits->Branch("fiber_x_id", &fiber_x_id);
+  treeCAL_Hits->Branch("fiber_y_id", &fiber_y_id);
 
-  tree_RecHits = new TTree("tree_RecHits","RecHits");
-  tree_RecHits->Branch("E", &E_hit);
-  tree_RecHits->Branch("x", &x_hit);
-  tree_RecHits->Branch("y", &y_hit);
-  tree_RecHits->Branch("r", &r_hit);
-  tree_RecHits->Branch("t", &t_hit);
+  treeCAL_RecHits = new TTree("treeCAL_RecHits","RecHits");
+  treeCAL_RecHits->Branch("E", &E_hit);
+  treeCAL_RecHits->Branch("x", &x_hit);
+  treeCAL_RecHits->Branch("y", &y_hit);
+  treeCAL_RecHits->Branch("r", &r_hit);
+  treeCAL_RecHits->Branch("t", &t_hit);
 
-  tree_Clusters = new TTree("tree_Clusters","Clusters");
-  tree_Clusters->Branch("Nhits", &Nhits_cluster);
-  tree_Clusters->Branch("E", &E_cluster);
-  tree_Clusters->Branch("x", &x_cluster);
-  tree_Clusters->Branch("y", &y_cluster);
-  tree_Clusters->Branch("r", &r_cluster);
-  tree_Clusters->Branch("t", &t_cluster);
-  tree_Clusters->Branch("Radius", &Radius_cluster);
-  tree_Clusters->Branch("Dispersion", &Dispersion_cluster);
-  tree_Clusters->Branch("SigmaThetaPhi_short", &SigmaThetaPhi2_cluster);
-  tree_Clusters->Branch("SigmaThetaPhi_long", &SigmaThetaPhi1_cluster);
-  
-  tree_Tracks = new TTree("tree_Tracks","Tracks");
-  tree_Tracks->Branch("Top_X0", &treeTracks.X0_e);
-  tree_Tracks->Branch("Top_Y0", &treeTracks.Y0_e);
-  tree_Tracks->Branch("Top_slopeX", &treeTracks.slopeX_e);
-  tree_Tracks->Branch("Top_slopeY", &treeTracks.slopeY_e);
-  tree_Tracks->Branch("Bot_X0", &treeTracks.X0_p);
-  tree_Tracks->Branch("Bot_Y0", &treeTracks.Y0_p);
-  tree_Tracks->Branch("Bot_slopeX", &treeTracks.slopeX_p);
-  tree_Tracks->Branch("Bot_slopeY", &treeTracks.slopeY_p);
+  treeCAL_Clusters = new TTree("treeCAL_Clusters","Clusters");
+  treeCAL_Clusters->Branch("Nhits", &Nhits_cluster);
+  treeCAL_Clusters->Branch("E", &E_cluster);
+  treeCAL_Clusters->Branch("x", &x_cluster);
+  treeCAL_Clusters->Branch("y", &y_cluster);
+  treeCAL_Clusters->Branch("r", &r_cluster);
+  treeCAL_Clusters->Branch("t", &t_cluster);
+  treeCAL_Clusters->Branch("Radius", &Radius_cluster);
+  treeCAL_Clusters->Branch("Dispersion", &Dispersion_cluster);
+  treeCAL_Clusters->Branch("SigmaThetaPhi_short", &SigmaThetaPhi2_cluster);
+  treeCAL_Clusters->Branch("SigmaThetaPhi_long", &SigmaThetaPhi1_cluster);
+ 
+  treeTracker_Hits = new TTree("treeTracker_Hits","Hits");
+  treeTracker_Hits->Branch("x", &x_hit);
+  treeTracker_Hits->Branch("y", &y_hit);
+  treeTracker_Hits->Branch("z", &z_hit);
+
+  treeTracks = new TTree("treeTracks","Tracks");
+  treeTracks->Branch("Top_X0", &tracks.X0_e);
+  treeTracks->Branch("Top_Y0", &tracks.Y0_e);
+  treeTracks->Branch("Top_slopeX", &tracks.slopeX_e);
+  treeTracks->Branch("Top_slopeY", &tracks.slopeY_e);
+  treeTracks->Branch("Bot_X0", &tracks.X0_p);
+  treeTracks->Branch("Bot_Y0", &tracks.Y0_p);
+  treeTracks->Branch("Bot_slopeX", &tracks.slopeX_p);
+  treeTracks->Branch("Bot_slopeY", &tracks.slopeY_p);
 }
 
 //-------------------------------------------
@@ -154,11 +159,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( Einput );
   
   ///////////////////////////////////////////////////////////////////////
-  // Digitized ADC raw hits
-  for( auto adc : CAL_adc() ) ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() );
-
-  ///////////////////////////////////////////////////////////////////////
-  // G4 Hits
+  // CAL Hits
   double E_CALhits_total = 0.0;
   map<string, int> CALfield_idx_Map{ {"sector", 0}, {"module", 0}, {"fiber_x", 0}, {"fiber_y", 0}};
 
@@ -192,11 +193,15 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     ((TH1D *)gHistList->FindObject("hEraw"))->Fill( hit->getEnergy() );
     E_CALhits_total += E_hit;
 
-    tree_Hits->Fill();
+    treeCAL_Hits->Fill();
   }
+  
+  ///////////////////////////////////////////////////////////////////////
+  // CAL Digitized ADC raw hits
+  for( auto adc : CAL_adc() ) ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() );
 
   ///////////////////////////////////////////////////////////////////////
-  // Rec Hits
+  // CAL Rec Hits
   for( auto hit : CAL_rechits() ) {
     E_hit = hit->getEnergy();
     edm4hep::Vector3f vec = hit->getPosition();// mm
@@ -205,16 +210,15 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     r_hit = sqrt( pow(x_hit, 2) + pow(y_hit, 2) );
     t_hit = hit->getTime();
 
-    tree_RecHits->Fill();
+    treeCAL_RecHits->Fill();
   }
 
   ///////////////////////////////////////////////////////////////////////
-  // Proto Island Clusters
-
+  // CAL Proto Island Clusters
   ((TH1D *)gHistList->FindObject("hProtoClusterCount"))->Fill( CAL_protoClusters().size() );
 
   ///////////////////////////////////////////////////////////////////////
-  // Reconstructed Clusters
+  // CAL Reconstructed Clusters
   double E_CALup  	= 0.0;
   double E_CALdw  	= 0.0;
   for( auto cluster : CAL_clusters() ) {
@@ -237,7 +241,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
       SigmaThetaPhi2_cluster = 0;
     }
    
-    tree_Clusters->Fill();
+    treeCAL_Clusters->Fill();
 
     if( Nhits_cluster < Nhits_min ) { continue; }
 
@@ -267,7 +271,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   if( E_CALhits_total > 0 ) { ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total ); }
 
   ///////////////////////////////////////////////////////////////////////
-  // Tracker Input Section
+  // Tracker Section
   vector<MyHit> TopTracker1;
   vector<MyHit> TopTracker2;
   vector<MyHit> TopTracker3;
@@ -338,10 +342,18 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
         }
       }
 
-      gpos_x[mod_id][sec_id] += gpos.x();
-      gpos_y[mod_id][sec_id] += gpos.y();
+      x_hit = std::get<0>(myhit);
+      y_hit = std::get<1>(myhit);
+      z_hit = std::get<2>(myhit);
+      
+      treeTracker_Hits->Fill();
 
-      counts_Tr[mod_id][sec_id]++;
+      ((TH1D *)gHistList->FindObject(Form("hGlobalXY_%i_%i",mod_id,sec_id) ))->Fill( x_hit, y_hit );
+
+      //gpos_x[mod_id][sec_id] += gpos.x();
+      //gpos_y[mod_id][sec_id] += gpos.y();
+
+      //counts_Tr[mod_id][sec_id]++;
     }
   } //Tracker hits close
 
@@ -361,28 +373,28 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   // Remove high Chi2 tracks (likely due to secondary hits)
   vector<TrackClass> TopTracks;
   vector<TrackClass> BotTracks;
-  TreeTrackClass tracks;
+  TreeTrackClass tracksBuffer;
   for( auto track : AllTopTracks ) { 
     if( track.Chi2/3. < max_chi2ndf ) { 
       TopTracks.push_back( track );
-      tracks.X0_e.push_back( XatConverter( track ) );
-      tracks.Y0_e.push_back( YatConverter( track ) );
-      tracks.slopeX_e.push_back( track.slopeX );
-      tracks.slopeY_e.push_back( track.slopeY );
+      tracksBuffer.X0_e.push_back( XatConverter( track ) );
+      tracksBuffer.Y0_e.push_back( YatConverter( track ) );
+      tracksBuffer.slopeX_e.push_back( track.slopeX );
+      tracksBuffer.slopeY_e.push_back( track.slopeY );
     } 
   }
   for( auto track : AllBotTracks ) { 
     if( track.Chi2/3. < max_chi2ndf ) { 
       BotTracks.push_back( track ); 
-      tracks.X0_p.push_back( XatConverter( track ) );
-      tracks.Y0_p.push_back( YatConverter( track ) );
-      tracks.slopeX_p.push_back( track.slopeX );
-      tracks.slopeY_p.push_back( track.slopeY );
+      tracksBuffer.X0_p.push_back( XatConverter( track ) );
+      tracksBuffer.Y0_p.push_back( YatConverter( track ) );
+      tracksBuffer.slopeX_p.push_back( track.slopeX );
+      tracksBuffer.slopeY_p.push_back( track.slopeY );
     } 
   }
-  treeTracks = tracks;
+  tracks = tracksBuffer;
 
-  tree_Tracks->Fill();
+  treeTracks->Fill();
 
   //PrintTrackInfo(TopTracks, BotTracks);
  
@@ -456,18 +468,18 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
     }
   }
 
-  if( TopTracks.size() > 0 && BotTracks.size() > 0 ){
-    // Fill of XY-histograms.
-    for( int i=0; i < maxModules; i++ ) {
-      for( int j=0; j < maxSectors; j++ ) {
-        if( counts_Tr[i][j] <= 0 ) { continue; }
-        gpos_x[i][j] /= counts_Tr[i][j];
-        gpos_y[i][j] /= counts_Tr[i][j];
+  //if( TopTracks.size() > 0 && BotTracks.size() > 0 ){
+  //  // Fill of XY-histograms.
+  //  for( int i=0; i < maxModules; i++ ) {
+  //    for( int j=0; j < maxSectors; j++ ) {
+  //      if( counts_Tr[i][j] <= 0 ) { continue; }
+  //      gpos_x[i][j] /= counts_Tr[i][j];
+  //      gpos_y[i][j] /= counts_Tr[i][j];
 
-        ((TH1D *)gHistList->FindObject(Form("hGlobalXY_%i_%i",i,j) ))->Fill( gpos_x[i][j], gpos_y[i][j] ); 
-      } // j
-    } // i
-  } // Top and Bottom track check
+  //      ((TH1D *)gHistList->FindObject(Form("hGlobalXY_%i_%i",i,j) ))->Fill( gpos_x[i][j], gpos_y[i][j] ); 
+  //    } // j
+  //  } // i
+  //} // Top and Bottom track check
 
   // Fill the energy histograms
   if( (E_CALup > 0) && (E_CALdw > 0) ){
