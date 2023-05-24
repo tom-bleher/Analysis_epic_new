@@ -9,7 +9,8 @@
 TrackerAnalysis::TrackerAnalysis() {
 
   //TackerHits = hits;
-  cout<<constants::BH_prefactor<<endl;
+  //cout<<BH_prefactor<<endl;
+  cout<<"Tracker: "<<constants::BH_prefactor<<endl;
 }
 
 #endif

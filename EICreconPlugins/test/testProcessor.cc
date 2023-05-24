@@ -34,7 +34,8 @@ void testProcessor::InitWithGlobalRootLock(){
 //-------------------------------------------
 void testProcessor::ProcessSequential(const std::shared_ptr<const JEvent>& event) {
 
-   cout<<constants::BH_prefactor<<endl;
+   cout<<"testProcessor: "<<constants::BH_prefactor<<endl;
+   //cout<<BH_prefactor<<endl;
 
    TrackerAnalysis *tracker = new TrackerAnalysis();
 }
