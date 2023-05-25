@@ -3,9 +3,7 @@
 
 #include <algorithm>
 #include <bitset>
-//#include <spdlog/spdlog.h>
 
-#include <JANA/JEventProcessorSequentialRoot.h>
 #include <TH2D.h>
 #include <TProfile.h>
 #include <TFile.h>
@@ -24,45 +22,50 @@
 
 #include <services/geometry/dd4hep/JDD4hep_service.h>
 
+#include "constants.h"
+#include "variables.h"
+#include "histogramManager.h"
+
 using namespace std;
 using namespace histogramManager;
 
-class TrackerAnalysis : public JEventProcessorSequentialRoot {
+class TrackerAnalysis {
   
   public:
 
-    TrackerAnalysis( JEventProcessorSequentialRoot::PrefetchT<edm4hep::SimTrackerHit>& hits );
-    
-    PrefetchT<edm4hep::SimTrackerHit> Tracker_hits = {this, "LumiSpecTrackerHits"};
+    TrackerAnalysis();
 
-    vector<MyHit> TopTracker1Hits;
-    vector<MyHit> TopTracker2Hits;
-    vector<MyHit> TopTracker3Hits;
-    vector<MyHit> BotTracker1Hits;
-    vector<MyHit> BotTracker2Hits;
-    vector<MyHit> BotTracker3Hits;
-
-    vector<TrackClass> AllTopTracks;
-    vector<TrackClass> AllBotTracks;
-
-    // low Chi2 tracks
-    vector<TrackClass> TopTracks;
-    vector<TrackClass> BotTracks;
-
+    void Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<JDD4hep_service> geoSvc );
     void FillTrackerHits();
     void AssembleAllTracks();
-    void AssembleTracks(vector<TrackClass> *tracks, vector<MyHit> tracker1Hits, vector<MyHit> tracker2Hits, vector<MyHit> tracker3Hits);
+    void AssembleTracks(std::vector<TrackClass> *tracks, std::vector<TrackHit> tracker1Hits, std::vector<TrackHit> tracker2Hits, std::vector<TrackHit> tracker3Hits);
     void FillTrackerTrees();
     void FillTrackerHistograms();
 
     // basic utility functions
-    bool PixelOverlap( MyHit hit, vector<MyHit> trackSet );
+    bool PixelOverlap( TrackHit hit, std::vector<TrackHit> trackSet );
     double TrackerErec( double slopeY );
     double DeltaYmagnet( double E, double charge );
     double XatConverter( TrackClass track );
     double YatConverter( TrackClass track );
     double GetPairMass( TrackClass top, TrackClass bot );
-    void PrintTrackInfo( vector<TrackClass> topTracks, vector<TrackClass> botTracks );
+    void PrintTrackInfo( std::vector<TrackClass> topTracks, std::vector<TrackClass> botTracks );
+
+    std::vector<const edm4hep::SimTrackerHit*> m_Tracker_hits;
+
+    std::vector<TrackHit> m_TopTracker1Hits;
+    std::vector<TrackHit> m_TopTracker2Hits;
+    std::vector<TrackHit> m_TopTracker3Hits;
+    std::vector<TrackHit> m_BotTracker1Hits;
+    std::vector<TrackHit> m_BotTracker2Hits;
+    std::vector<TrackHit> m_BotTracker3Hits;
+
+    std::vector<TrackClass> m_AllTopTracks;
+    std::vector<TrackClass> m_AllBotTracks;
+
+    // low Chi2 tracks
+    std::vector<TrackClass> m_TopTracks;
+    std::vector<TrackClass> m_BotTracks;
 
   protected:
     std::shared_ptr<JDD4hep_service> m_geoSvc;

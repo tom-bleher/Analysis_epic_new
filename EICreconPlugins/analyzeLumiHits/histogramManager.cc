@@ -1,21 +1,7 @@
 #ifndef HISTOGRAMMANAGER_CC
 #define HISTOGRAMMANAGER_CC
 
-#include <iostream>
-#include <bitset>
-
-#include "TH1D.h"
-#include "TH2D.h"
-#include "TH3D.h"
-#include "TTree.h"
-#include "THashList.h"
-#include "TProfile.h"
-#include "TDirectory.h"
-#include "variables.h"
-
 #include "histogramManager.h"
-
-using namespace std;
 
 namespace histogramManager {
 
@@ -79,7 +65,6 @@ namespace histogramManager {
     gHistList->Add( new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
     gHistList->Add( new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
     gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
-    gHistList->Add( new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);E_{rec}", 200,0,50, 2500,0,50) );
     gHistList->Add( new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50) );
 
     ////////////////////////////////////////////////////////
@@ -99,6 +84,7 @@ namespace histogramManager {
     gHistList->Add( new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5) );
 
     // TTrees
+    treeCAL_Hits->SetDirectory( dir );
     treeCAL_Hits->Branch("E", &variables::E_hit);
     treeCAL_Hits->Branch("x", &variables::x_hit);
     treeCAL_Hits->Branch("y", &variables::y_hit);
@@ -108,12 +94,14 @@ namespace histogramManager {
     treeCAL_Hits->Branch("fiber_x_id", &variables::fiber_x_id);
     treeCAL_Hits->Branch("fiber_y_id", &variables::fiber_y_id);
 
+    treeCAL_RecHits->SetDirectory( dir );
     treeCAL_RecHits->Branch("E", &variables::E_hit);
     treeCAL_RecHits->Branch("x", &variables::x_hit);
     treeCAL_RecHits->Branch("y", &variables::y_hit);
     treeCAL_RecHits->Branch("r", &variables::r_hit);
     treeCAL_RecHits->Branch("t", &variables::t_hit);
 
+    treeCAL_Clusters->SetDirectory( dir );
     treeCAL_Clusters->Branch("Nhits", &variables::Nhits_cluster);
     treeCAL_Clusters->Branch("E", &variables::E_cluster);
     treeCAL_Clusters->Branch("x", &variables::x_cluster);
@@ -125,10 +113,12 @@ namespace histogramManager {
     treeCAL_Clusters->Branch("SigmaThetaPhi_short", &variables::SigmaThetaPhi2_cluster);
     treeCAL_Clusters->Branch("SigmaThetaPhi_long", &variables::SigmaThetaPhi1_cluster);
 
+    treeTracker_Hits->SetDirectory( dir );
     treeTracker_Hits->Branch("x", &variables::x_hit);
     treeTracker_Hits->Branch("y", &variables::y_hit);
     treeTracker_Hits->Branch("z", &variables::z_hit);
 
+    treeTracks->SetDirectory( dir );
     treeTracks->Branch("Top_X0", &tracks.X0_e);
     treeTracks->Branch("Top_Y0", &tracks.Y0_e);
     treeTracks->Branch("Top_slopeX", &tracks.slopeX_e);

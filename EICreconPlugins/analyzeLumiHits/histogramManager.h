@@ -2,7 +2,7 @@
 #define HISTOGRAMMANAGER_H
 
 #include <iostream>
-#include <bitset>
+#include <vector>
 
 #include "TH1D.h"
 #include "TH2D.h"

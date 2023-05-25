@@ -1,33 +1,54 @@
 #ifndef TRACKER_CC
 #define TRACKER_CC
 
-#include "constants.h"
-#include "variables.h"
-#include "histogramManager.h"
-
 #include "tracker.h"
 
 // Constructor
 //-------------------------------------------------------------------------
-TrackerAnalysis::TrackerAnalysis( JEventProcessorSequentialRoot::PrefetchT<edm4hep::SimTrackerHit>& hits ) {
-  // Constructor
-  Tracker_hits = hits;
+TrackerAnalysis::TrackerAnalysis() { }
+
+// The data structure from the simulation has to be passed for each event
+//-------------------------------------------------------------------------
+void TrackerAnalysis::Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<JDD4hep_service> geoSvc ) {
+  
+  // hit structure
+  m_Tracker_hits = hits;
+
+  // geometry service
+  m_geoSvc = geoSvc;
+
+  // clear all vectors
+  m_TopTracker1Hits.clear();
+  m_TopTracker2Hits.clear();
+  m_TopTracker3Hits.clear();
+  m_BotTracker1Hits.clear();
+  m_BotTracker2Hits.clear();
+  m_BotTracker3Hits.clear();
+  m_AllTopTracks.clear();
+  m_AllBotTracks.clear();
+  m_TopTracks.clear();
+  m_BotTracks.clear();
+
 }
 
 // Fill Hit Structures
 //-------------------------------------------------------------------------
 void TrackerAnalysis::FillTrackerHits() {
 
-//global position
   map<string, int> Trackerfield_idx_Map{ {"sector", 0}, {"module", 0}};
 
-  cout<<Tracker_hits().size()<<endl;
+  for( auto hit : m_Tracker_hits ){
 
-  for( auto hit : Tracker_hits() ){
+    variables::x_hit = hit->x();
+    variables::y_hit = hit->y();
+    variables::z_hit = hit->z();
+
+    treeTracker_Hits->Fill();
 
     const auto id = hit->getCellID();
+
     auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecTrackerHits" ).idSpec().decoder();
-    
+   
     bool secondary = (hit->getQuality() == 0) ? false : true; // 1 << 30 if produced by secondary (edm4hep docs)
 
     // field of readout fields
@@ -51,32 +72,32 @@ void TrackerAnalysis::FillTrackerHits() {
     const auto volman 	= m_geoSvc->detector()->volumeManager();
     const auto alignment = volman.lookupDetElement(id).nominal();
     const auto lpos 	= alignment.worldToLocal( dd4hep::Position( gpos.x(), gpos.y(), gpos.z() ) ); // cm
-cout<<gpos.y()<<endl;
+
     if( sec_id < variables::maxSectors && mod_id < variables::maxModules ) {
 
-      MyHit myhit = {10*gpos.x(), 10*gpos.y(), variables::Tracker_Zs[mod_id]}; // mm
+      TrackHit myhit = {10*gpos.x(), 10*gpos.y(), variables::Tracker_Zs[mod_id]}; // mm
       //cout<<setprecision(6)<<"hit X: "<<get<0>(myhit)<<"   hit Y: "<<get<1>(myhit)<<"   hit Z: "<<get<2>(myhit)<<endl;
 
       if( sec_id == 0 ) { // top
         if( mod_id == 0 ) { // closest to IP
-          if( ! PixelOverlap( myhit, TopTracker1Hits ) ) { TopTracker1Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_TopTracker1Hits ) ) { m_TopTracker1Hits.push_back( myhit ); }
         }
         if( mod_id == 1 ) {
-          if( ! PixelOverlap( myhit, TopTracker2Hits ) ) { TopTracker2Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_TopTracker2Hits ) ) { m_TopTracker2Hits.push_back( myhit ); }
         }
         if( mod_id == 2 ) {
-          if( ! PixelOverlap( myhit, TopTracker3Hits ) ) { TopTracker3Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_TopTracker3Hits ) ) { m_TopTracker3Hits.push_back( myhit ); }
         }
       }
       if( sec_id == 1 ) { // bottom
         if( mod_id == 0 ) { // closest to IP
-          if( ! PixelOverlap( myhit, BotTracker1Hits ) ) { BotTracker1Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_BotTracker1Hits ) ) { m_BotTracker1Hits.push_back( myhit ); }
         }
         if( mod_id == 1 ) {
-          if( ! PixelOverlap( myhit, BotTracker2Hits ) ) { BotTracker2Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_BotTracker2Hits ) ) { m_BotTracker2Hits.push_back( myhit ); }
         }
         if( mod_id == 2 ) {
-          if( ! PixelOverlap( myhit, BotTracker3Hits ) ) { BotTracker3Hits.push_back( myhit ); }
+          if( ! PixelOverlap( myhit, m_BotTracker3Hits ) ) { m_BotTracker3Hits.push_back( myhit ); }
         }
       }
       
@@ -85,42 +106,33 @@ cout<<gpos.y()<<endl;
     }
   } //Tracker hits close
 
-  // Tracker Tree
-  for( auto hit : Tracker_hits() ){
-    variables::x_hit = hit->x();
-    variables::y_hit = hit->y();
-    variables::z_hit = hit->z();
-
-    treeTracker_Hits->Fill();
-  }
-
 }
 
 //-------------------------------------------------------------------------
 void TrackerAnalysis::AssembleAllTracks(){
 
-  AssembleTracks( &AllTopTracks, TopTracker1Hits, TopTracker2Hits, TopTracker3Hits );
-  AssembleTracks( &AllBotTracks, BotTracker1Hits, BotTracker2Hits, BotTracker3Hits );
+  AssembleTracks( &m_AllTopTracks, m_TopTracker1Hits, m_TopTracker2Hits, m_TopTracker3Hits );
+  AssembleTracks( &m_AllBotTracks, m_BotTracker1Hits, m_BotTracker2Hits, m_BotTracker3Hits );
 
   // Filter out the bad tracks
-  for( auto track : AllTopTracks ) { 
+  for( auto track : m_AllTopTracks ) { 
     if( track.Chi2/3. < variables::max_chi2ndf ) { 
-      TopTracks.push_back( track );
+      m_TopTracks.push_back( track );
     }
   }
 
-  for( auto track : AllBotTracks ) { 
+  for( auto track : m_AllBotTracks ) { 
     if( track.Chi2/3. < variables::max_chi2ndf ) { 
-      BotTracks.push_back( track ); 
+      m_BotTracks.push_back( track ); 
     }
   }
 
 }
 
 //-------------------------------------------------------------------------
-void TrackerAnalysis::AssembleTracks( vector<TrackClass> *tracks, vector<MyHit> tracker1Hits, vector<MyHit> tracker2Hits, vector<MyHit> tracker3Hits) {
+void TrackerAnalysis::AssembleTracks( vector<TrackClass> *tracks, vector<TrackHit> tracker1Hits, vector<TrackHit> tracker2Hits, vector<TrackHit> tracker3Hits) {
 
-  vector<vector<MyHit>> hitSet = {tracker1Hits, tracker2Hits, tracker3Hits};
+  vector<vector<TrackHit>> hitSet = {tracker1Hits, tracker2Hits, tracker3Hits};
   // units of hits are in mm
 
   for( auto hit1 : hitSet[0] ) { // tracker hit closest to IP
@@ -187,7 +199,7 @@ double TrackerAnalysis::TrackerErec( double slopeY ) {
 }
 
 //-------------------------------------------------------------------------
-bool TrackerAnalysis::PixelOverlap( MyHit hit, vector<MyHit> trackSet ) {
+bool TrackerAnalysis::PixelOverlap( TrackHit hit, vector<TrackHit> trackSet ) {
 
   for( auto el : trackSet ) {
     double delta = pow( std::get<0>(hit) - std::get<0>(el), 2);
@@ -281,13 +293,13 @@ double TrackerAnalysis::GetPairMass( TrackClass top, TrackClass bot ) {
 //-------------------------------------------------------------------------
 void TrackerAnalysis::FillTrackerHistograms() {
 
-  for( auto track : AllTopTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
-  for( auto track : AllBotTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
+  for( auto track : m_AllTopTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
+  for( auto track : m_AllBotTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
 
 // Loop over good tracks
   bool EventWithTopTrackNearConverterCenter = false;
   bool EventWithBotTrackNearConverterCenter = false;
-  for( auto track : TopTracks ) {
+  for( auto track : m_TopTracks ) {
     
     double Etop = TrackerErec( track.slopeY );
     ((TH2D *)gHistList->FindObject("hTrackersTop_E"))->Fill( variables::Einput, Etop );
@@ -298,7 +310,7 @@ void TrackerAnalysis::FillTrackerHistograms() {
       EventWithTopTrackNearConverterCenter = true;
     }
   }
-  for( auto track : BotTracks ) {
+  for( auto track : m_BotTracks ) {
     
     double Ebot = TrackerErec( track.slopeY );
     ((TH2D *)gHistList->FindObject("hTrackersBot_E"))->Fill( variables::Einput, Ebot );
@@ -321,13 +333,13 @@ void TrackerAnalysis::FillTrackerHistograms() {
   }
 
   // Loop over good pairs of tracks
-  for( auto topTrack : TopTracks ) {
+  for( auto topTrack : m_TopTracks ) {
 
     double Etop = TrackerErec( topTrack.slopeY );
     double xtop_c = XatConverter( topTrack );
     double ytop_c = YatConverter( topTrack );
 
-    for( auto botTrack : BotTracks ) {
+    for( auto botTrack : m_BotTracks ) {
 
       double Ebot = TrackerErec( botTrack.slopeY );
       double xbot_c = XatConverter( botTrack );
@@ -362,13 +374,13 @@ void TrackerAnalysis::FillTrackerTrees() {
 
   TreeTrackClass tracksBuffer;
   
-  for( auto track : TopTracks ) { 
+  for( auto track : m_TopTracks ) { 
       tracksBuffer.X0_e.push_back( XatConverter( track ) );
       tracksBuffer.Y0_e.push_back( YatConverter( track ) );
       tracksBuffer.slopeX_e.push_back( track.slopeX );
       tracksBuffer.slopeY_e.push_back( track.slopeY );
   }
-  for( auto track : BotTracks ) { 
+  for( auto track : m_BotTracks ) { 
       tracksBuffer.X0_p.push_back( XatConverter( track ) );
       tracksBuffer.Y0_p.push_back( YatConverter( track ) );
       tracksBuffer.slopeX_p.push_back( track.slopeX );

@@ -40,6 +40,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     PrefetchT<edm4hep::SimTrackerHit> Tracker_hits      = {this, "LumiSpecTrackerHits"};
     
     TrackerAnalysis *tracker;
+    CALAnalysis *CAL;
 
   public:
     analyzeLumiHits() { SetTypeName(NAME_OF_THIS); }
@@ -49,10 +50,7 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void FinishWithGlobalRootLock() override;
 
     void MCgenAnalysis();
-    void FillTrees();
     void FillDiagnosticHistograms();
-    void FillTrackerTrees();
-    void FillTrackerHistograms();
 
   protected:
     std::shared_ptr<JDD4hep_service> m_geoSvc;

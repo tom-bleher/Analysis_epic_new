@@ -1,17 +1,9 @@
 #ifndef VARIABLES_H
 #define VARIABLES_H
 
-#include <iostream>
-#include <bitset>
+#include <vector>
 
-#include "TH1D.h"
-#include "TH2D.h"
-#include "TH3D.h"
-#include "THashList.h"
-#include "TProfile.h"
-#include "TDirectory.h"
-
-typedef std::tuple<double,double,double> MyHit;
+typedef std::tuple<double,double,double> TrackHit;
 
 struct TrackClass {
   double charge;
@@ -35,7 +27,6 @@ struct TreeTrackClass {
   std::vector<double> slopeX_p;
   std::vector<double> slopeY_p;
 };
-
 
 namespace variables {
   extern const int maxModules;
