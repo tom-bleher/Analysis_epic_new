@@ -5,9 +5,9 @@ import math
 import multiprocessing
 
 # directories genEvents and simEvents needs to exist
-simPath = "../simulations/simEvents/ConvertedPhoton_StartConverter"
+simPath = "../simulations/simEvents/ConvertedPhoton_EndSweeper"
 epicPath = "/home/dhevan/eic/epic/epic_ip6_extended.xml"
-outputPath = "output"
+outputPath = "ConvertedPhoton_EndSweeper"
 
 # needs dir genEvents to exist
 if len(os.listdir(outputPath)) != 0:
@@ -21,14 +21,27 @@ commands = []
 
 for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
-  fileNum = re.search("\d+", file).group()
-  commands.append("eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -PanalyzeLumiHits:Egen={0} -Pjana:nevents=5000 -Ppodio:output_include_collections=EcalLumiSpecIslandProtoClusters -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile) )
+  fileNum = re.search("\d+\.+\d", inFile).group()
+  #fileNum = re.search("\d+", file).group()
+  cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Pjana:nevents=5000 -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
+  commands.append( cmd )
+  #print( cmd )
 
 # start Pool of processes
 pool = multiprocessing.Pool(8) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
+
+
+# rerun failed jobs sequentially
+for file in sorted(os.listdir(outputPath)):
+  filesize = int(os.popen("stat -c %s {0}/{1}".format(outputPath,file)).read())
+  if filesize < 1000: # less than 1000 kB is a failed job
+    for cmd in commands:
+      if file in cmd:
+        #print( cmd )
+        os.system( cmd );
 
 # merge root files and then delete components
 filesString = ""

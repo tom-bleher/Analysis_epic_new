@@ -9,15 +9,20 @@
 using namespace HepMC3;
 using namespace std;
 
-void PropToConverterAndConvert(string infile="", string outfile="converterElectrons.hepmc") {
+struct positions {
+  double ConvStart   = -55609;
+  double ConvEnd     = -55610;
+  double SweeperEnd  = -36390;
+};
+
+positions POS;
+
+void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.ConvStart) {
 
   if( infile.empty() ) {
     cout<<"infile is blank"<<endl;
     return -1;
   }
-
-  // Location in Z of converter end (start of analyzer B field)
-  double ZconverterEnd = -55610; // mm
 
   // photon splitting fuction from PDG Eq 34.31
   TF1 *PDGsplitting = new TF1("PDGsplitting","1 - 4/3.*x*(1-x)", 0,1);
@@ -78,10 +83,10 @@ void PropToConverterAndConvert(string infile="", string outfile="converterElectr
       evt.remove_particle( vertices[vtx]->particles_out()[0] );
       
       // linearly propagate particles to Converter Z location
-      double DeltaZ = PV.z() - ZconverterEnd;
+      double DeltaZ = PV.z() - Zprop;
       double newX = photonIN->momentum().x() / photonIN->momentum().z() * DeltaZ;
       double newY = photonIN->momentum().y() / photonIN->momentum().z() * DeltaZ;
-      FourVector VertexAtConverter( newX, newY, ZconverterEnd, 0 );
+      FourVector VertexAtConverter( newX, newY, Zprop, 0 );
       // set new particle vertex
       vertices[vtx]->set_position( VertexAtConverter - PV );
     }

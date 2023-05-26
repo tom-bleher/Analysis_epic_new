@@ -50,7 +50,7 @@ FourVector PV = {0,0,0,0}; // Primary vertex location (x,y,z,t) in mm or mm/c
 
 int PhotonsPerEvent = 1;
 // x,y,z,t location of particle(pair) origin wrt to PV in mm or mm/c
-vector<FourVector> pos_origins = { FourVector(10,10,-55609,0), FourVector(-10,-10,-55610,0) };
+vector<FourVector> pos_origins = { FourVector(0,0,-55609,0), FourVector(0,0,-55610,0) };
 
 double Z = 1; // ion beam particle charge
 double electronPz = -18;

@@ -106,7 +106,6 @@ void BH_plotter(bool plotFromFile = false) {
   double Tbunch = 44e-9; // spacing between bunch centers in sec
   double LumiPerBunch = LumiInst * mbTocm2 * Tbunch;
   double photonsPerSec = LumiInst * mbTocm2 * crossSection;
-
   double photonsPerBunchCrossing = LumiPerBunch * crossSection;
 
   cout<<"Integrated Bremsstrahlung cross section = "<<crossSection<<" mb"<<endl;
