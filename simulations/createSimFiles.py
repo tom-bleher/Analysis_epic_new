@@ -4,14 +4,20 @@ import re
 import multiprocessing
 
 # directories genEvents and simEvents needs to exist
-subPath = ""
+inPath = ""
+outPath = ""
 if len(sys.argv) > 1: 
-  subPath = "/" + sys.argv[1]
+  inPath = "/" + sys.argv[1]
+if len(sys.argv) > 2: 
+  outPath = "/" + sys.argv[2]
+
+if not outPath:
+    outPath = inPath
 
 fileType = "beamEffectsElectrons"
 
-genPath = "genEvents{0}".format(subPath)
-simPath = "simEvents{0}".format(subPath)
+genPath = "genEvents{0}".format(inPath)
+simPath = "simEvents{0}".format(outPath)
 epicPath = "/home/dhevan/eic/epic/epic_ip6_extended.xml"
 
 if len(os.listdir(simPath)) != 0:
@@ -35,7 +41,7 @@ for file in sorted(os.listdir(genPath),):
   commands.append( cmd )
 
 # start Pool of processes
-pool = multiprocessing.Pool(7) # 8 processes to start
+pool = multiprocessing.Pool(8) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )

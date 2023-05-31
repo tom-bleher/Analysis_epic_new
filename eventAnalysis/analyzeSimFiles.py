@@ -4,10 +4,22 @@ import re
 import math
 import multiprocessing
 
+inPath = ""
+
+if len(sys.argv) > 1: 
+  inPath = sys.argv[1]
+if not inPath:
+    print("No path provided")
+    exit()
+
 # directories genEvents and simEvents needs to exist
-simPath = "../simulations/simEvents/ConvertedPhoton_EndSweeper"
+simPath = "../simulations/simEvents/" + inPath
 epicPath = "/home/dhevan/eic/epic/epic_ip6_extended.xml"
-outputPath = "ConvertedPhoton_EndSweeper"
+outputPath = inPath
+
+if not os.path.exists(outputPath):
+    print("Out dir doesn't exist.  Create a dir called " + outputPath)
+    exit()
 
 # needs dir genEvents to exist
 if len(os.listdir(outputPath)) != 0:
@@ -25,7 +37,7 @@ for file in sorted(os.listdir(simPath),):
   #fileNum = re.search("\d+", file).group()
   cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Pjana:nevents=5000 -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
   commands.append( cmd )
-  #print( cmd )
+  print( cmd )
 
 # start Pool of processes
 pool = multiprocessing.Pool(8) # 8 processes to start

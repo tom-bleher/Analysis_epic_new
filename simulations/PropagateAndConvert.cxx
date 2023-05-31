@@ -87,7 +87,7 @@ void PropagateAndConvert(string infile="", string outfile="converterElectrons.he
       double newX = photonIN->momentum().x() / photonIN->momentum().z() * DeltaZ;
       double newY = photonIN->momentum().y() / photonIN->momentum().z() * DeltaZ;
       FourVector VertexAtConverter( newX, newY, Zprop, 0 );
-      // set new particle vertex
+      // set new particle vertex, relative to PV
       vertices[vtx]->set_position( VertexAtConverter - PV );
     }
     
