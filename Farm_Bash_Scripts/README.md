@@ -5,6 +5,18 @@
   - Scripts that create and submit jobs
   - Scripts that are actually run in these jobs
 
+
+# Warnings/Notes - Please read before trying to run anything!
+
+- Note that you do NOT need to be in EIC_Shell to run these scripts, but it must be available
+- The expected path is 
+  - /group/eic/users/${USER}/ePIC/eic-shell
+- Note that the scripts also make use of "Init_Env.sh"
+  - Copy this script to /group/eic/users/${USER}/ePIC/ or your equivalent!
+- My (SKay) repository is named slightly differently
+  - To switch it back to "Analysis_epic", just run (from this directory)
+    - sed -i "s%ePIC_PairSpec_Sim%Analysis_epic%" *.sh 
+
 # Script Descriptions
 
 - Please pay attention to the printouts from the scripts themselves!
