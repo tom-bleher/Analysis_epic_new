@@ -5,7 +5,7 @@
   - Scripts that create and submit jobs
   - Scripts that are actually run in these jobs
 
-# Script descriptions
+# Script Descriptions
 
 - Please pay attention to the printouts from the scripts themselves!
 - Pair_Spec_Sim.sh
@@ -62,4 +62,3 @@
 	  - Egamma_start
 	  - Egamma_end
 	  - Gun - True or false
-  
