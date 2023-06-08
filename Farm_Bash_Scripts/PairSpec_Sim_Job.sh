@@ -69,18 +69,24 @@ echo; echo; echo "Generating events."; echo; echo;
 cd $SimDir/ePIC_PairSpec_Sim/simulations/
 if (( ${Egamma_start} == ${Egamma_end} )); then
 echo "Egamma_start (${Egamma_start}) = Egamma_end (${Egamma_end}), running flat distribution"
-root -l -b -q 'lumi_particles.cxx(${NumEvents}, true, true, true, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc")'
+root -l -b -q 'lumi_particles.cxx(${NumEvents}, true, false, false, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc")'
 else
 echo "Egamma_start (${Egamma_start}) != Egamma_end (${Egamma_end}), running BH distribution"
-root -l -b -q 'lumi_particles.cxx(${NumEvents}, false, true, true, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc")'
+root -l -b -q 'lumi_particles.cxx(${NumEvents}, false, false, false, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc")'
 fi
 sleep 5
-abconv ${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc -o ${Output_tmp}/abParticles_${FileNum}_${NumEvents}
+abconv ${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc --plot-off -o ${Output_tmp}/abParticles_PhotonsAtIP_${FileNum}_${NumEvents}
+echo; echo; echo "Events generated and afterburned, propagating and converting."; echo; echo;
 sleep 5
 
-echo; echo; echo "Events generated and afterburned, running simulation."; echo; echo;
+root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/genParticles_electrons_${FileNum}_${NumEvents}.hepmc", -55610)'
+sleep 5
+root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc", -55610)'
+sleep 5
 
-ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
+echo; echo; echo "Events propagated and converted, running simulation."; echo; echo;
+
+ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
 sleep 5
 
 echo; echo; echo "Simulation finished, running reconstruction."; echo; echo;
@@ -90,9 +96,25 @@ sleep 30
 
 mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
 echo; echo; echo "Reconstruction finished, output file is - ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root"; echo; echo;
-EOF
-# Original eicrecon command
-#eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -PanalyzeLumiHits:Egen=10 -Pjana:nevents=${NumEvents} -PLUMISPECCAL:ECalLumiSpecIslandProtoClusers:splitCluster=1 -PEcalLumiSpecIslandProtoClusters:LogLevel=debug ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root > /dev/null
 
+EOF
 
 exit 0
+
+# Positions of FB components for propagate and convert fn
+# ConvStart   = -55609;
+# ConvEnd     = -55610; 
+# SweeperEnd  = -36390;
+
+# Original set of event generation commands
+# cd $SimDir/ePIC_PairSpec_Sim/simulations/
+# if (( ${Egamma_start} == ${Egamma_end} )); then
+# echo "Egamma_start (${Egamma_start}) = Egamma_end (${Egamma_end}), running flat distribution"
+# root -l -b -q 'lumi_particles.cxx(${NumEvents}, true, true, true, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc")'
+# else
+# echo "Egamma_start (${Egamma_start}) != Egamma_end (${Egamma_end}), running BH distribution"
+# root -l -b -q 'lumi_particles.cxx(${NumEvents}, false, true, true, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc")'
+# fi
+# sleep 5
+# abconv ${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc -o ${Output_tmp}/abParticles_${FileNum}_${NumEvents}
+# sleep 5
