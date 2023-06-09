@@ -41,7 +41,7 @@ fi
 
 # Change output path as desired
 OutputPath="/volatile/eic/${USER}/FarBackward_Det_Sim"
-export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_Gun_${Egamma_start}_${Egamma_start}"
+export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_Gun_${Egamma_start/./p}_${Egamma_start/./p}"
 if [ ! -d "${Output_tmp}" ]; then # Add this in this script too so it can be run interactively
     mkdir $Output_tmp
 else

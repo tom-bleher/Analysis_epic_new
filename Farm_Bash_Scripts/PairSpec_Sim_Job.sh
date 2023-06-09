@@ -47,7 +47,7 @@ else
 fi
 # Change output path as desired
 OutputPath="/volatile/eic/${USER}/FarBackward_Det_Sim"
-export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_${Egamma_start}_${Egamma_end}"
+export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
 if [ ! -d "${Output_tmp}" ]; then # Add this in this script too so it can be run interactively
     mkdir $Output_tmp
 else
@@ -67,7 +67,7 @@ source Init_Env.sh
 echo; echo; echo "Generating events."; echo; echo;
 
 cd $SimDir/ePIC_PairSpec_Sim/simulations/
-if (( ${Egamma_start} == ${Egamma_end} )); then
+if (( $(echo "$Egamma_start == $Egamma_end" | bc -l) )); then
 echo "Egamma_start (${Egamma_start}) = Egamma_end (${Egamma_end}), running flat distribution"
 root -l -b -q 'lumi_particles.cxx(${NumEvents}, true, false, false, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc")'
 else
