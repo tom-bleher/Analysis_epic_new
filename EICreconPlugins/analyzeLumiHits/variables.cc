@@ -14,23 +14,33 @@ namespace variables {
 
   // spectrometer dimensions/placements in mm
   // DXY, and DZ stand for FULL widths
-  double LumiSpecMag_Z = -56000;
-  double LumiSpecMag_DZ = 780;
-  double LumiSpecCAL_Z = -65000;
+  // Old design
+  //double LumiAnalyzerMag_Z = -56000;
+  //double LumiAnalyzerMag_DZ = 780;
+  //double LumiSpecCALTower_DZ = 200;
+  //double LumiSpecCAL_DXY = 200;
+  //double LumiSpecCAL_Z = -65000;
+  //double LumiSpecCAL_FiveSigma = 69;
+  //// cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
+  //double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
+  //double RmagPreFactor = 6670.79; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
+  
+  // New design
+  double LumiAnalyzerMag_Z = -44000;
+  double LumiAnalyzerMag_DZ = 1000;
   double LumiSpecCALTower_DZ = 200;
   double LumiSpecCAL_DXY = 200;
-  double LumiSpecCAL_FiveSigma = 69;
-  double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
-  double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
+  double LumiSpecCAL_Z = -48000 - LumiSpecCALTower_DZ/2.;
+  double LumiSpecCAL_FiveSigma = 50;
+  // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
+  double pT = 0.3; // GeV. 0.3*B(T)*dZ(m)
+  double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
+
+  double LumiConverter_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
+  double LumiAnalyzerMagEnd_Z = LumiAnalyzerMag_Z - LumiAnalyzerMag_DZ/2.0;
   double LumiConverterCut_DXY = 60;
 
-  double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
-              // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  double RmagPreFactor = 6670.79; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
-
   // spectrometer dimensions/placements in mm
-  double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
-
   double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 210;
   double LumiSpecTracker_Z2 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 110;
   double LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;
@@ -41,7 +51,7 @@ namespace variables {
   double Tracker_pixelSize = 0.05; // mm
                             //maximal reduced chi^2 for tracks
   double max_chi2ndf = 0.01;
-  double Tracker_sigma = 3.9; // mm from reconstructed photon origins decaying o 2 electrons.
+  double Tracker_sigma = 3.9; // mm, from distribution of reconstructed photon decaying to 2 electrons.
 
   double E_hit = 0;
   double x_hit = 0;

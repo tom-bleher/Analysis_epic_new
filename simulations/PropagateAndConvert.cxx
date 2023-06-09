@@ -10,14 +10,20 @@ using namespace HepMC3;
 using namespace std;
 
 struct positions {
-  double ConvStart   = -55609;
-  double ConvEnd     = -55610;
-  double SweeperEnd  = -36390;
+  // Old design
+  //double ConvStart   = -55609;
+  //double ConvMiddle  = -55609.5;
+  //double ConvEnd     = -55610;
+  //double SweeperEnd  = -36390;
+  // New design
+  double ConvMiddle  = -67000;
+  //double SweeperEnd  = -40500;
+  //double MagnetsMiddle = -42000;
 };
 
 positions POS;
 
-void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.ConvStart) {
+void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.ConvMiddle) {
 
   if( infile.empty() ) {
     cout<<"infile is blank"<<endl;

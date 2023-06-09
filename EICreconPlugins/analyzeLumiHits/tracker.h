@@ -46,6 +46,8 @@ class TrackerAnalysis {
     bool PixelOverlap( TrackHit hit, std::vector<TrackHit> trackSet );
     double TrackerErec( double slopeY );
     double DeltaYmagnet( double E, double charge );
+    double DeltaYmagnet( TrackClass track, double z );
+    std::pair<double,double> DCA( TrackClass track1, TrackClass track2 );
     double XatConverter( TrackClass track );
     double YatConverter( TrackClass track );
     double GetPairMass( TrackClass top, TrackClass bot );

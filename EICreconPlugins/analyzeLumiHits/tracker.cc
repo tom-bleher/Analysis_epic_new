@@ -218,10 +218,49 @@ double TrackerAnalysis::DeltaYmagnet( double E, double charge ) {
   //return 0;
 
   double R = E * variables::RmagPreFactor; // cyclotron radius of curvature
-  double dy = R - sqrt( R*R - pow(variables::LumiSpecMag_DZ,2) );
+  double dy = R - sqrt( R*R - pow(variables::LumiAnalyzerMag_DZ,2) );
 
   // electrons go to the top CAL (B in +x direction), positrons to bottom CAL
   return -charge * dy; // mm
+}
+
+//-------------------------------------------------------------------------
+// returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
+double TrackerAnalysis::DeltaYmagnet( TrackClass track, double z ) {
+
+  double E = TrackerErec( track.slopeY );
+  double R = E * variables::RmagPreFactor; // cyclotron radius of curvature
+  double dy = -R*cos(TMath::Pi() - track.theta) + sqrt( R*R - pow(R*sin(TMath::Pi() - track.theta) - z, 2) );
+
+  // electrons go to the top CAL (B in +x direction), positrons to bottom CAL
+  return -track.charge * dy; // mm
+}
+
+//-------------------------------------------------------------------------
+// returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
+std::pair<double,double> TrackerAnalysis::DCA( TrackClass track1, TrackClass track2 ) {
+
+  bool pastMin = false;
+  double dca = 10000;
+  double Zstart = variables::LumiAnalyzerMag_Z + variables::LumiAnalyzerMag_DZ/2.;
+  double Zstep = 0;
+  
+  while( ! pastMin ) {
+    Zstep++;
+    double Z = Zstart - Zstep;
+    double deltaX = (track1.slopeX * Z + track1.X0) - (track2.slopeX * Z + track2.X0);
+    double deltaY = (track1.slopeY * variables::LumiAnalyzerMagEnd_Z + track1.Y0) - DeltaYmagnet( track1, variables::LumiAnalyzerMag_DZ - Zstep);
+    deltaY -= (track2.slopeY * variables::LumiAnalyzerMagEnd_Z + track2.Y0) - DeltaYmagnet( track2, variables::LumiAnalyzerMag_DZ - Zstep);
+    double dca_new = sqrt( pow(deltaX,2) + pow(deltaY,2) );
+    if( dca_new < dca ) {
+      dca = dca_new;
+    }else {
+      pastMin = true;
+    }
+    if( Zstep > variables::LumiAnalyzerMag_DZ ) { pastMin = true; }
+  }
+  //cout<<dca<<"  "<<Zstart - Zstep<<endl; 
+  return std::pair<double,double> {dca, Zstart - Zstep};
 }
 
 //-------------------------------------------------------------------------
@@ -235,7 +274,7 @@ double TrackerAnalysis::XatConverter( TrackClass track ) {
 //-------------------------------------------------------------------------
 double TrackerAnalysis::YatConverter( TrackClass track ) {
   double E = TrackerErec( track.slopeY );
-  double y_c = (track.slopeY * variables::LumiSpecMagEnd_Z + track.Y0) - DeltaYmagnet( E, track.charge );
+  double y_c = (track.slopeY * variables::LumiAnalyzerMagEnd_Z + track.Y0) - DeltaYmagnet( E, track.charge );
   
   return y_c;
 }
@@ -296,7 +335,7 @@ void TrackerAnalysis::FillTrackerHistograms() {
   for( auto track : m_AllTopTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
   for( auto track : m_AllBotTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.Chi2/3. ); }
 
-// Loop over good tracks
+  // Loop over good tracks
   bool EventWithTopTrackNearConverterCenter = false;
   bool EventWithBotTrackNearConverterCenter = false;
   for( auto track : m_TopTracks ) {
@@ -346,6 +385,11 @@ void TrackerAnalysis::FillTrackerHistograms() {
       double ybot_c = YatConverter( botTrack );
 
       double pairMass = GetPairMass( topTrack, botTrack );
+
+      std::pair<double, double> DCAandZ = DCA( topTrack, botTrack );
+
+      ((TH2D *)gHistList->FindObject("hTrackers_DCAvsZ"))->Fill( DCAandZ.first, DCAandZ.second );
+
       
       ((TH1D *)gHistList->FindObject("hTrackers_InvMass_allPairs"))->Fill( pairMass );
       ((TH1D *)gHistList->FindObject("hTrackers_X_allPairs"))->Fill( (xtop_c + xbot_c)/2. );

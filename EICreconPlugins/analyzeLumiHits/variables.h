@@ -36,20 +36,18 @@ namespace variables {
 
   extern double Einput;
 
-  extern double LumiSpecMag_Z;
-  extern double LumiSpecMag_DZ;
+  extern double LumiAnalyzerMag_Z;
+  extern double LumiAnalyzerMag_DZ;
   extern double LumiSpecCAL_Z;
   extern double LumiSpecCALTower_DZ;
   extern double LumiSpecCAL_DXY;
   extern double LumiSpecCAL_FiveSigma;
   extern double LumiConverter_Z;
-  extern double LumiSpecMagEnd_Z;
+  extern double LumiAnalyzerMagEnd_Z;
   extern double LumiConverterCut_DXY;
 
   extern double pT;   
   extern double RmagPreFactor; 
-
-  extern double SpecMag_to_SpecCAL_DZ;
 
   extern double LumiSpecTracker_Z1;
   extern double LumiSpecTracker_Z2;

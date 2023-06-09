@@ -70,6 +70,8 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   /////////////////////////////
   // CAL + Tracker Studies
+  //
+  // Track / Cluster matching
 
     
 } // End of the Sequential Process Function

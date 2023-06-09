@@ -39,6 +39,7 @@ namespace histogramManager {
     gHistList->Add( new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (mm);X electron (mm)", 1000,-50,50, 1000,-50,50) );
     gHistList->Add( new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (mm);Y electron (mm)", 1000,-50,50, 1000,-50,50) );
 
+    gHistList->Add( new TH2D("hTrackers_DCAvsZ","pair DCA vs Z;DCA (mm); Z (mm)",1000,0,100, 1000,variables::LumiAnalyzerMag_Z - variables::LumiAnalyzerMag_DZ, variables::LumiAnalyzerMag_Z + variables::LumiAnalyzerMag_DZ ) );
     gHistList->Add( new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1) );
     gHistList->Add( new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1) );
 

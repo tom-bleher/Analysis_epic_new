@@ -14,7 +14,6 @@ if not inPath:
 
 # directories genEvents and simEvents needs to exist
 simPath = "../simulations/simEvents/" + inPath
-epicPath = "/home/dhevan/eic/epic/epic_ip6_extended.xml"
 outputPath = inPath
 
 if not os.path.exists(outputPath):
@@ -34,8 +33,8 @@ commands = []
 for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
   fileNum = re.search("\d+\.+\d", inFile).group()
-  #fileNum = re.search("\d+", file).group()
-  cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Pjana:nevents=5000 -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
+#fileNum = re.search("\d+", file).group()
+  cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
   commands.append( cmd )
   print( cmd )
 

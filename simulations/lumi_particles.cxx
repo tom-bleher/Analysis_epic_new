@@ -44,13 +44,20 @@ TLorentzVector electron;
 TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
 
-// converter center: -55609.5, full thickness = 1 mm
-// end of spectrometer magnet: -56390
 FourVector PV = {0,0,0,0}; // Primary vertex location (x,y,z,t) in mm or mm/c
 
 int PhotonsPerEvent = 1;
+
+// OLD DESIGN:
+// Sweeper end: -36390
+// converter start: -55609, full thickness = 1 mm
+// end of spectrometer magnet: -56390
+// NEW DESIGN:
+// Sweeper end: -40500
+// Middle of magnets: -41500
+// converter start: -42499 
 // x,y,z,t location of particle(pair) origin wrt to PV in mm or mm/c
-vector<FourVector> pos_origins = { FourVector(0,0,-55609,0), FourVector(0,0,-55610,0) };
+vector<FourVector> pos_origins = { FourVector(0,0,-41500,0), FourVector(0,0,-55610,0) };
 
 double Z = 1; // ion beam particle charge
 double electronPz = -18;
