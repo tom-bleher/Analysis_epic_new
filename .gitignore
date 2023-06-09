@@ -10,6 +10,7 @@
 *.swp
 *.tgz
 *.pcm
+Farm_Bash_Scripts/*.txt
 
 # Prerequisites
 *.d

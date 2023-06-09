@@ -101,7 +101,7 @@ void PropagateAndConvert(string infile="", string outfile="converterElectrons.he
     output_file.write_event(evt);
 
     ++events_parsed;
-    if( events_parsed%10000 == 0 ) std::cout<<"Events parsed: "<<events_parsed<<std::endl;
+    if( events_parsed%1000 == 0 ) std::cout<<"Events parsed: "<<events_parsed<<std::endl;
   }
 
   input_file.close();
