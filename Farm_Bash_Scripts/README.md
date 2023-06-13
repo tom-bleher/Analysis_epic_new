@@ -28,12 +28,13 @@
 	  - Egamma_end
 - Pair_Spec_Sim_v2.sh
   - Similar to the previous version, but with a subtle difference
-    - Produces X files of Y event PER BEAM ENERGY in range from Egamma_start to Egamma_end (incremented in steps of 1)
-  - Now has 5 arguments
+    - Produces X files of Y event PER BEAM ENERGY in range from Egamma_start to Egamma_end (incremented in steps of Egamma_step)
+  - Now has 6 arguments
     	  - Number of files per beam energy
 	  - Number of events per file
 	  - Egamma_start
 	  - Egamma_end
+	  - Egamma_step - Defaults to 0.5, can only go as low as 0.01
 	  - Gun - True or False, run with a particle gun steering file or not
 - Pair_Spec_Sim_Job.sh
   - Script executed as a farm job, can run interactively
@@ -68,9 +69,10 @@
 - Combine_Results_PairSpec_Sim_v2.sh
   - Script to combine output after it has run into a single EICRecon file
   - Run this from the directory containing all of your output folders
-  - 5 arguments
+  - 6 arguments
     	  - Number of files per beam energy
 	  - Number of events per file
 	  - Egamma_start
 	  - Egamma_end
+	  - Egamma_step
 	  - Gun - True or false

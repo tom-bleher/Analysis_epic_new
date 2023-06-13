@@ -49,10 +49,23 @@ else
 fi
 
 if [[ -z "$5" ]]; then
+    Egamma_step="0.5"
+    echo "Egamma step size not specified, defaulting to 0.5"
+else
+    Egamma_step=$5
+fi
+# Round the step size to 2 dp, if 0.00, set to 0.01 and warn
+printf -v Egamma_step "%.2f" $Egamma_step
+if [[ $Egamma_step == "0.00" ]];then
+    echo; echo "!!!!!";echo "Warning, Egamma step size too low, setting to 0.01 by default"; echo "!!!!"; echo;
+    Egamma_step="0.01"
+fi
+
+if [[ -z "$6" ]]; then
     Gun="False"
     echo "Gun argument not specified, assuming false and running lumi_particles.cxx"
 else
-    Gun=$5
+    Gun=$6
 fi
 
 # Standardise capitlisation of true/false statement, catch any expected/relevant cases and standardise them
@@ -64,29 +77,29 @@ fi
 # Check gun is either true or false, if not, just set it to false
 if [[ $Gun != "True" && $Gun != "False" ]]; then
     Gun="False"
-    echo "Gun (arg 5) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
+    echo "Gun (arg 6) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
 fi
 
 if (( $Egamma_end < $Egamma_start )); then
     Egamma_end=$Egamma_start
 fi
 
-for (( i=$Egamma_start; i<=$Egamma_end; i++ ))
+for i in $(seq $Egamma_start $Egamma_step $Egamma_end); 
 do
     for (( j=1; j<=$NumFiles; j++ ))
     do
 	if [[ $Gun == "True" ]]; then
-	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_Gun_${i}_${i}/EICReconOut_${j}_${NumEvents}.root "
+	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
 	else
-	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_${i}_${i}/EICReconOut_${j}_${NumEvents}.root "
+	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
 	fi
     done
 done
 
 if [[ $Gun == "True" ]]; then
-    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_Gun_${Egamma_start}_${Egamma_end}.root"
+    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_Gun_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
 else
-    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_${Egamma_start}_${Egamma_end}.root"
+    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
 fi
 
 if [ ! -f "${CombinedFile}" ]; then

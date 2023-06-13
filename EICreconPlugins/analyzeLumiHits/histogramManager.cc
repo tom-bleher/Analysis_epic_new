@@ -19,10 +19,10 @@ namespace histogramManager {
     // Tracker histograms
     dir->mkdir("LumiTracker")->cd();
 
-    gHistList->Add( new TH1D("hTrackerTop_Acceptance","Top tracker electron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+    gHistList->Add( new TH1D("hTrackerTop_Acceptance","Top tracker electron acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) );
 
-    gHistList->Add( new TH1D("hTrackerBot_Acceptance","Bottom tracker positron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
-    gHistList->Add( new TH1D("hTrackerCoincidence_Acceptance","Tracker coincidence acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+    gHistList->Add( new TH1D("hTrackerBot_Acceptance","Bottom tracker positron acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) );
+    gHistList->Add( new TH1D("hTrackerCoincidence_Acceptance","Tracker coincidence acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) );
     gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
 
     gHistList->Add( new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
@@ -56,28 +56,29 @@ namespace histogramManager {
     // CAL histograms
     dir->mkdir("LumiSpecCAL")->cd();
 
-    gHistList->Add( new TH1D("hCALTop_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
-    gHistList->Add( new TH1D("hCALBot_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
-    gHistList->Add( new TH1D("hCALCoincidence_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+    gHistList->Add( new TH1D("hCALTop_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) );
+    gHistList->Add( new TH1D("hCALBot_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) );
+    gHistList->Add( new TH1D("hCALCoincidence_Acceptance", "CAL acceptance;E_{#gamma} (GeV);Acceptance", 1000, 0, 20) ); 
+    gHistList->Add( new TH2D("hCAL_Eres","CAL E resolution;E_{#gamma} (GeV);(E_{#gamma}-E_{rec})/E_{#gamma}",80,0,20, 200,-1,1) );
 
-    gHistList->Add( new TH1D("hEraw",  "hit energy (raw)", 2500, 0, 50) );
-    gHistList->Add( new TH1D("hErawTotal",  "summed hit energy (raw)", 2500, 0, 50) );
-    gHistList->Add( new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
-    gHistList->Add( new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
-    gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  2500, 0,50) );
-    gHistList->Add( new TH2D("hCALCluster_Eres", "Egen vs Cluster based photon Erec", 200,0,50, 2500,0,50) );
+    gHistList->Add( new TH1D("hEraw",  "hit energy (raw)", 1000, 0, 20) );
+    gHistList->Add( new TH1D("hErawTotal",  "summed hit energy (raw)", 1000, 0, 20) );
+    gHistList->Add( new TH1D("hEup", "Upper CAL. Energy; Rec. Energy (GeV); Events",  1000, 0,20) );
+    gHistList->Add( new TH1D("hEdw", "Lower CAL. Energy; Rec. Energy (GeV); Events",  1000, 0,20) );
+    gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  1000, 0,20) );
+    gHistList->Add( new TH2D("hCALCluster_Eres", "E_{#gamma gen} vs (E_{top}+E_{bot})_{rec}; (E_{topRec}+E_{BotRec}) (GeV); E_{#gamma gen} (GeV)", 80,0,20, 1000,0,20) );
 
     ////////////////////////////////////////////////////////
     // root dir histograms 
     dir->cd();
 
-    gHistList->Add( new TH1D("hGenPhoton_E", "Generated photon energy;E_{#gamma} (GeV);Nevents", 2500,0,50));
+    gHistList->Add( new TH1D("hGenPhoton_E", "Generated photon energy;E_{#gamma} (GeV);Nevents", 1000,0,20));
     gHistList->Add( new TH2D("hGenPhoton_xy", "Generated photon vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
-    gHistList->Add( new TH1D("hGenElectron_E", "Generated photon energy;E_{#gamma} (GeV);Nevents", 2500,0,50));
-    gHistList->Add( new TH2D("hGenElectron_xy", "Generated photon vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
-    gHistList->Add( new TH1D("hGenPositron_E", "Generated photon energy;E_{#gamma} (GeV);Nevents", 2500,0,50));
-    gHistList->Add( new TH2D("hGenPositron_xy", "Generated photon vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
-    gHistList->Add( new TH1D("hGenEventCount", "Number of generated events per Egen;E_{#gamma} (GeV);Nevents", 2500, 0, 50) );
+    gHistList->Add( new TH1D("hGenElectron_E", "Generated electron energy;E_{#gamma} (GeV);Nevents", 1000,0,20));
+    gHistList->Add( new TH2D("hGenElectron_xy", "Generated electron vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
+    gHistList->Add( new TH1D("hGenPositron_E", "Generated positron energy;E_{#gamma} (GeV);Nevents", 1000,0,20));
+    gHistList->Add( new TH2D("hGenPositron_xy", "Generated positron vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
+    gHistList->Add( new TH1D("hGenEventCount", "Number of generated events per Egen;E_{#gamma} (GeV);Nevents", 1000, 0, 20) );
 
     gHistList->Add( new TH1D("hProtoClusterCount", "Number of proto island clusters / event", 20,-0.5,19.5) );
     gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );

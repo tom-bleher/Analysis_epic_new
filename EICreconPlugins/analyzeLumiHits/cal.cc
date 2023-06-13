@@ -148,8 +148,11 @@ void CALAnalysis::FillDiagnostics() {
   ((TH1D *)gHistList->FindObject("hProtoClusterCount"))->Fill( m_CALprotoClusters.size() );
   
   ((TH1D *)gHistList->FindObject("hClusterCount"))->Fill( m_CALclusters.size() );
-
+  
+  // SJDK - 13/06/23 - Title of this is a little misleading, this is Egamma compared to the TOTAL energy detected in both spectrometers, should make this clearer.
+  // Should make new plots for individual calorimeters (top/bottom)
   ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( variables::Einput, m_EtopTotal + m_EbotTotal );
+  ((TH2D *)gHistList->FindObject("hCAL_Eres"))->Fill( variables::Einput, (variables::Einput - (m_EtopTotal + m_EbotTotal))/variables::Einput );  
 
   if( (m_EtopTotal + m_EbotTotal) > 0 ) { 
     ((TH1D *)gHistList->FindObject("hEnergy"))->Fill( m_EtopTotal + m_EbotTotal ); 

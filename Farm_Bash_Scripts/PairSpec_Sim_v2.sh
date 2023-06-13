@@ -4,7 +4,7 @@
 ### 26/05/23
 ### stephen.kay@york.ac.uk
 ### A script to execute a series of simulations for the far backward pair spectrometer
-### Input args are - NumFiles NumEventsPerFile Egamma_start (optional) Egamma_end (optional) Gun (optional)
+### Input args are - NumFiles NumEventsPerFile Egamma_start (optional) Egamma_end (optional) Egamma_step (optional) Gun (optional)
 ### This file creates and submits the jobs
 ### 06/05/23 - This version is slightly different, it runs NumFiles of NumEvents PER BEAM ENERGY, in steps between Egamma_start/end. This is in steps of 0.5 GeV by default, can be specified in arg 5
 ### I.e. if you had 10 1000 5 8, you would get 10 files of 1000 events for 5, 5.5, 6, 6.5, 7, 7.5 and 8 GeV for a total of 70 files
@@ -92,7 +92,7 @@ fi
 # Check gun is either true or false, if not, just set it to false
 if [[ $Gun != "True" && $Gun != "False" ]]; then
     Gun="False"
-    echo "Gun (arg 5) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
+    echo "Gun (arg 6) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
 fi
 
 if (( $Egamma_end < $Egamma_start )); then
@@ -148,11 +148,10 @@ do
     for (( j=1; j<=$NumFiles; j++ ))
     do
 	# Need to create Egamma_tmp for file/job naming purposes
-	Egamma_tmp=${i/./p}
 	if [[ $Gun == "False" ]];then # Run job version depending upon gun arg, if true, use gun version of job
-	    	Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_${Egamma_tmp}_${Egamma_tmp}"
+	    	Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}"
 	elif [[ $Gun == "True" ]]; then
-	    Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_Gun_${Egamma_tmp}_${Egamma_tmp}"
+	    Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}"
 	fi    
 	if [ ! -d "${Output_tmp}" ]; then
 	    mkdir $Output_tmp
@@ -161,16 +160,16 @@ do
 		echo "!!!!! Warning, ${Output_tmp} directory exists and is not empty! Files may be overwritten! !!!!!"
 	    fi
 	fi
-	batch="${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/FBPairSpec_Sim_${j}_${NumEvents}_${Egamma_tmp}_${Egamma_tmp}.txt"
+	batch="${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/FBPairSpec_Sim_${j}_${NumEvents}_${i/./p}_${i/./p}.txt"
 	echo "Running ${batch}"
 	cp /dev/null ${batch}
 	echo "PROJECT: eic" >> ${batch}
 	echo "TRACK: analysis" >> ${batch}    
 	#echo "TRACK: debug" >> ${batch}
 	if [[ $Gun == "False" ]];then
-	    echo "JOBNAME: FBPairSpec_Sim_${j}_${NumEvents}_${Egamma_tmp}_${Egamma_tmp}" >> ${batch}
+	    echo "JOBNAME: FBPairSpec_Sim_${j}_${NumEvents}_${i/./p}_${i/./p}" >> ${batch}
 	elif [[ $Gun == "True" ]]; then
-	    echo "JOBNAME: FBPairSpec_Sim_${j}_${NumEvents}_Gun_${Egamma_tmp}_${Egamma_tmp}" >> ${batch}
+	    echo "JOBNAME: FBPairSpec_Sim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}" >> ${batch}
 	fi
 	if  [[ $NumEvents -ge 15000 ]]; then # If over 15k events per file, request 6 GB per job
 	    echo "MEMORY: 6000 MB" >> ${batch}

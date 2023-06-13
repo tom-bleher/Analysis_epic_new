@@ -59,7 +59,6 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   CAL->FillAcceptances();
   CAL->CollectGoodClusters();
 
-
   /////////////////////////////
   // Tracker Studies
   tracker->Prepare( Tracker_hits(), m_geoSvc );
@@ -70,7 +69,6 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   /////////////////////////////
   // CAL + Tracker Studies
-
     
 } // End of the Sequential Process Function
 

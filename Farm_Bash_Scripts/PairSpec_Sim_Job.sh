@@ -118,3 +118,10 @@ exit 0
 # sleep 5
 # abconv ${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc -o ${Output_tmp}/abParticles_${FileNum}_${NumEvents}
 # sleep 5
+
+
+# Run Aranya's new design command
+# ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic_Aranya_PairSpec/epic_ip6_FB.xml -N ${NumEvents}
+# sleep 5
+
+
