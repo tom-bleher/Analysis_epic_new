@@ -44,8 +44,8 @@ else
     if ! [[ $Egamma_start =~ $re ]] ; then # Check it's an integer
 	echo "!!! EGamma_start is not an integer !!!" >&2; exit 4
     fi
-    if (( $Egamma_start > 18 )); then # If Egamma start is too high, set it to 18
-	Egamma_start=18
+    if (( $Egamma_start > 25 )); then # If Egamma start is too high, set it to 25
+	Egamma_start=25
     fi	
 fi
 
@@ -58,8 +58,8 @@ else
     if ! [[ $Egamma_end =~ $re ]] ; then # Check it's an integer
 	echo "!!! EGamma_end is not an integer !!!" >&2; exit 5
     fi
-    if (( $Egamma_end > 18 )); then # If Egamma end is too high, set it to 18
-	Egamma_end=18
+    if (( $Egamma_end > 25 )); then # If Egamma end is too high, set it to 25
+	Egamma_end=25
     fi	
 fi
 
@@ -93,6 +93,25 @@ fi
 if [[ $Gun != "True" && $Gun != "False" ]]; then
     Gun="False"
     echo "Gun (arg 6) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
+fi
+
+if [[ -z "$7" ]]; then
+    SpagCal="False"
+    echo "SpagCal argument not specified, assuming false and running homogeneous calorimeter simulation"
+else
+    SpagCal=$7
+fi
+
+# Standardise capitlisation of true/false statement, catch any expected/relevant cases and standardise them
+if [[ $SpagCal == "TRUE" || $SpagCal == "True" || $SpagCal == "true" ]]; then
+    SpagCal="True"
+elif [[ $SpagCal == "FALSE" || $SpagCal == "False" || $SpagCal == "false" ]]; then
+    SpagCal="False"
+fi
+# Check gun is either true or false, if not, just set it to false
+if [[ $SpagCal != "True" && $SpagCal != "False" ]]; then
+    SpagCal="False"
+    echo "SpagCal (arg 7) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
 fi
 
 if (( $Egamma_end < $Egamma_start )); then
@@ -149,7 +168,11 @@ do
     do
 	# Need to create Egamma_tmp for file/job naming purposes
 	if [[ $Gun == "False" ]];then # Run job version depending upon gun arg, if true, use gun version of job
-	    	Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}"
+		if [[ $SpagCal == "False" ]]; then
+	    	    Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}"
+		else
+		    Output_tmp="$OutputPath/PairSpecSim_SpagCal_${j}_${NumEvents}_${i/./p}_${i/./p}"
+		fi
 	elif [[ $Gun == "True" ]]; then
 	    Output_tmp="$OutputPath/PairSpecSim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}"
 	fi    
@@ -180,7 +203,11 @@ do
 	echo "CPU: 1" >> ${batch}
 	echo "TIME: 1440" >> ${batch} # 1440 minutes -> 1 day
 	if [[ $Gun == "False" ]];then # Run job version depending upon gun arg, if true, use gun version of job
-	    echo "COMMAND:${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/PairSpec_Sim_Job.sh ${j} ${NumEvents} ${i} ${i}" >> ${batch}
+		if [[ $SpagCal == "False" ]]; then
+echo "COMMAND:${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/PairSpec_Sim_Job.sh ${j} ${NumEvents} ${i} ${i}" >> ${batch}	
+		else
+echo "COMMAND:${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/PairSpec_Sim_Job.sh ${j} ${NumEvents} ${i} ${i} ${SpagCal}" >> ${batch}		
+		fi
 	elif [[ $Gun == "True" ]]; then
 	    echo "COMMAND:${SimDir}/ePIC_PairSpec_Sim/Farm_Bash_Scripts/PairSpec_Sim_Job_Gun.sh ${j} ${NumEvents} ${i} ${i}" >> ${batch}
 	fi    

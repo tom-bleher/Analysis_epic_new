@@ -299,37 +299,51 @@ void TrackerAnalysis::FillTrackerHistograms() {
 // Loop over good tracks
   bool EventWithTopTrackNearConverterCenter = false;
   bool EventWithBotTrackNearConverterCenter = false;
+
   for( auto track : m_TopTracks ) {
     
     double Etop = TrackerErec( track.slopeY );
-    ((TH2D *)gHistList->FindObject("hTrackersTop_E"))->Fill( variables::Einput, Etop );
+    ((TH2D *)gHistList->FindObject("hTrackersTop_E"))->Fill( variables::EgammaMC, Etop );
     ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
  
     if( fabs( XatConverter( track ) ) < variables::LumiConverterCut_DXY / 2. 
         && fabs( YatConverter( track ) ) < variables::LumiConverterCut_DXY / 2. ) {
       EventWithTopTrackNearConverterCenter = true;
     }
+    if( EventWithTopTrackNearConverterCenter ) { 
+      if ( ( (Etop) < (variables::EelecMC + (variables::EelecMC * constants::Tracker_Single_AcceptanceTol))) && ( (Etop) > (variables::EelecMC - (variables::EelecMC * constants::Tracker_Single_AcceptanceTol))) ){
+	((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( variables::EgammaMC );
+      }
+      ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance_v2_Denom"))->Fill( variables::EgammaMC );
+    }
   }
+
   for( auto track : m_BotTracks ) {
     
     double Ebot = TrackerErec( track.slopeY );
-    ((TH2D *)gHistList->FindObject("hTrackersBot_E"))->Fill( variables::Einput, Ebot );
+    ((TH2D *)gHistList->FindObject("hTrackersBot_E"))->Fill( variables::EgammaMC, Ebot );
     ((TH1D *)gHistList->FindObject("hTrackersSlope"))->Fill( track.slopeY );
 
     if( fabs( XatConverter( track ) ) < variables::LumiConverterCut_DXY / 2. 
         && fabs( YatConverter( track ) ) < variables::LumiConverterCut_DXY / 2. ) {
       EventWithBotTrackNearConverterCenter = true;
     }
+    if( EventWithBotTrackNearConverterCenter ) { 
+      if ( ( (Ebot) < (variables::EposMC + (variables::EposMC * constants::Tracker_Single_AcceptanceTol))) && ( (Ebot) > (variables::EposMC - (variables::EposMC * constants::Tracker_Single_AcceptanceTol))) ){
+	((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( variables::EgammaMC );
+      }
+      ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance_v2_Denom"))->Fill( variables::EgammaMC );
+    }
   }
 
   if( EventWithTopTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( variables::Einput );
+    ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( variables::EgammaMC );
   }
   if( EventWithBotTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( variables::Einput );
+    ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( variables::EgammaMC );
   }
   if( EventWithTopTrackNearConverterCenter && EventWithBotTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::Einput );
+    ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::EgammaMC );
   }
 
   // Loop over good pairs of tracks
@@ -356,12 +370,19 @@ void TrackerAnalysis::FillTrackerHistograms() {
       if( fabs(xtop_c - xbot_c) > 2*variables::Tracker_sigma 
           || fabs(ytop_c - ybot_c) > 2*variables::Tracker_sigma ) { continue; }
       //if( fabs(ytop_c - ybot_c) > 2*Tracker_sigma ) { continue; }
+
+      if( EventWithTopTrackNearConverterCenter && EventWithBotTrackNearConverterCenter ) { 
+	if ( ( (Ebot + Etop) < (variables::EgammaMC + (variables::EgammaMC * constants::Tracker_Coin_AcceptanceTol))) && ( (Ebot + Etop) > (variables::EgammaMC - (variables::EgammaMC * constants::Tracker_Coin_AcceptanceTol))) ){
+	  ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::EgammaMC );
+	}
+	((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance_v2_Denom"))->Fill( variables::EgammaMC );
+      }
       
       ((TH1D *)gHistList->FindObject("hTrackers_InvMass"))->Fill( pairMass );
       ((TH1D *)gHistList->FindObject("hTrackers_X"))->Fill( (xtop_c + xbot_c)/2. );
       ((TH1D *)gHistList->FindObject("hTrackers_Y"))->Fill( (ytop_c + ybot_c)/2. );
-      ((TH2D *)gHistList->FindObject("hTrackers_Eres"))->Fill( variables::Einput, (variables::Einput - (Etop + Ebot) )/variables::Einput );
-      ((TH2D *)gHistList->FindObject("hTrackers_E"))->Fill( variables::Einput, Etop + Ebot );
+      ((TH2D *)gHistList->FindObject("hTrackers_Eres"))->Fill( variables::EgammaMC, (variables::EgammaMC - (Etop + Ebot) )/variables::EgammaMC );
+      ((TH2D *)gHistList->FindObject("hTrackers_E"))->Fill( variables::EgammaMC, Etop + Ebot );
       ((TH2D *)gHistList->FindObject("hTrackers_X_BotVsTop"))->Fill( xtop_c, xbot_c );
       ((TH2D *)gHistList->FindObject("hTrackers_Y_BotVsTop"))->Fill( ytop_c, ybot_c );
     }

@@ -80,6 +80,26 @@ if [[ $Gun != "True" && $Gun != "False" ]]; then
     echo "Gun (arg 6) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
 fi
 
+
+if [[ -z "$7" ]]; then
+    SpagCal="False"
+    echo "SpagCal argument not specified, assuming false and running homogeneous calorimeter simulation"
+else
+    SpagCal=$7
+fi
+
+# Standardise capitlisation of true/false statement, catch any expected/relevant cases and standardise them
+if [[ $SpagCal == "TRUE" || $SpagCal == "True" || $SpagCal == "true" ]]; then
+    SpagCal="True"
+elif [[ $SpagCal == "FALSE" || $SpagCal == "False" || $SpagCal == "false" ]]; then
+    SpagCal="False"
+fi
+# Check gun is either true or false, if not, just set it to false
+if [[ $SpagCal != "True" && $SpagCal != "False" ]]; then
+    SpagCal="False"
+    echo "SpagCal (arg 7) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
+fi
+
 if (( $Egamma_end < $Egamma_start )); then
     Egamma_end=$Egamma_start
 fi
@@ -89,17 +109,33 @@ do
     for (( j=1; j<=$NumFiles; j++ ))
     do
 	if [[ $Gun == "True" ]]; then
-	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    if [[ $SpagCal == "True" ]]; then
+		FileNamesStr+="PairSpecSim_SpagCal_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    else
+		FileNamesStr+="PairSpecSim_${j}_${NumEvents}_Gun_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    fi
 	else
-	    FileNamesStr+="PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    if [[ $SpagCal == "True" ]]; then
+		FileNamesStr+="PairSpecSim_SpagCal_${j}_${NumEvents}_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    else
+		FileNamesStr+="PairSpecSim_${j}_${NumEvents}_${i/./p}_${i/./p}/EICReconOut_${j}_${NumEvents}.root "
+	    fi
 	fi
     done
 done
 
 if [[ $Gun == "True" ]]; then
-    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_Gun_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    if [[ $SpagCal == "True"; then
+	CombinedFile="EICReconOut_SpagCal_Combined_1_${NumFiles}_${NumEvents}_Gun_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    else
+	CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_Gun_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    fi
 else
-    CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    if [[ $SpagCal == "True" ]]; then
+	CombinedFile="EICReconOut_SpagCal_Combined_1_${NumFiles}_${NumEvents}_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    else
+	CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}_${Egamma_start}_${Egamma_end}_Estep_${Egamma_step/./p}.root"
+    fi
 fi
 
 if [ ! -f "${CombinedFile}" ]; then

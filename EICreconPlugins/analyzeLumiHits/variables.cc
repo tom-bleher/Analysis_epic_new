@@ -10,15 +10,16 @@ namespace variables {
 
   int Nhits_min = 1; // cluster hits min
 
-  double Einput = 0;
-
+  double EgammaMC = 0;
+  double EelecMC = 0;
+  double EposMC = 0; 
   // spectrometer dimensions/placements in mm
   // DXY, and DZ stand for FULL widths
   double LumiSpecMag_Z = -56000;
   double LumiSpecMag_DZ = 780;
   double LumiSpecCAL_Z = -65000;
-  double LumiSpecCALTower_DZ = 200;
-  double LumiSpecCAL_DXY = 200;
+  double LumiSpecCALTower_DZ = 300;
+  double LumiSpecCAL_DXY = 300;
   double LumiSpecCAL_FiveSigma = 69;
   double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
   double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
@@ -41,7 +42,7 @@ namespace variables {
   double Tracker_pixelSize = 0.05; // mm
                             //maximal reduced chi^2 for tracks
   double max_chi2ndf = 0.01;
-  double Tracker_sigma = 3.9; // mm from reconstructed photon origins decaying o 2 electrons.
+  double Tracker_sigma = 3.9; // mm from reconstructed photon origins decaying to 2 electrons.
 
   double E_hit = 0;
   double x_hit = 0;
@@ -58,6 +59,7 @@ namespace variables {
   double E_cluster = 0;
   double x_cluster = 0;
   double y_cluster = 0;
+  double z_cluster = 0;
   double r_cluster = 0;
   double t_cluster = 0;
   double Radius_cluster = 0;

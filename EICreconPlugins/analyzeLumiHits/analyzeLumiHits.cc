@@ -48,7 +48,6 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //app->GetParameter("analyzeLumiHits:Egen", variables::Einput);
 
   MCgenAnalysis();
-
   FillDiagnosticHistograms();
 
   /////////////////////////////
@@ -76,23 +75,25 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 void analyzeLumiHits::MCgenAnalysis() {
   
   for( auto particle : MCParticles() ) {
-     
+    // SJDK 14/06/23 - Neither of these seems to give values that make sense for the e-/e+
     edm4hep::Vector3f p = particle->getMomentum();
     edm4hep::Vector3d v = particle->getVertex(); // Units of mm !!
     
     // Brem photons
     if( particle->getPDG() == 22 ) {
       // Set the photon energy for the acceptance histograms
-      variables::Einput = particle->getEnergy();
+      variables::EgammaMC = particle->getEnergy();
       
       ((TH1D *)gHistList->FindObject("hGenPhoton_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenPhoton_xy"))->Fill( v.x, v.y );
     }
     else if( particle->getPDG() == +11 && particle->getGeneratorStatus() == 1 ) {
+      variables::EelecMC = particle->getEnergy();
       ((TH1D *)gHistList->FindObject("hGenElectron_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenElectron_xy"))->Fill( v.x, v.y );
     }
     else if( particle->getPDG() == -11 && particle->getGeneratorStatus() == 1 ) {
+      variables::EposMC = particle->getEnergy();
       ((TH1D *)gHistList->FindObject("hGenPositron_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenPositron_xy"))->Fill( v.x, v.y );
     }
@@ -103,7 +104,7 @@ void analyzeLumiHits::MCgenAnalysis() {
 //-------------------------------------------------------------------------
 void analyzeLumiHits::FillDiagnosticHistograms() {
 
-  ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( variables::Einput );
+  ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( variables::EgammaMC );
   
 }
 

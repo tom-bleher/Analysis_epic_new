@@ -34,7 +34,9 @@ namespace variables {
 
   extern int Nhits_min; // cluster hits min
 
-  extern double Einput;
+  extern double EgammaMC;
+  extern double EelecMC;
+  extern double EposMC;
 
   extern double LumiSpecMag_Z;
   extern double LumiSpecMag_DZ;
@@ -78,6 +80,7 @@ namespace variables {
   extern double E_cluster;
   extern double x_cluster;
   extern double y_cluster;
+  extern double z_cluster;
   extern double r_cluster;
   extern double t_cluster;
   extern double Radius_cluster;

@@ -33,12 +33,40 @@ else
     Egamma_end=$4
 fi
 
+if [[ -z "$5" ]]; then
+    SpagCal="False"
+    echo "SpagCal argument not specified, assuming false and running homogeneous calorimeter simulation"
+else
+    SpagCal=$5
+fi
+
+# Standardise capitlisation of true/false statement, catch any expected/relevant cases and standardise them
+if [[ $SpagCal == "TRUE" || $SpagCal == "True" || $SpagCal == "true" ]]; then
+    SpagCal="True"
+elif [[ $SpagCal == "FALSE" || $SpagCal == "False" || $SpagCal == "false" ]]; then
+    SpagCal="False"
+fi
+# Check gun is either true or false, if not, just set it to false
+if [[ $SpagCal != "True" && $SpagCal != "False" ]]; then
+    SpagCal="False"
+    echo "SpagCal (arg 5) not supplied as true or false, defaulting to False. Enter True/False to enable/disable gun based event generation."
+fi
+
 for (( i=1; i<=$NumFiles; i++ ))
 do
-    FileNamesStr+="PairSpecSim_${i}_${NumEvents}_${Egamma_start}_${Egamma_end}/EICReconOut_${i}_${NumEvents}.root "
+    if [[ $SpagCal == "True" ]]; then
+	FileNamesStr+="PairSpecSim_SpagCal_${i}_${NumEvents}_${Egamma_start}_${Egamma_end}/EICReconOut_${i}_${NumEvents}.root "
+    else
+	FileNamesStr+="PairSpecSim_${i}_${NumEvents}_${Egamma_start}_${Egamma_end}/EICReconOut_${i}_${NumEvents}.root "
+    fi
 done
 
-CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}.root"
+    if [[ $SpagCal == "True" ]]; then
+	CombinedFile="EICReconOut_SpagCal_Combined_1_${NumFiles}_${NumEvents}.root"
+    else
+	CombinedFile="EICReconOut_Combined_1_${NumFiles}_${NumEvents}.root"
+    fi
+
 if [ ! -f "${CombinedFile}" ]; then
     hadd ${CombinedFile} ${FileNamesStr}
 elif [ -f "${CombinedFile}" ]; then

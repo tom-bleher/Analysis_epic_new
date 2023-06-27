@@ -11,5 +11,11 @@ namespace constants {
   double mass_muon = 0.1056583745;
   double mass_pionZero = 0.1349768;
   double mass_pion = 0.13957039;
+
+  double Cal_Single_AcceptanceTol = 0.1;
+  double Cal_Coin_AcceptanceTol = 0.1;
+  double Tracker_Single_AcceptanceTol = 0.05;
+  double Tracker_Coin_AcceptanceTol = 0.05;
+
 }
 #endif
