@@ -29,6 +29,14 @@ if len(os.listdir(simPath)) != 0:
   print("{0} directory not empty.  Clear directory".format(simPath))
   exit()
 
+det_dir = os.environ['DETECTOR_PATH']
+compact_dir = det_dir + '/compact'
+cmd = 'cp -r {0} {1}'.format(compact_dir, simPath)
+
+# cp over epic compact dir for parameter reference 
+os.system('cp -r {0} {1}'.format(compact_dir, simPath) )
+
+
 def runSims(x):
   os.system(x)
 

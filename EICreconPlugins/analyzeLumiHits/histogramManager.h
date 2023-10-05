@@ -26,8 +26,10 @@ namespace histogramManager {
   extern TTree *treeCAL_Clusters;
   extern TTree *treeTracks;
   extern TTree *treeTracker_Hits;
+  extern TTree *treePhotons;
 
   extern TreeTrackClass tracks;
+  extern PhotonRecClass recPhotons;
 
   extern void bookHistograms( TDirectory *dir);
   

@@ -18,7 +18,7 @@ void CALAnalysis::Prepare(std::vector<const edm4hep::SimCalorimeterHit*> &CalHit
       std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
       std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
       std::vector<const edm4eic::Cluster*> &CALClusters,
-      std::shared_ptr<JDD4hep_service> geoSvc ) {
+      std::shared_ptr<DD4hep_service> geoSvc ) {
 
   m_CALhits = CalHits;
   m_CALadc = CALadc;
@@ -35,7 +35,7 @@ void CALAnalysis::Prepare(std::vector<const edm4hep::SimCalorimeterHit*> &CalHit
     edm4hep::Vector3f vec = cluster->getPosition();// mm
 
     if( cluster->getNhits() < variables::Nhits_min ) { continue; }
-
+    
     if( vec.y > variables::LumiSpecCAL_FiveSigma ) {
       m_EtopTotal = cluster->getEnergy();
     }
@@ -149,7 +149,7 @@ void CALAnalysis::FillDiagnostics() {
   
   ((TH1D *)gHistList->FindObject("hClusterCount"))->Fill( m_CALclusters.size() );
 
-  ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( variables::Einput, m_EtopTotal + m_EbotTotal );
+  ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( variables::Ephoton, m_EtopTotal + m_EbotTotal );
 
   if( (m_EtopTotal + m_EbotTotal) > 0 ) { 
     ((TH1D *)gHistList->FindObject("hEnergy"))->Fill( m_EtopTotal + m_EbotTotal ); 
@@ -164,13 +164,13 @@ void CALAnalysis::FillDiagnostics() {
 void CALAnalysis::FillAcceptances() {
 
   if( m_EtopTotal > 1 ) {
-    ((TH1D *)gHistList->FindObject("hCALTop_Acceptance"))->Fill( variables::Einput );
+    ((TH1D *)gHistList->FindObject("hCALTop_Acceptance"))->Fill( variables::Ephoton );
   }
   if( m_EbotTotal > 1 ) {
-    ((TH1D *)gHistList->FindObject("hCALBot_Acceptance"))->Fill( variables::Einput );
+    ((TH1D *)gHistList->FindObject("hCALBot_Acceptance"))->Fill( variables::Ephoton );
   }
   if( m_EtopTotal > 1 && m_EbotTotal > 1) { // Emin ~3.7 GeV
-    ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance"))->Fill( variables::Einput );
+    ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance"))->Fill( variables::Ephoton );
   }
 
 }

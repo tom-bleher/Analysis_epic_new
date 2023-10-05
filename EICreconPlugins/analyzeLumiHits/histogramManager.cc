@@ -23,8 +23,10 @@ namespace histogramManager {
 
     gHistList->Add( new TH1D("hTrackerBot_Acceptance","Bottom tracker positron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
     gHistList->Add( new TH1D("hTrackerCoincidence_Acceptance","Tracker coincidence acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
+    gHistList->Add( new TH2D("hTrackers_Eres_allPairs","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
     gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
 
+    gHistList->Add( new TH2D("hTrackers_E_allPairs","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
     gHistList->Add( new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
     gHistList->Add( new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
     gHistList->Add( new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
@@ -84,6 +86,10 @@ namespace histogramManager {
     gHistList->Add( new TH1D("hClusterCount", "Number of clusters / event;# clusters / event", 20,-0.5,19.5) );
     gHistList->Add( new TH1D("hADCsignal", "ADC signal", 16385,-0.5,16384.5) );
 
+    gHistList->Add( new TH2D("hBxdotdL", "Bx*dz versus x and y;x (cm);y (cm)", 33,-8.25,8.25, 81,-20.25,20.25) );
+    gHistList->Add( new TH2D("hBydotdL", "By*dz versus x and y;x (cm);y (cm)", 33,-8.25,8.25, 81,-20.25,20.25) );
+    gHistList->Add( new TH2D("hBzdotdL", "Bz*dz versus x and y;x (cm);y (cm)", 33,-8.25,8.25, 81,-20.25,20.25) );
+
     // TTrees
     treeCAL_Hits->SetDirectory( dir );
     treeCAL_Hits->Branch("E", &variables::E_hit);
@@ -124,10 +130,34 @@ namespace histogramManager {
     treeTracks->Branch("Top_Y0", &tracks.Y0_e);
     treeTracks->Branch("Top_slopeX", &tracks.slopeX_e);
     treeTracks->Branch("Top_slopeY", &tracks.slopeY_e);
+    treeTracks->Branch("Top_theta", &tracks.theta_e);
+    treeTracks->Branch("Top_Nhits", &tracks.Nhits_e);
     treeTracks->Branch("Bot_X0", &tracks.X0_p);
     treeTracks->Branch("Bot_Y0", &tracks.Y0_p);
     treeTracks->Branch("Bot_slopeX", &tracks.slopeX_p);
     treeTracks->Branch("Bot_slopeY", &tracks.slopeY_p);
+    treeTracks->Branch("Bot_theta", &tracks.theta_p);
+    treeTracks->Branch("Bot_Nhits", &tracks.Nhits_p);
+
+    treePhotons->SetDirectory( dir );
+    treePhotons->Branch("E", &recPhotons.E);
+    treePhotons->Branch("Etop", &recPhotons.Etop);
+    treePhotons->Branch("Ebot", &recPhotons.Ebot);
+    treePhotons->Branch("Egen", &recPhotons.Egen);
+    treePhotons->Branch("Mass", &recPhotons.Mass);
+    treePhotons->Branch("X", &recPhotons.X);
+    treePhotons->Branch("Y", &recPhotons.Y);
+    treePhotons->Branch("Xtop", &recPhotons.Xtop);
+    treePhotons->Branch("Ytop", &recPhotons.Ytop);
+    treePhotons->Branch("Xbot", &recPhotons.Xbot);
+    treePhotons->Branch("Ybot", &recPhotons.Ybot);
+    treePhotons->Branch("Xgen", &recPhotons.Xgen);
+    treePhotons->Branch("Ygen", &recPhotons.Ygen);
+    treePhotons->Branch("DCA", &recPhotons.DCA);
+    treePhotons->Branch("Chi2top", &recPhotons.Chi2top);
+    treePhotons->Branch("Chi2bot", &recPhotons.Chi2bot);
+    treePhotons->Branch("Nhitstop", &recPhotons.Nhitstop);
+    treePhotons->Branch("Nhitsbot", &recPhotons.Nhitsbot);
   }
 
 }

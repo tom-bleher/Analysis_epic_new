@@ -1,8 +1,8 @@
 import os
 import sys
 
-# POS.ConvMiddle POS.SweeperEnd, POS.MagnetsMiddle
-location = "POS.ConvMiddle"
+# POS.ConvMiddle POS.AnalyzerStart
+location = "POS.AnalyzerStart"
 
 genPath = "genEvents"
 
@@ -17,7 +17,7 @@ if len(os.listdir(genPath)) != 0:
   print("{0} directory not empty.  Clear directory".format(genPath))
   exit()
 
-for n in range(32):
+for n in range(32): # 32
   E = 4 + n/2
   cmd = "root -q 'lumi_particles.cxx(1e4,true,false,false,{0},{0},\"{1}/idealPhotonsAtIP_{0}.hepmc\")'".format(E,genPath)
   os.system(cmd)

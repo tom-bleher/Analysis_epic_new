@@ -5,38 +5,29 @@
 
 namespace variables {
   
-  const int maxModules = 3;
+  const int maxModules = 5;
   const int maxSectors = 2;
 
   int Nhits_min = 1; // cluster hits min
 
-  double Einput = 0;
+  double Ephoton = 0;
 
-  // spectrometer dimensions/placements in mm
-  // DXY, and DZ stand for FULL widths
-  // Old design
-  //double LumiAnalyzerMag_Z = -56000;
-  //double LumiAnalyzerMag_DZ = 780;
-  //double LumiSpecCALTower_DZ = 200;
-  //double LumiSpecCAL_DXY = 200;
-  //double LumiSpecCAL_Z = -65000;
-  //double LumiSpecCAL_FiveSigma = 69;
-  //// cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  //double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
-  //double RmagPreFactor = 6670.79; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
-  
   // New design
-  double LumiAnalyzerMag_Z = -44000;
-  double LumiAnalyzerMag_DZ = 1000;
+  double LumiSweepMag_Z = -5600;
+  double LumiAnalyzerMag_Z = -4000 + LumiSweepMag_Z;
+  double LumiAnalyzerMag_DZ = 1200;
   double LumiSpecCALTower_DZ = 200;
   double LumiSpecCAL_DXY = 200;
-  double LumiSpecCAL_Z = -48000 - LumiSpecCALTower_DZ/2.;
-  double LumiSpecCAL_FiveSigma = 50;
+  double LumiSpecCAL_Z = -8000 + LumiSweepMag_Z - LumiSpecCALTower_DZ/2.0;
+  double LumiBeamDiv_pref = 5 * 211e-6;
+  double LumiSpecCAL_FiveSigma = LumiBeamDiv_pref * fabs(LumiSpecCAL_Z);
   // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  double pT = 0.3; // GeV. 0.3*B(T)*dZ(m)
+  double B = 1/1.2; // Tesla
+  double pT = 0.3 * B * LumiAnalyzerMag_DZ/1000.; // GeV. 0.3*B(T)*dZ(m)
   double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
 
-  double LumiConverter_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
+  double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_DZ)/2.0;
+  double LumiAnalyzerMagStart_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
   double LumiAnalyzerMagEnd_Z = LumiAnalyzerMag_Z - LumiAnalyzerMag_DZ/2.0;
   double LumiConverterCut_DXY = 60;
 
@@ -48,9 +39,9 @@ namespace variables {
 
   double Tracker_meanZ = (LumiSpecTracker_Z1 + LumiSpecTracker_Z2 + LumiSpecTracker_Z3)/3.;
 
-  double Tracker_pixelSize = 0.05; // mm
-                            //maximal reduced chi^2 for tracks
-  double max_chi2ndf = 0.01;
+  double Tracker_pixelSize = 0.0; // mm
+  double max_chi2ndf = 0.01; // maximal reduced chi^2 for tracks
+
   double Tracker_sigma = 3.9; // mm, from distribution of reconstructed photon decaying to 2 electrons.
 
   double E_hit = 0;
