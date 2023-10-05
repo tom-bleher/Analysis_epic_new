@@ -37,16 +37,17 @@ void BH_plotter(bool plotFromFile = false) {
 
   TCanvas *c2 = new TCanvas("c2","c2",10,10,700,500);
  
-  gPad->DrawFrame(0.,0.,35,0.55);
+  gPad->DrawFrame(0.,0.,20,0.55);
 
   if(plotFromFile) {
-    fin = new TFile("../recoPlugins/eicrecon.root","READ");
-    acc = (TH1D*)fin->Get("hCAL_Acceptance");
-    acc->Scale(1/1000.);
+    fin = new TFile("../eventAnalysis/ConvMiddle_Z2/MergedOutput.root","READ");
+    acc = (TH1D*)fin->Get("LumiTracker/hTrackerTop_Acceptance");
+    TH1D *genPhoton_E = (TH1D*)fin->Get("hGenPhoton_E");
+    acc->Divide(genPhoton_E);
     acc->SetMarkerStyle(20);
-    acc->GetXaxis()->SetRangeUser(0,35);
+    acc->GetXaxis()->SetRangeUser(0,20);
     acc->GetYaxis()->SetRangeUser(0,0.55);
-    acc->GetYaxis()->SetTitle("CAL acceptance");
+    acc->GetYaxis()->SetTitle("acceptance");
     acc->SetTitle("");
     acc->Draw("p");
   }
@@ -72,7 +73,7 @@ void BH_plotter(bool plotFromFile = false) {
     
     double Emin_eff = BH_E_scaled->GetX(0.55);
     double Emax_eff = BH_E_scaled->GetX(0.04);
-    TGaxis *A3 = new TGaxis(35,0.04,34.999,0.55,BH_E->Eval(Emax_eff),BH_E->Eval(Emin_eff),50510,"G");
+    TGaxis *A3 = new TGaxis(20,0.04,19.999,0.55,BH_E->Eval(Emax_eff),BH_E->Eval(Emin_eff),50510,"G");
     A3->SetTitle("Bethe-Heitler d#sigma/dE (mb/GeV)");
     A3->SetLabelSize(0.04);
     A3->SetTitleSize(0.04);
@@ -80,8 +81,8 @@ void BH_plotter(bool plotFromFile = false) {
     A3->SetLabelOffset(0.025);
     A3->Draw("same");
   
-    TLegend *leg = new TLegend(0.6,0.7,0.83,0.9);
-    leg->AddEntry(acc,"CAL acceptance","p");
+    TLegend *leg = new TLegend(0.35,0.7,0.73,0.9);
+    leg->AddEntry(acc,"Tracker acceptance","p");
     leg->AddEntry(BH_E,"Bethe-Heitler d#sigma/dE","l");
     leg->Draw("same");
   }
@@ -91,19 +92,19 @@ void BH_plotter(bool plotFromFile = false) {
   }
 
   double Elow = 1, Ehigh = 18; // GeV
-  TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Apr28.root","READ");
-  TH1D *hAcc = nullptr;
-  if( fAcc ) {
-     cout<<"Acceptance file found"<<endl;
-     //hAcc = (TH1D*)fAcc->Get("hCALCoincidence_Acceptance");
-     hAcc = (TH1D*)fAcc->Get("hCALTop_Acceptance");
-  }
+  //TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Apr28.root","READ");
+  //TH1D *hAcc = nullptr;
+  //if( fAcc ) {
+  //   cout<<"Acceptance file found"<<endl;
+  //   //hAcc = (TH1D*)fAcc->Get("hCALCoincidence_Acceptance");
+  //   hAcc = (TH1D*)fAcc->Get("hCALTop_Acceptance");
+  //}
   
-  double crossSection = IntegratedCrossSection( Elow, Ehigh, BH_E, hAcc );
+  double crossSection = IntegratedCrossSection( Elow, Ehigh, BH_E, acc );
 
   double LumiInst = 1.54e33; // instantenous lumi (cm^-2*sec^-1)
   double mbTocm2 = 1e-27;
-  double Tbunch = 44e-9; // spacing between bunch centers in sec
+  double Tbunch = 44e-9; // spacing between bunch centers in sec for 18 GeV electron beam (~10 ns for lower E)
   double LumiPerBunch = LumiInst * mbTocm2 * Tbunch;
   double photonsPerSec = LumiInst * mbTocm2 * crossSection;
   double photonsPerBunchCrossing = LumiPerBunch * crossSection;

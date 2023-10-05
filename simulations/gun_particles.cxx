@@ -43,7 +43,7 @@ double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
 
-void gun_particles(int n_events = 1e5, double E_start = 10.0, double E_end = 10.0, string out_fname="genParticles.hepmc") {
+void gun_particles(int n_events = 1e4, double E_start = 10.0, double E_end = 10.0, string out_fname="genParticles.hepmc") {
  
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   
@@ -93,7 +93,7 @@ void gun_particles(int n_events = 1e5, double E_start = 10.0, double E_end = 10.
 
     // electron 1 
     GenVertexPtr v2 = std::make_shared<GenVertex>();
-    v2->set_position( FourVector(0.0, 80.0, -64000, 0) ); // in mm
+    v2->set_position( FourVector(0, 110.0, -64000, 0) ); // in mm
     GenParticlePtr p3_in = std::make_shared<GenParticle>( 
         FourVector(p*sin(theta1)*cos(phi1), p*sin(theta1)*sin(phi1), p*cos(theta1), E), id, 3);
     GenParticlePtr p3_out = std::make_shared<GenParticle>( 
@@ -105,7 +105,7 @@ void gun_particles(int n_events = 1e5, double E_start = 10.0, double E_end = 10.
 
     // electron 2
     GenVertexPtr v3 = std::make_shared<GenVertex>();
-    v3->set_position( FourVector(0.0, 260.0, -64000, 0) ); // in mm
+    v3->set_position( FourVector(0.0, 180.0, -64000, 0) ); // in mm
     GenParticlePtr p4_in = std::make_shared<GenParticle>( 
         FourVector(p*sin(theta2)*cos(phi2), p*sin(theta2)*sin(phi2), p*cos(theta2), E), id, 3);
     GenParticlePtr p4_out = std::make_shared<GenParticle>( 
