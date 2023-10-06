@@ -10,10 +10,18 @@ namespace variables {
 
   int Nhits_min = 1; // cluster hits min
 
-  double Ephoton = 0;
+  double Ephoton;
+  double Eelectron;
+  double Epositron;
+  double Xphoton;
+  double Xelectron;
+  double Xpositron;
+  double Yphoton;
+  double Yelectron;
+  double Ypositron;
 
   // New design
-  double LumiSweepMag_Z = -5600;
+  double LumiSweepMag_Z = -56000;
   double LumiAnalyzerMag_Z = -4000 + LumiSweepMag_Z;
   double LumiAnalyzerMag_DZ = 1200;
   double LumiSpecCALTower_DZ = 200;
@@ -24,7 +32,7 @@ namespace variables {
   // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
   double B = 1/1.2; // Tesla
   double pT = 0.3 * B * LumiAnalyzerMag_DZ/1000.; // GeV. 0.3*B(T)*dZ(m)
-  double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
+  double RmagPreFactor = 3335.3950 / B; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
 
   double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_DZ)/2.0;
   double LumiAnalyzerMagStart_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;

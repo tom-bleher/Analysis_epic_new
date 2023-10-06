@@ -3,57 +3,8 @@
 
 #include <vector>
 #include <math.h>
-
-typedef std::tuple<double,double,double> TrackHit;
-
-struct TrackClass {
-  double charge;
-  double X0;
-  double Y0;
-  double slopeX;
-  double slopeY;
-  double theta;
-  double phi;
-  double Chi2;
-  double Nhits;
-};
-
-struct TreeTrackClass {
-  std::vector<double> X0_e;
-  std::vector<double> Y0_e;
-  std::vector<double> slopeX_e;
-  std::vector<double> slopeY_e;
-  std::vector<double> theta_e;
-  std::vector<double> Nhits_e;
-
-  std::vector<double> X0_p;
-  std::vector<double> Y0_p;
-  std::vector<double> slopeX_p;
-  std::vector<double> slopeY_p;
-  std::vector<double> theta_p;
-  std::vector<double> Nhits_p;
-};
-
-struct PhotonRecClass {
-  double E;
-  double Etop;
-  double Ebot;
-  double Egen;
-  double Mass;
-  double X;
-  double Y;
-  double Xtop;
-  double Xbot;
-  double Ytop;
-  double Ybot;
-  double Xgen;
-  double Ygen;
-  double DCA;
-  double Chi2top;
-  double Chi2bot;
-  double Nhitstop;
-  double Nhitsbot;
-};
+//                  hitX , hitY , hitZ , Edep , time , primary?
+typedef std::tuple<double,double,double,double,double,double> TrackHit;
 
 
 namespace variables {
@@ -122,5 +73,42 @@ namespace variables {
   extern double SigmaThetaPhi1_cluster;
   extern double SigmaThetaPhi2_cluster;
 }
+
+struct TrackClass {
+  double e;
+  double charge;
+  double x0;
+  double y0;
+  double slopeX;
+  double slopeY;
+  double theta;
+  double phi;
+  double chi2;
+  double nHits;
+  std::vector<double> eDeps;
+  std::vector<double> time;
+  std::vector<bool> primary;
+};
+
+struct PhotonRecClass {
+  double e;
+  double mass;
+  double x;
+  double y;
+  double dca;
+  double eGen;
+  double xGen;
+  double yGen;
+  double chi2Top;
+  double nHitsTop;
+  std::vector<double> eDepsTop;
+  std::vector<double> timeTop;
+  std::vector<bool> primaryTop;
+  double chi2Bot;
+  double nHitsBot;
+  std::vector<double> eDepsBot;
+  std::vector<double> timeBot;
+  std::vector<bool> primaryBot;
+};
 
 #endif
