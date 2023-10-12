@@ -14,10 +14,12 @@ namespace histogramManager {
   TTree *treeTracksTop = new TTree("treeTracksTop","Tracks");
   TTree *treeTracksBot = new TTree("treeTracksBot","Tracks");
   TTree *treePhotons = new TTree("treePhotons","Tracks");
+  TTree *treeGenPhotons = new TTree("treeGenPhotons","Particles");
 
   //TreeTrackClass tracks;
   TrackClass g_track;
-  PhotonRecClass g_recPhotons;
+  PhotonRecClass g_recPhoton;
+  PhotonGenClass g_genPhoton;
  
   void bookHistograms( TDirectory *dir ) {
     // Tracker histograms
@@ -27,30 +29,6 @@ namespace histogramManager {
 
     gHistList->Add( new TH1D("hTrackerBot_Acceptance","Bottom tracker positron acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
     gHistList->Add( new TH1D("hTrackerCoincidence_Acceptance","Tracker coincidence acceptance;E_{#gamma} (GeV);Acceptance", 2500, 0, 50) );
-    gHistList->Add( new TH2D("hTrackers_Eres_allPairs","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
-    gHistList->Add( new TH2D("hTrackers_Eres","Tracker E resolution;E_{#gamma} (GeV);(E_{gen}-E_{rec})/E_{gen}",200,0,50, 200,-1,1) );
-
-    gHistList->Add( new TH2D("hTrackers_E_allPairs","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
-    gHistList->Add( new TH2D("hTrackers_E","Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
-    gHistList->Add( new TH2D("hTrackersTop_E","Top Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
-    gHistList->Add( new TH2D("hTrackersBot_E","Bottom Tracker E;E_{#gamma} (GeV);E_{rec} (GeV)", 200,0,50, 500,0,50) );
-
-    gHistList->Add( new TH1D("hTrackers_X_allPairs","X at converter;(x_{electron} + x_{positron})/2 (mm);counts",1000,-50,50) );
-    gHistList->Add( new TH1D("hTrackers_Y_allPairs","Y at converter;(y_{electron} + y_{positron})/2 (mm);counts",1000,-50,50) );
-    gHistList->Add( new TH1D("hTrackers_DX_allPairs","#DeltaX at converter;x_{electron} - x_{positron} (mm);counts",1000,-50,50) );
-    gHistList->Add( new TH1D("hTrackers_DY_allPairs","#DeltaY at converter;y_{electron} - y_{positron} (mm);counts",1000,-50,50) );
-
-    gHistList->Add( new TH1D("hTrackers_X","X at converter;(x_{electron} + x_{positron})/2 mm);counts",1000,-50,50) );
-    gHistList->Add( new TH1D("hTrackers_Y","Y at converter;(y_{electron} + y_{positron})/2 (mm);counts",1000,-50,50) );
-    gHistList->Add( new TH2D("hTrackers_X_BotVsTop","X at converter;X positron (mm);X electron (mm)", 1000,-50,50, 1000,-50,50) );
-    gHistList->Add( new TH2D("hTrackers_Y_BotVsTop","Y at converter;Y positron (mm);Y electron (mm)", 1000,-50,50, 1000,-50,50) );
-
-    gHistList->Add( new TH2D("hTrackers_DCAvsZ","pair DCA vs Z;DCA (mm); Z (mm)",1000,0,100, 1000,variables::LumiAnalyzerMag_Z - variables::LumiAnalyzerMag_DZ, variables::LumiAnalyzerMag_Z + variables::LumiAnalyzerMag_DZ ) );
-    gHistList->Add( new TH1D("hTrackers_InvMass_allPairs","tracker pair mass",1000,0,1) );
-    gHistList->Add( new TH1D("hTrackers_InvMass","tracker pair mass",1000,0,1) );
-
-    gHistList->Add( new TH1D("hTrackChi2", "Track #chi^{2} / Nlayers;#chi^{2};counts", 1000,0,1) );
-    gHistList->Add( new TH1D("hTrackersSlope", "", 1000,0,1) );
 
     for( int i=0; i < variables::maxModules; i++ ) {
       for( int j=0; j < variables::maxSectors; j++ ) {
@@ -136,6 +114,7 @@ namespace histogramManager {
     treeTracksTop->Branch("slopeX", &g_track.slopeX);
     treeTracksTop->Branch("slopeY", &g_track.slopeY);
     treeTracksTop->Branch("theta", &g_track.theta);
+    treeTracksTop->Branch("phi", &g_track.phi);
     treeTracksTop->Branch("chi2", &g_track.chi2);
     treeTracksTop->Branch("nHits", &g_track.nHits);
     treeTracksTop->Branch("eDeps", &g_track.eDeps); 
@@ -149,29 +128,43 @@ namespace histogramManager {
     treeTracksBot->Branch("slopeX", &g_track.slopeX);
     treeTracksBot->Branch("slopeY", &g_track.slopeY);
     treeTracksBot->Branch("theta", &g_track.theta);
+    treeTracksBot->Branch("phi", &g_track.phi);
     treeTracksBot->Branch("chi2", &g_track.chi2);
     treeTracksBot->Branch("nHits", &g_track.nHits);
     treeTracksBot->Branch("eDeps", &g_track.eDeps); 
     treeTracksBot->Branch("time", &g_track.time); 
     treeTracksBot->Branch("primary", &g_track.primary); 
-    
+   
+    treeGenPhotons->SetDirectory( dir );
+    treeGenPhotons->Branch("e", &g_genPhoton.e);
+    treeGenPhotons->Branch("eElec", &g_genPhoton.eElec);
+    treeGenPhotons->Branch("ePos", &g_genPhoton.ePos);
+    treeGenPhotons->Branch("theta", &g_genPhoton.theta);
+    treeGenPhotons->Branch("phi", &g_genPhoton.phi);
+    treeGenPhotons->Branch("x", &g_genPhoton.x);
+    treeGenPhotons->Branch("y", &g_genPhoton.y);
+
     treePhotons->SetDirectory( dir );
-    treePhotons->Branch("e", &g_recPhotons.e);
-    treePhotons->Branch("mass", &g_recPhotons.mass);
-    treePhotons->Branch("x", &g_recPhotons.x);
-    treePhotons->Branch("y", &g_recPhotons.y);
-    treePhotons->Branch("dca", &g_recPhotons.dca);
-    treePhotons->Branch("eGen", &g_recPhotons.eGen);
-    treePhotons->Branch("xGen", &g_recPhotons.xGen);
-    treePhotons->Branch("yGen", &g_recPhotons.yGen);
-    treePhotons->Branch("chi2Top", &g_recPhotons.chi2Top);
-    treePhotons->Branch("nHitsTop", &g_recPhotons.nHitsTop);
-    treePhotons->Branch("timeTop", &g_recPhotons.timeTop);
-    treePhotons->Branch("primaryTop", &g_recPhotons.primaryTop);
-    treePhotons->Branch("chi2Bot", &g_recPhotons.chi2Bot);
-    treePhotons->Branch("nHitsBot", &g_recPhotons.nHitsBot);
-    treePhotons->Branch("timeBot", &g_recPhotons.timeBot);
-    treePhotons->Branch("primaryBot", &g_recPhotons.primaryBot);
+    treePhotons->Branch("e", &g_recPhoton.e);
+    treePhotons->Branch("eTop", &g_recPhoton.eTop);
+    treePhotons->Branch("eBot", &g_recPhoton.eBot);
+    treePhotons->Branch("mass", &g_recPhoton.mass);
+    treePhotons->Branch("x", &g_recPhoton.x);
+    treePhotons->Branch("y", &g_recPhoton.y);
+    treePhotons->Branch("dca", &g_recPhoton.dca);
+    treePhotons->Branch("eGen", &g_recPhoton.eGen);
+    treePhotons->Branch("xGen", &g_recPhoton.xGen);
+    treePhotons->Branch("yGen", &g_recPhoton.yGen);
+    treePhotons->Branch("thetaGen", &g_recPhoton.thetaGen);
+    treePhotons->Branch("phiGen", &g_recPhoton.phiGen);
+    treePhotons->Branch("chi2Top", &g_recPhoton.chi2Top);
+    treePhotons->Branch("nHitsTop", &g_recPhoton.nHitsTop);
+    //treePhotons->Branch("timeTop", &g_recPhoton.timeTop);
+    //treePhotons->Branch("primaryTop", &g_recPhoton.primaryTop);
+    treePhotons->Branch("chi2Bot", &g_recPhoton.chi2Bot);
+    treePhotons->Branch("nHitsBot", &g_recPhoton.nHitsBot);
+    //treePhotons->Branch("timeBot", &g_recPhoton.timeBot);
+    //treePhotons->Branch("primaryBot", &g_recPhoton.primaryBot);
   }
 
 }

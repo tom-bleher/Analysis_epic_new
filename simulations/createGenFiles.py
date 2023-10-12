@@ -2,6 +2,7 @@ import os
 import sys
 
 # POS.ConvMiddle POS.AnalyzerStart
+#location = "POS.ConvMiddle"
 location = "POS.AnalyzerStart"
 
 genPath = "genEvents"

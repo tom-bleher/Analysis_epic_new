@@ -51,7 +51,7 @@ class TrackerAnalysis {
     double TrackerErec( double slopeY );
     double DeltaYmagnet( double E, double charge );
     double DeltaYmagnet( TrackClass track, double z );
-    std::pair<double,double> DCA( TrackClass track1, TrackClass track2 );
+    std::pair<double,double> DCA( TrackClass top, TrackClass bot );
     double XatAnaMagStart( TrackClass track );
     double YatAnaMagStart( TrackClass track );
     double GetPairMass( TrackClass top, TrackClass bot );

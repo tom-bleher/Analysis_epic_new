@@ -13,7 +13,7 @@ using namespace std;
 
 struct positions {
   double ConvMiddle     = -58000;
-  double AnalyzerStart  = -59400;
+  double AnalyzerStart  = -59400; // -59400
 };
 
 positions POS;
@@ -86,12 +86,12 @@ void PropagateAndConvert(string infile="", string outfile="converterElectrons.he
       vertices[vtx]->add_particle_out( photonOUT );
 
       // linearly propagate particles to new Z location
-      double DeltaZ = PV.z() - Zprop;
-      double newX = photonIN->momentum().x() / photonIN->momentum().z() * DeltaZ;
-      double newY = photonIN->momentum().y() / photonIN->momentum().z() * DeltaZ;
-      FourVector VertexAtNewLocation( newX, newY, Zprop, 0 );
-      // set new particle vertex, relative to PV
-      vertices[vtx]->set_position( VertexAtNewLocation - PV );
+      double deltaZ = Zprop - PV.z();
+      double deltaX = photonIN->momentum().x() / photonIN->momentum().z() * deltaZ;
+      double deltaY = photonIN->momentum().y() / photonIN->momentum().z() * deltaZ;
+      FourVector RelVtxAtNewLocation( deltaX, deltaY, deltaZ, 0 );
+      // set new vertex (absolute)
+      vertices[vtx]->set_position( RelVtxAtNewLocation + PV );
 
       // remove the old outgoing photon (now it's converted)
       evt.remove_particle( vertices[vtx]->particles_out()[0] );

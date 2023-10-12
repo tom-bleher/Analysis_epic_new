@@ -27,10 +27,11 @@ namespace histogramManager {
   extern TTree *treeTracksTop;
   extern TTree *treeTracksBot;
   extern TTree *treeTracker_Hits;
+  extern TTree *treeGenPhotons;
   extern TTree *treePhotons;
-
   extern TrackClass g_track;
-  extern PhotonRecClass g_recPhotons;
+  extern PhotonRecClass g_recPhoton;
+  extern PhotonGenClass g_genPhoton;
 
   extern void bookHistograms( TDirectory *dir);
   

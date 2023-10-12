@@ -22,6 +22,8 @@ namespace variables {
   extern double Yphoton;
   extern double Yelectron;
   extern double Ypositron;
+  extern double ThetaPhoton;
+  extern double PhiPhoton;
 
   extern double LumiAnalyzerMag_Z;
   extern double LumiAnalyzerMag_DZ;
@@ -90,8 +92,20 @@ struct TrackClass {
   std::vector<bool> primary;
 };
 
+struct PhotonGenClass {
+  double e;
+  double eElec;
+  double ePos;
+  double theta;
+  double phi;
+  double x;
+  double y;
+};
+
 struct PhotonRecClass {
   double e;
+  double eTop;
+  double eBot;
   double mass;
   double x;
   double y;
@@ -99,16 +113,18 @@ struct PhotonRecClass {
   double eGen;
   double xGen;
   double yGen;
+  double thetaGen;
+  double phiGen;
   double chi2Top;
   double nHitsTop;
-  std::vector<double> eDepsTop;
-  std::vector<double> timeTop;
-  std::vector<bool> primaryTop;
+  //std::vector<double> eDepsTop;
+  //std::vector<double> timeTop;
+  //std::vector<bool> primaryTop;
   double chi2Bot;
   double nHitsBot;
-  std::vector<double> eDepsBot;
-  std::vector<double> timeBot;
-  std::vector<bool> primaryBot;
+  //std::vector<double> eDepsBot;
+  //std::vector<double> timeBot;
+  //std::vector<bool> primaryBot;
 };
 
 #endif

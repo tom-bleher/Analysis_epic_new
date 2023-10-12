@@ -88,9 +88,10 @@ void analyzeLumiHits::MCgenAnalysis() {
     if( particle->getPDG() == 22 && particle->getGeneratorStatus() == 4 ) {
       // Set the photon energy for the acceptance histograms
       variables::Ephoton = particle->getEnergy();
+      variables::ThetaPhoton = atan2( sqrt(pow(p.x,2) + pow(p.y,2)), p.z );
+      variables::PhiPhoton = atan2( p.y, p.x );
       variables::Xphoton = v.x;
       variables::Yphoton = v.y;
-
       ((TH1D *)gHistList->FindObject("hGenPhoton_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenPhoton_xy"))->Fill( v.x, v.y );
     }
@@ -112,6 +113,17 @@ void analyzeLumiHits::MCgenAnalysis() {
     }
     else {}
   }
+
+  g_genPhoton.e = variables::Ephoton;
+  g_genPhoton.eElec = variables::Eelectron;
+  g_genPhoton.ePos = variables::Epositron;
+  g_genPhoton.theta = variables::ThetaPhoton;
+  g_genPhoton.phi = variables::PhiPhoton;
+  g_genPhoton.x = variables::Xphoton;
+  g_genPhoton.y = variables::Yphoton;
+
+  treeGenPhotons->Fill();
+
 }
 
 //-------------------------------------------------------------------------

@@ -19,6 +19,8 @@ namespace variables {
   double Yphoton;
   double Yelectron;
   double Ypositron;
+  double ThetaPhoton;
+  double PhiPhoton;
 
   // New design
   double LumiSweepMag_Z = -56000;

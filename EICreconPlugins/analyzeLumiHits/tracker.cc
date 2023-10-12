@@ -192,7 +192,7 @@ void TrackerAnalysis::ComputeLinearRegressionComponents( vector<TrackClass> *tra
     //track.y0    += track.slopeY * fabs(variables::LumiSpecCAL_Z); // account for Z shift
     // calculate polar (theta) and azimuthal angles (phi)
     track.theta  = TMath::Pi() - atan( sqrt( pow(track.slopeX, 2) + pow(track.slopeY, 2) ) );
-    track.phi    = atan( track.slopeY / track.slopeX );
+    track.phi    = TMath::Pi() + atan2( track.slopeY, track.slopeX );
 
     // hit quantities
     double chi2 = 0;
@@ -272,7 +272,7 @@ double TrackerAnalysis::DeltaYmagnet( TrackClass track, double z ) {
 
 //-------------------------------------------------------------------------
 // returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
-std::pair<double,double> TrackerAnalysis::DCA( TrackClass track1, TrackClass track2 ) {
+std::pair<double,double> TrackerAnalysis::DCA( TrackClass top, TrackClass bot ) {
 
   bool pastMin = false;
   double dca = 10000;
@@ -282,9 +282,9 @@ std::pair<double,double> TrackerAnalysis::DCA( TrackClass track1, TrackClass tra
   while( ! pastMin ) {
     Zstep++;
     double Z = Zstart - Zstep;
-    double deltaX = (track1.slopeX * Z + track1.x0) - (track2.slopeX * Z + track2.x0);
-    double deltaY = (track1.slopeY * variables::LumiAnalyzerMagEnd_Z + track1.y0) - DeltaYmagnet( track1, variables::LumiAnalyzerMag_DZ - Zstep);
-    deltaY -= (track2.slopeY * variables::LumiAnalyzerMagEnd_Z + track2.y0) - DeltaYmagnet( track2, variables::LumiAnalyzerMag_DZ - Zstep);
+    double deltaX = (top.slopeX * Z + top.x0) - (bot.slopeX * Z + bot.x0);
+    double deltaY = (top.slopeY * variables::LumiAnalyzerMagEnd_Z + top.y0) - DeltaYmagnet( top, variables::LumiAnalyzerMag_DZ - Zstep);
+    deltaY -= (bot.slopeY * variables::LumiAnalyzerMagEnd_Z + bot.y0) - DeltaYmagnet( bot, variables::LumiAnalyzerMag_DZ - Zstep);
     double dca_new = sqrt( pow(deltaX,2) + pow(deltaY,2) );
     if( dca_new < dca ) {
       dca = dca_new;
@@ -330,47 +330,32 @@ void TrackerAnalysis::PrintTrackInfo( vector<TrackClass> topTracks, vector<Track
 //-------------------------------------------------------------------------
 double TrackerAnalysis::GetPairMass( TrackClass top, TrackClass bot ) {
   
-  double Etop = TrackerErec( top.slopeY );
-  double Ebot = TrackerErec( bot.slopeY );
-  double p_top = sqrt( pow(Etop,2) - pow(constants::mass_electron,2) );
-  double p_bot = sqrt( pow(Ebot,2) - pow(constants::mass_electron,2) );
-
-  TLorentzVector electron_p;
-  TLorentzVector positron_p;
+  TLorentzVector top4Vector, bot4Vector;
+  vector<TLorentzVector> fourVectors = {top4Vector, bot4Vector};
+  vector<TrackClass> tracks = {top, bot};
   
-  electron_p.SetXYZM( 
-      p_top*sin(top.theta)*cos(top.phi), 
-      p_top*sin(top.theta)*sin(top.phi), 
-      p_top*cos(top.theta), 
-      constants::mass_electron );
-  // subtract py induced by B field
-  double pYZ_top = sqrt( pow(electron_p.Y(), 2) + pow(electron_p.Z(), 2) ); // conserved
-  electron_p.SetY( electron_p.Y() - variables::pT );
-  electron_p.SetZ( sqrt( pow(pYZ_top, 2) - pow(electron_p.Y(), 2) ) );
+  for(int i = 0; i < 2; i++) {
+    TrackClass track = tracks[i];
+    double E = TrackerErec( track.slopeY );
+    double p = sqrt( pow(E, 2) - pow(constants::mass_electron, 2) );
 
-  positron_p.SetXYZM( 
-      p_bot*sin(bot.theta)*cos(bot.phi), 
-      p_bot*sin(bot.theta)*sin(bot.phi), 
-      p_bot*cos(bot.theta), 
-      constants::mass_electron );
-  // subtract py induced by B field
-  double pYZ_bot = sqrt( pow(positron_p.Y(), 2) + pow(positron_p.Z(), 2) ); // conserved
-  positron_p.SetY( positron_p.Y() + variables::pT );
-  positron_p.SetZ( sqrt( pow(pYZ_bot, 2) - pow(positron_p.Y(), 2) ) );
-  
-  //electron_p.Print();
-  //positron_p.Print();
-
-  return (electron_p + positron_p).M();
+    double px = p * sin(track.theta) * cos(track.phi);
+    double py = p * sin(track.theta) * sin(track.phi);
+    double pz = p * cos(track.theta);
+    double pYZ = sqrt( pow(py, 2) + pow(pz, 2) ); // conserved
+    double new_py = py + pow(-1, i+1) * variables::pT; // subtract py induced by B field
+    double new_pz = sqrt( pow(pYZ, 2) - pow(new_py, 2) );
+    fourVectors[i].SetXYZM( px, new_py, new_pz, constants::mass_electron ); 
+  }
+  //fourVectors[0].Print();
+  //fourVectors[1].Print();
+  //cout<<(fourVectors[0] + fourVectors[1]).M()<<endl;
+  return (fourVectors[0] + fourVectors[1]).M();
 }
 
 //-------------------------------------------------------------------------
 void TrackerAnalysis::FillTrackerHistograms() {
 
-  for( auto track : m_AllTopTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.chi2/3. ); }
-  for( auto track : m_AllBotTracks ) { ((TH1D *)gHistList->FindObject("hTrackChi2"))->Fill( track.chi2/3. ); }
-
-  // Loop over good tracks
   bool EventWithTopTrackNearConverterCenter = false;
   bool EventWithBotTrackNearConverterCenter = false;
   for( auto track : m_TopTracks ) {
@@ -406,52 +391,7 @@ void TrackerAnalysis::FillTrackerHistograms() {
     ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::Ephoton );
   }
 
-  // Loop over good pairs of tracks
-  for( auto topTrack : m_TopTracks ) {
-
-    double Etop = TrackerErec( topTrack.slopeY );
-    double xtop_c = XatAnaMagStart( topTrack );
-    double ytop_c = YatAnaMagStart( topTrack );
-
-    for( auto botTrack : m_BotTracks ) {
-
-      double Ebot = TrackerErec( botTrack.slopeY );
-      double xbot_c = XatAnaMagStart( botTrack );
-      double ybot_c = YatAnaMagStart( botTrack );
-      double xPhoton = (xtop_c + xbot_c)/2.;
-      double yPhoton = (ytop_c + ybot_c)/2.;
-
-      double pairMass = GetPairMass( topTrack, botTrack );
-
-      std::pair<double, double> DCAandZ = DCA( topTrack, botTrack );
-
-      ((TH2D *)gHistList->FindObject("hTrackers_DCAvsZ"))->Fill( DCAandZ.first, DCAandZ.second );
-
-      
-      ((TH1D *)gHistList->FindObject("hTrackers_InvMass_allPairs"))->Fill( pairMass );
-      ((TH1D *)gHistList->FindObject("hTrackers_X_allPairs"))->Fill( xPhoton );
-      ((TH1D *)gHistList->FindObject("hTrackers_Y_allPairs"))->Fill( yPhoton );
-      ((TH1D *)gHistList->FindObject("hTrackers_DX_allPairs"))->Fill( xtop_c - xbot_c );
-      ((TH1D *)gHistList->FindObject("hTrackers_DY_allPairs"))->Fill( ytop_c - ybot_c );
-      ((TH2D *)gHistList->FindObject("hTrackers_E_allPairs"))->Fill( variables::Ephoton, Etop + Ebot );
-      ((TH2D *)gHistList->FindObject("hTrackers_E_allPairs"))->Fill( variables::Ephoton, Etop + Ebot );
-      ((TH2D *)gHistList->FindObject("hTrackers_Eres_allPairs"))->Fill( variables::Ephoton, (variables::Ephoton - (Etop + Ebot) )/variables::Ephoton );
-
-      //////////////////////
-      // Track proximity cut
-      if( fabs(xtop_c - xbot_c) > 2*variables::Tracker_sigma 
-          || fabs(ytop_c - ybot_c) > 2*variables::Tracker_sigma ) { continue; }
-      
-      ((TH1D *)gHistList->FindObject("hTrackers_InvMass"))->Fill( pairMass );
-      ((TH1D *)gHistList->FindObject("hTrackers_X"))->Fill( xPhoton );
-      ((TH1D *)gHistList->FindObject("hTrackers_Y"))->Fill( yPhoton );
-      ((TH2D *)gHistList->FindObject("hTrackers_X_BotVsTop"))->Fill( xtop_c, xbot_c );
-      ((TH2D *)gHistList->FindObject("hTrackers_Y_BotVsTop"))->Fill( ytop_c, ybot_c );
-      ((TH2D *)gHistList->FindObject("hTrackers_E"))->Fill( variables::Ephoton, Etop + Ebot );
-      ((TH2D *)gHistList->FindObject("hTrackers_Eres"))->Fill( variables::Ephoton, (variables::Ephoton - (Etop + Ebot) )/variables::Ephoton );
-    }
-  }
-
+ 
   // Trees with all track pairings
   for( auto topTrack : m_AllTopTracks ) {
 
@@ -471,24 +411,28 @@ void TrackerAnalysis::FillTrackerHistograms() {
 
       std::pair<double, double> DCAandZ = DCA( topTrack, botTrack );
 
-      g_recPhotons.e = Etop + Ebot;
-      g_recPhotons.mass = pairMass;
-      g_recPhotons.x = xPhoton;
-      g_recPhotons.y = yPhoton;
-      g_recPhotons.dca = std::get<0>(DCAandZ);
-      g_recPhotons.eGen = variables::Ephoton;
-      g_recPhotons.xGen = variables::Xphoton;
-      g_recPhotons.yGen = variables::Yphoton;
-      g_recPhotons.chi2Top = topTrack.chi2;
-      g_recPhotons.nHitsTop = topTrack.nHits;
-      g_recPhotons.eDepsTop = topTrack.eDeps;
-      g_recPhotons.timeTop = topTrack.time;
-      g_recPhotons.primaryTop = topTrack.primary;
-      g_recPhotons.chi2Bot = topTrack.chi2;
-      g_recPhotons.nHitsBot = topTrack.nHits;
-      g_recPhotons.eDepsBot = topTrack.eDeps;
-      g_recPhotons.timeBot = topTrack.time;
-      g_recPhotons.primaryBot = topTrack.primary;
+      g_recPhoton.e = Etop + Ebot;
+      g_recPhoton.eTop = Etop;
+      g_recPhoton.eBot = Ebot;
+      g_recPhoton.mass = pairMass;
+      g_recPhoton.x = xPhoton;
+      g_recPhoton.y = yPhoton;
+      g_recPhoton.dca = std::get<0>(DCAandZ);
+      g_recPhoton.eGen = variables::Ephoton;
+      g_recPhoton.xGen = variables::Xphoton;
+      g_recPhoton.yGen = variables::Yphoton;
+      g_recPhoton.thetaGen = variables::ThetaPhoton;
+      g_recPhoton.phiGen = variables::PhiPhoton;
+      g_recPhoton.chi2Top = topTrack.chi2;
+      g_recPhoton.nHitsTop = topTrack.nHits;
+      //g_recPhoton.eDepsTop = topTrack.eDeps;
+      //g_recPhoton.timeTop = topTrack.time;
+      //g_recPhoton.primaryTop = topTrack.primary;
+      g_recPhoton.chi2Bot = topTrack.chi2;
+      g_recPhoton.nHitsBot = topTrack.nHits;
+      //g_recPhoton.eDepsBot = topTrack.eDeps;
+      //g_recPhoton.timeBot = topTrack.time;
+      //g_recPhoton.primaryBot = topTrack.primary;
 
       treePhotons->Fill();
     }
