@@ -32,22 +32,20 @@ namespace variables {
   double LumiBeamDiv_pref = 5 * 211e-6;
   double LumiSpecCAL_FiveSigma = LumiBeamDiv_pref * fabs(LumiSpecCAL_Z);
   // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  double B = 1/1.2; // Tesla
-  double pT = 0.3 * B * LumiAnalyzerMag_DZ/1000.; // GeV. 0.3*B(T)*dZ(m)
-  double RmagPreFactor = 3335.3950 / B; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
+  double BxDotDz = 1.13844; // abs val, Tesla*m, value for x=y=0 (center of magnet bore)
+  double pT = 0.29979 * BxDotDz; // GeV. (c*GeV/eV)*B(T)*dZ(m)
+  double Bx_sign = -1;
+  double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q), divide by B(T) and multiply by E(GeV) to get R in mm
+  //double RmagPreFactor = 3335.3950 / B; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
 
-  double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_DZ)/2.0;
+  double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_Z)/2.0;
   double LumiAnalyzerMagStart_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
   double LumiAnalyzerMagEnd_Z = LumiAnalyzerMag_Z - LumiAnalyzerMag_DZ/2.0;
   double LumiConverterCut_DXY = 60;
 
   // spectrometer dimensions/placements in mm
-  double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 210;
+  double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;
   double LumiSpecTracker_Z2 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 110;
-  double LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;
-  std::vector<double> Tracker_Zs = {LumiSpecTracker_Z1, LumiSpecTracker_Z2, LumiSpecTracker_Z3};
-
-  double Tracker_meanZ = (LumiSpecTracker_Z1 + LumiSpecTracker_Z2 + LumiSpecTracker_Z3)/3.;
 
   double Tracker_pixelSize = 0.0; // mm
   double max_chi2ndf = 0.01; // maximal reduced chi^2 for tracks

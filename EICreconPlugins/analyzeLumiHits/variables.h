@@ -37,16 +37,12 @@ namespace variables {
   extern double LumiAnalyzerMagEnd_Z;
   extern double LumiConverterCut_DXY;
 
-  extern double B;
+  extern double Bx_sign;
   extern double pT;   
   extern double RmagPreFactor; 
 
   extern double LumiSpecTracker_Z1;
   extern double LumiSpecTracker_Z2;
-  extern double LumiSpecTracker_Z3;
-  extern std::vector<double> Tracker_Zs;
-
-  extern double Tracker_meanZ;
 
   extern double Tracker_pixelSize;
 
@@ -79,8 +75,10 @@ namespace variables {
 struct TrackClass {
   double e;
   double charge;
-  double x0;
-  double y0;
+  double x0; // x intercept of least-chi2 fit
+  double y0; // y intercept of least-chi2 fit
+  double xGamma; // x that ideally corresponds to xGamma
+  double yGamma; // y that ideally corresponds to yGamma
   double slopeX;
   double slopeY;
   double theta;
@@ -89,7 +87,7 @@ struct TrackClass {
   double nHits;
   std::vector<double> eDeps;
   std::vector<double> time;
-  std::vector<bool> primary;
+  bool primary;
 };
 
 struct PhotonGenClass {
@@ -117,14 +115,10 @@ struct PhotonRecClass {
   double phiGen;
   double chi2Top;
   double nHitsTop;
-  //std::vector<double> eDepsTop;
-  //std::vector<double> timeTop;
-  //std::vector<bool> primaryTop;
+  bool primaryTop;
   double chi2Bot;
   double nHitsBot;
-  //std::vector<double> eDepsBot;
-  //std::vector<double> timeBot;
-  //std::vector<bool> primaryBot;
+  bool primaryBot;
 };
 
 #endif

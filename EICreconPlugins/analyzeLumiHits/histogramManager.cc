@@ -111,6 +111,8 @@ namespace histogramManager {
     treeTracksTop->Branch("e", &g_track.e);
     treeTracksTop->Branch("x0", &g_track.x0);
     treeTracksTop->Branch("y0", &g_track.y0);
+    treeTracksTop->Branch("xGamma", &g_track.xGamma);
+    treeTracksTop->Branch("yGamma", &g_track.yGamma);
     treeTracksTop->Branch("slopeX", &g_track.slopeX);
     treeTracksTop->Branch("slopeY", &g_track.slopeY);
     treeTracksTop->Branch("theta", &g_track.theta);
@@ -125,6 +127,8 @@ namespace histogramManager {
     treeTracksBot->Branch("e", &g_track.e);
     treeTracksBot->Branch("x0", &g_track.x0);
     treeTracksBot->Branch("y0", &g_track.y0);
+    treeTracksBot->Branch("xGamma", &g_track.xGamma);
+    treeTracksBot->Branch("yGamma", &g_track.yGamma);
     treeTracksBot->Branch("slopeX", &g_track.slopeX);
     treeTracksBot->Branch("slopeY", &g_track.slopeY);
     treeTracksBot->Branch("theta", &g_track.theta);
@@ -160,11 +164,11 @@ namespace histogramManager {
     treePhotons->Branch("chi2Top", &g_recPhoton.chi2Top);
     treePhotons->Branch("nHitsTop", &g_recPhoton.nHitsTop);
     //treePhotons->Branch("timeTop", &g_recPhoton.timeTop);
-    //treePhotons->Branch("primaryTop", &g_recPhoton.primaryTop);
+    treePhotons->Branch("primaryTop", &g_recPhoton.primaryTop);
     treePhotons->Branch("chi2Bot", &g_recPhoton.chi2Bot);
     treePhotons->Branch("nHitsBot", &g_recPhoton.nHitsBot);
     //treePhotons->Branch("timeBot", &g_recPhoton.timeBot);
-    //treePhotons->Branch("primaryBot", &g_recPhoton.primaryBot);
+    treePhotons->Branch("primaryBot", &g_recPhoton.primaryBot);
   }
 
 }

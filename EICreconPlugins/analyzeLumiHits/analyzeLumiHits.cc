@@ -151,8 +151,8 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
   double BzdL_mean2 = 0;
   double entries_mean = 0;
 
-  dd4hep::Detector* description = m_geoSvc->detector();
-  
+  gsl::not_null<const dd4hep::Detector*> description = m_geoSvc->detector();
+
   for( double x = -8; x < 8.1; x += 0.5 ) {
     for( double y = -20; y < 20.1; y += 0.5 ) {
 
@@ -160,7 +160,7 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
       double BydL = 0;
       double BzdL = 0;
 
-      for( double z = -6350; z < -6150; z += 1.0 ) {
+      for( double z = -5850; z < -6150; z += 1.0 ) {
 
         double posV[3] = { x, y, z };
         double bfieldV[3];

@@ -39,6 +39,11 @@ class TrackerAnalysis {
     TrackerAnalysis();
 
     void Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<DD4hep_service> geoSvc );
+    void LoadMagnetFile();
+    bool GetIndices(float X, float Y, float Z, int *idxX, int *idxY, int *idxZ, float *deltaX, float *deltaY, float *deltaZ);
+    array<double,3> GetBfield(double x, double y, double z);
+    void InsertSensorNoise();
+    //void get_sensitive_volumeIDs(const dd4hep::IDDescriptor &id_desc, const dd4hep::PlacedVolume &pv, std::vector<dd4hep::VolumeID> *result, dd4hep::VolumeID id);
     void FillTrackerHits();
     void ComputeLinearRegressionComponents( vector<TrackClass> *tracks, vector<TrackHit> *hits, double Nmods, int sec, int mod, double *x, double *y, double *z, double *xz, double *yz, double *zz );
     void AssembleAllTracks();
@@ -49,8 +54,9 @@ class TrackerAnalysis {
     // basic utility functions
     bool PixelOverlap( TrackHit hit, std::vector<TrackHit> trackSet );
     double TrackerErec( double slopeY );
-    double DeltaYmagnet( double E, double charge );
-    double DeltaYmagnet( TrackClass track, double z );
+    double DeltaYConstField( double E, double charge );
+    double DeltaYConstField( TrackClass track, double z );
+    void BackPropagate( TrackClass *track );
     std::pair<double,double> DCA( TrackClass top, TrackClass bot );
     double XatAnaMagStart( TrackClass track );
     double YatAnaMagStart( TrackClass track );
@@ -67,6 +73,14 @@ class TrackerAnalysis {
     // low Chi2 tracks
     std::vector<TrackClass> m_TopTracks;
     std::vector<TrackClass> m_BotTracks;
+
+  private:
+    std::vector<float>                          steps, mins, maxs;
+    vector< vector< vector< array<float,3>>>>   Bvals_XYZ;
+    int                                         ix, iy, iz; // lookup indices
+    float                                       idx_1_f, idx_2_f, idx_3_f; // transient float indicies
+    float                                       dx, dy, dz; // deltas for interpolation
+    ROOT::Math::Translation3D                   coordTranslate_inv;
 
   protected:
     std::shared_ptr<DD4hep_service> m_geoSvc; // not set unil Prepare()  
