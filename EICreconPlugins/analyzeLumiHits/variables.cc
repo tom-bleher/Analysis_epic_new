@@ -41,7 +41,9 @@ namespace variables {
   double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_Z)/2.0;
   double LumiAnalyzerMagStart_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
   double LumiAnalyzerMagEnd_Z = LumiAnalyzerMag_Z - LumiAnalyzerMag_DZ/2.0;
-  double LumiConverterCut_DXY = 60;
+  
+  double LumiConverterCut_DXY = 35; // roughly selects 5-sigma zone
+  double LumiPhotonDCAcut = 20; // based on dca dist of primaries wrt secondaries
 
   // spectrometer dimensions/placements in mm
   double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;

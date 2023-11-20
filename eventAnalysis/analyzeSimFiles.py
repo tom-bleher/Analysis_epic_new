@@ -2,19 +2,27 @@ import os
 import sys
 import re
 import math
+from pathlib import Path
 import multiprocessing
 
-inPath = ""
 
+inDir = ""
+outDir = ""
 if len(sys.argv) > 1: 
-  inPath = sys.argv[1]
-if not inPath:
-    print("No path provided")
-    exit()
+  inDir = sys.argv[1]
+if len(sys.argv) > 2: 
+  outDir = sys.argv[2]
+
+if not outDir:
+  outDir = inDir
+
+if not inDir:
+  print("No path provided")
+  exit()
 
 # directories genEvents and simEvents needs to exist
-simPath = "../simulations/simEvents/" + inPath
-outputPath = inPath
+simPath = "../simulations/simEvents/" + inDir
+outputPath = outDir
 
 if not os.path.exists(outputPath):
     print("Out dir doesn't exist.  Create a dir called " + outputPath)
@@ -32,11 +40,21 @@ commands = []
 
 for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
+  if ".root" not in inFile:
+    continue
   fileNum = re.search("\d+\.+\d", inFile).group()
 #fileNum = re.search("\d+", file).group()
-  cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
+#cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
+  outFile = outputPath + "/eicrecon_{0}.root".format(fileNum)
+  
+  # Exclude existing files from a previous analysis
+  #fileSize = Path(outFile).stat().st_size
+  #if Path(outFile).stat().st_size > 1000:
+  #continue
+  cmd = "eicrecon -Pplugins=analyzeLumiHits -Phistsfile={1} {2}".format(fileNum, outFile, inFile)  
+  print(cmd)
   commands.append( cmd )
-  print( cmd )
+
 
 # start Pool of processes
 pool = multiprocessing.Pool(8) # 8 processes to start

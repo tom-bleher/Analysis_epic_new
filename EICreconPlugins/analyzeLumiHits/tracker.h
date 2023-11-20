@@ -54,12 +54,8 @@ class TrackerAnalysis {
     // basic utility functions
     bool PixelOverlap( TrackHit hit, std::vector<TrackHit> trackSet );
     double TrackerErec( double slopeY );
-    double DeltaYConstField( double E, double charge );
-    double DeltaYConstField( TrackClass track, double z );
     void BackPropagate( TrackClass *track );
     std::pair<double,double> DCA( TrackClass top, TrackClass bot );
-    double XatAnaMagStart( TrackClass track );
-    double YatAnaMagStart( TrackClass track );
     double GetPairMass( TrackClass top, TrackClass bot );
     void PrintTrackInfo( std::vector<TrackClass> topTracks, std::vector<TrackClass> botTracks );
 

@@ -36,6 +36,7 @@ namespace variables {
   extern double LumiAnalyzerMagStart_Z;
   extern double LumiAnalyzerMagEnd_Z;
   extern double LumiConverterCut_DXY;
+  extern double LumiPhotonDCAcut;
 
   extern double Bx_sign;
   extern double pT;   

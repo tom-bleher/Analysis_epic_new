@@ -262,7 +262,7 @@ void TrackerAnalysis::ComputeLinearRegressionComponents( vector<TrackClass> *tra
     BackPropagate( &track ); // fill xGamma and yGamma in track structure
 
     //cout<<"x: "<<track.x0<<"  "<<track.xGamma<<endl;
-    cout<<"Tracker y at CAL front: "<<track.slopeY*variables::LumiSpecTracker_Z1 + track.y0<<"  Converter y, without B: "<<track.slopeY*variables::LumiConverter_Z + track.y0<<"   with B: "<<track.yGamma<<endl;
+    //cout<<"Tracker y at CAL front: "<<track.slopeY*variables::LumiSpecTracker_Z1 + track.y0<<"  Converter y, without B: "<<track.slopeY*variables::LumiConverter_Z + track.y0<<"   with B: "<<track.yGamma<<endl;
     
     tracks->push_back( track );
 
@@ -282,7 +282,7 @@ void TrackerAnalysis::BackPropagate( TrackClass *track ) {
 
   // Approximate Method: 
   // assume a constant integral Bx*dz --> known electron energy
-  // back propagate to before analyzer magnet in steps
+  // back propagate to converter in steps
   double z = variables::LumiAnalyzerMagEnd_Z - 1000;
   double dz = 1; // mm
   double P_yz = TrackerErec( track->slopeY );
@@ -290,18 +290,20 @@ void TrackerAnalysis::BackPropagate( TrackClass *track ) {
   double slopeYZ = track->slopeY;
   double x = slopeXZ * z + track->x0;
   double y = slopeYZ * z + track->y0;
+  double px = P_yz * sin(track->theta) * cos(track->phi);
   double py = P_yz * sin(track->theta) * sin(track->phi);
   double pz = P_yz * cos(track->theta);
 
   //cout<<"Initial y: "<<y<<"   dy: "<<dz * slopeYZ<<"   Nsteps: "<<fabs(variables::LumiConverter_Z - z)/dz<<endl;
-  //cout<<"Initial theta: "<<track->theta<<endl;
+  //cout<<"P_yz: "<<P_yz<<"  Initial theta: "<<track->theta<<"  Initial phi: "<<track->phi<<endl;
 
-  while( z < variables::LumiConverter_Z ) {
+  while( z < variables::LumiConverter_Z && P_yz > 0 ) {
 
     array<double,3> B = GetBfield( x, y, z );
-    double dx = dz * slopeXZ;
+    double dx = 0;
     double dy = 0;
 
+    // Bx dominates
     if( fabs(B[0]) < 0.0001 ) { 
       dy = dz * slopeYZ;
     }
@@ -309,36 +311,35 @@ void TrackerAnalysis::BackPropagate( TrackClass *track ) {
       double R_yz = P_yz * variables::RmagPreFactor / fabs(B[0]); // cyclotron radius of curvature
       double theta = atan(slopeYZ);
       dy = R_yz * cos(TMath::Pi() - theta) + sqrt( R_yz*R_yz - pow(dz - R_yz*sin(TMath::Pi() - theta), 2) );
-      //dy *= track->charge;
-      //if(track->charge < 0) {
-        //cout<<"y: "<<y<<"  dy: "<<dy<<endl;
-        //cout<<"x: "<<x<<"  y: "<<y<<"  z: "<<z<<"   Bx: "<<B[0]<<"  dy: "<<dy<<endl;
-        //cout<<R_yz * cos(TMath::Pi() - theta)<<"  "<<sqrt( R_yz*R_yz - pow(dz - R_yz*sin(TMath::Pi() - theta), 2) )<<endl;
-      //}
     }
 
+    // By is very small
+    dx = dz * slopeXZ; // ignores By
+    //if( fabs(B[1]) < 0.0001 ) { 
+    //  dx = dz * slopeXZ;
+    //}
+    //else {
+    //  double R_xz = P_yz * variables::RmagPreFactor / fabs(B[1]); // cyclotron radius of curvature
+    //  double theta = atan(slopeXZ);
+    //  dx = R_xz * cos(TMath::Pi() - theta) + sqrt( R_xz*R_xz - pow(dz - R_xz*sin(TMath::Pi() - theta), 2) );
+    //}
+
+    double dpx = 0;//0.29979 * (dz/1000.) * B[1] * track->charge; // GeV, dz(m) and B(T)
     double dpy = 0.29979 * (dz/1000.) * B[0] * track->charge; // GeV, dz(m) and B(T)
     double dpz = -fabs(0.29979 * (dy/1000.) * B[0]);
 
-    if(track->charge < 0 ){
-    //cout<<"x: "<<x<<"  y: "<<y<<"  z: "<<z<<"   Bx: "<<B[0]<<"  dy: "<<dy<<"  dpy: "<<dpy<<endl;
-    }
+    //cout<<"x: "<<x<<"  y: "<<y<<"  z: "<<z<<"  px: "<<px<<"  py: "<<py<<"  pz: "<<pz<<"   Bx: "<<B[1]<<"  dx: "<<dx<<"  dpx: "<<dpx<<"  dpz: "<<dpz<<"  slopeXZ: "<<slopeXZ<<endl;
+    
+    px += dpx;
     py += dpy;
     pz += dpz;
     x += dx;
     y += dy;
     z += dz;
+    slopeXZ = px / pz;
     slopeYZ = py / pz;
   }
-
-  if(track->slopeY > 0 && fabs(track->slopeY - 0.025) < 0.001 ) {
-    cout<<"Truth E: "<<variables::Eelectron<<endl;
-    cout<<"Initial slope: "<<track->slopeY<<"   Final slope: "<<slopeYZ<<endl;
-    //cout<<track->phi<<endl;
-    cout<<"Initial py: "<<P_yz * sin(track->theta) * sin(track->phi)<<"  final py: "<<py<<endl;
-    cout<<"Initial pz: "<<P_yz * cos(track->theta)<<"  final pz: "<<pz<<endl;
-  }
-
+  
   track->xGamma = x;
   track->yGamma = y;
 }
@@ -366,76 +367,6 @@ bool TrackerAnalysis::PixelOverlap( TrackHit hit, vector<TrackHit> trackSet ) {
   }
 
   return false;
-}
-
-//-------------------------------------------------------------------------
-// returns total y deflection of ultrarel of electrons traveling in -Z in magnet region
-// assuming primordial py = 0, theta = 0
-double TrackerAnalysis::DeltaYConstField( double E, double charge ) {
-
-  double R = E * variables::RmagPreFactor; // cyclotron radius of curvature
-  double dy = R - sqrt( R*R - pow(variables::LumiAnalyzerMag_DZ,2) );
-
-  // electrons go to the top CAL (B in +x direction), positrons to bottom CAL
-  return -charge * variables::Bx_sign * dy; // mm
-}
-
-//-------------------------------------------------------------------------
-// returns y deflection at point dz relative to magnet end (dz=0 means end of magnet).   
-// assuming primordial py = 0, theta = 0
-double TrackerAnalysis::DeltaYConstField( TrackClass track, double dz ) {
-
-  double E = TrackerErec( track.slopeY );
-  double R = E * variables::RmagPreFactor; // cyclotron radius of curvature
-  double dy = -R*cos(TMath::Pi() - track.theta) + sqrt( R*R - pow(R*sin(TMath::Pi() - track.theta) - dz, 2) );
-
-  // electrons go to the top CAL (B in +x direction), positrons to bottom CAL
-  return -track.charge * variables::Bx_sign * dy; // mm
-}
-
-
-//-------------------------------------------------------------------------
-// returns y deflection of ultrarel electrons in magnet region assuming primordial py = 0
-std::pair<double,double> TrackerAnalysis::DCA( TrackClass top, TrackClass bot ) {
-
-  bool pastMin = false;
-  double dca = 10000;
-  double Zstart = variables::LumiAnalyzerMagStart_Z;
-  double Zstep = 0;
-  
-  while( ! pastMin ) {
-    Zstep++;
-    double Z = Zstart - Zstep;
-    double deltaX = (top.slopeX * Z + top.x0) - (bot.slopeX * Z + bot.x0);
-    double deltaY = (top.slopeY * variables::LumiAnalyzerMagEnd_Z + top.y0) - DeltaYConstField( top, variables::LumiAnalyzerMag_DZ - Zstep);
-    deltaY -= (bot.slopeY * variables::LumiAnalyzerMagEnd_Z + bot.y0) - DeltaYConstField( bot, variables::LumiAnalyzerMag_DZ - Zstep);
-    double dca_new = sqrt( pow(deltaX,2) + pow(deltaY,2) );
-    if( dca_new < dca ) {
-      dca = dca_new;
-    }else {
-      pastMin = true;
-    }
-    if( Zstep > variables::LumiAnalyzerMag_DZ ) { pastMin = true; }
-  }
-  
-  return std::pair<double,double> {dca, Zstart - Zstep};
-}
-
-//-------------------------------------------------------------------------
-double TrackerAnalysis::XatAnaMagStart( TrackClass track ) {
-
-  double x_c = (track.slopeX * variables::LumiAnalyzerMagStart_Z + track.x0);
-  
-  return x_c;
-}
-
-//-------------------------------------------------------------------------
-double TrackerAnalysis::YatAnaMagStart( TrackClass track ) {
-  
-  double E = TrackerErec( track.slopeY );
-  double y_c = (track.slopeY * variables::LumiAnalyzerMagEnd_Z + track.y0) - DeltaYConstField( E, track.charge );
-  
-  return y_c;
 }
 
 //-------------------------------------------------------------------------
@@ -480,31 +411,19 @@ double TrackerAnalysis::GetPairMass( TrackClass top, TrackClass bot ) {
 //-------------------------------------------------------------------------
 void TrackerAnalysis::FillTrackerHistograms() {
 
-  bool EventWithTopTrackNearConverterCenter = false;
-  bool EventWithBotTrackNearConverterCenter = false;
   for( auto track : m_TopTracks ) {
     
-    if( fabs( XatAnaMagStart( track ) ) < variables::LumiConverterCut_DXY / 2. 
-        && fabs( YatAnaMagStart( track ) ) < variables::LumiConverterCut_DXY / 2. ) {
-      EventWithTopTrackNearConverterCenter = true;
+    if( fabs( track.xGamma ) < variables::LumiConverterCut_DXY 
+        && fabs( track.yGamma ) < variables::LumiConverterCut_DXY ) {
+      ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( variables::Ephoton );
     }
   }
   for( auto track : m_BotTracks ) {
     
-    if( fabs( XatAnaMagStart( track ) ) < variables::LumiConverterCut_DXY / 2. 
-        && fabs( YatAnaMagStart( track ) ) < variables::LumiConverterCut_DXY / 2. ) {
-      EventWithBotTrackNearConverterCenter = true;
+    if( fabs( track.xGamma ) < variables::LumiConverterCut_DXY 
+        && fabs( track.yGamma ) < variables::LumiConverterCut_DXY ) {
+      ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( variables::Ephoton );
     }
-  }
-
-  if( EventWithTopTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerTop_Acceptance"))->Fill( variables::Ephoton );
-  }
-  if( EventWithBotTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerBot_Acceptance"))->Fill( variables::Ephoton );
-  }
-  if( EventWithTopTrackNearConverterCenter && EventWithBotTrackNearConverterCenter ) { 
-    ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::Ephoton );
   }
 
  
@@ -512,28 +431,27 @@ void TrackerAnalysis::FillTrackerHistograms() {
   for( auto topTrack : m_AllTopTracks ) {
 
     double Etop = TrackerErec( topTrack.slopeY );
-    double xtop_c = XatAnaMagStart( topTrack );
-    double ytop_c = YatAnaMagStart( topTrack );
 
     for( auto botTrack : m_AllBotTracks ) {
 
       double Ebot = TrackerErec( botTrack.slopeY );
-      double xbot_c = XatAnaMagStart( botTrack );
-      double ybot_c = YatAnaMagStart( botTrack );
-      double xPhoton = (xtop_c + xbot_c)/2.;
-      double yPhoton = (ytop_c + ybot_c)/2.;
 
       double pairMass = GetPairMass( topTrack, botTrack );
 
-      std::pair<double, double> DCAandZ = DCA( topTrack, botTrack );
+      double dca = sqrt( pow(topTrack.xGamma - botTrack.xGamma,2) + pow(topTrack.yGamma - botTrack.yGamma,2) );
+      if( dca < variables::LumiPhotonDCAcut ) {
+        ((TH1D*)gHistList->FindObject("hTrackerCoincidence_Acceptance"))->Fill( variables::Ephoton );
+      }
+      //std::pair<double, double> DCAandZ = DCA( topTrack, botTrack );
 
       g_recPhoton.e = Etop + Ebot;
       g_recPhoton.eTop = Etop;
       g_recPhoton.eBot = Ebot;
       g_recPhoton.mass = pairMass;
-      g_recPhoton.x = xPhoton;
-      g_recPhoton.y = yPhoton;
-      g_recPhoton.dca = std::get<0>(DCAandZ);
+      g_recPhoton.x = (topTrack.xGamma + botTrack.xGamma)/2.;
+      g_recPhoton.y = (topTrack.yGamma + botTrack.yGamma)/2.;
+      //g_recPhoton.dca = std::get<0>(DCAandZ);
+      g_recPhoton.dca = dca;
       g_recPhoton.eGen = variables::Ephoton;
       g_recPhoton.xGen = variables::Xphoton;
       g_recPhoton.yGen = variables::Yphoton;
@@ -591,6 +509,7 @@ void TrackerAnalysis::LoadMagnetFile() {
   string line;
   char* epic_dir = getenv("EPIC_DIR");
   string filePath = string(epic_dir) + string("/fieldmaps/LumiDipoleMapping_2023_09_15_XYZ_coords_cm_T.txt");
+  //string filePath = string(epic_dir) + string("/fieldmaps/extended.txt");
   ifstream input( filePath );
 
   if( ! input ) {
@@ -598,6 +517,7 @@ void TrackerAnalysis::LoadMagnetFile() {
    return;
   }
 
+  // For extended mapping: minZ = -1200, maxZ = 1200
   steps = {5, 20, 20}; // mm
   mins  = {-75, -340, -800}; // mm
   maxs  = {75, 340, 800}; // mm
@@ -669,9 +589,9 @@ array<double,3> TrackerAnalysis::GetBfield(double x, double y, double z)
     b[comp] = b0 * (1 - dz) + b1 * dz;
   }
 
-  field[0] += b[0];
-  field[1] += b[1];
-  field[2] += b[2];
+  field[0] = b[0];
+  field[1] = b[1];
+  field[2] = b[2];
 
   return field;
 }
