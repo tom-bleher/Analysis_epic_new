@@ -11,6 +11,8 @@
 *.tgz
 *.pcm
 Farm_Bash_Scripts/*.txt
+*.xml
+*.gdml
 
 # Prerequisites
 *.d
