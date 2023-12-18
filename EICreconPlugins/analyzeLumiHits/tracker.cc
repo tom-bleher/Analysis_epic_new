@@ -510,6 +510,7 @@ void TrackerAnalysis::LoadMagnetFile() {
   char* epic_dir = getenv("EPIC_DIR");
   string filePath = string(epic_dir) + string("/fieldmaps/LumiDipoleMapping_2023_09_15_XYZ_coords_cm_T.txt");
   //string filePath = string(epic_dir) + string("/fieldmaps/extended.txt");
+  //string filePath = string(epic_dir) + string("/fieldmaps/LumiDipoleMappingQuarterCurrent_2023_11_21_XYZ_coords_cm_T.txt");
   ifstream input( filePath );
 
   if( ! input ) {
@@ -545,7 +546,7 @@ void TrackerAnalysis::LoadMagnetFile() {
 
     // convert cm to mm in file coordinates
     if( ! GetIndices(10*coord[0], 10*coord[1], 10*coord[2], &ix, &iy, &iz, &dx, &dy, &dz) ) {
-      cout<<"WARNING: FieldMap coordinates out of range, skipped it."<<endl;
+      cout<<"WARNING: FieldMap coordinates out of range, skipped it: "<<coord[0]<<"  "<<coord[1]<<"  "<<coord[2]<<endl;
     }
     else { // scale and rotate B field vector
       auto B = ROOT::Math::XYZPoint( Bcomp[0], Bcomp[1], Bcomp[2] );
