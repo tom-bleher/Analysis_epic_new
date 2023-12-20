@@ -92,7 +92,7 @@ sleep 5
 
 echo; echo; echo "Simulation finished, running reconstruction."; echo; echo;
 cd $Output_tmp
-eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Pjana:nevents=${NumEvents} -PLUMISPECCAL:ECalLumiSpecIslandProtoClusers:splitCluster=1 -PEcalLumiSpecIslandProtoClusters:LogLevel=warn ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
 sleep 30
 
 mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root

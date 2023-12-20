@@ -172,14 +172,14 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
       }
 
       if( sqrt(x*x + y*y) < FiveSigmaLimits ) {
-	BxdL_mean += BxdL;
-	BydL_mean += BydL;
-	BzdL_mean += BzdL;
-	BxdL_mean2 += pow(BxdL, 2);
-	BydL_mean2 += pow(BydL, 2);
-	BzdL_mean2 += pow(BzdL, 2);
-	entries_mean++;
-      }
+          BxdL_mean += BxdL;
+          BydL_mean += BydL;
+          BzdL_mean += BzdL;
+          BxdL_mean2 += pow(BxdL, 2);
+          BydL_mean2 += pow(BydL, 2);
+          BzdL_mean2 += pow(BzdL, 2);
+          entries_mean++;
+        }
 
       ((TH2D *)gHistList->FindObject("hBxdotdL"))->Fill( x, y, BxdL );
       ((TH2D *)gHistList->FindObject("hBydotdL"))->Fill( x, y, BydL );
@@ -199,7 +199,7 @@ void analyzeLumiHits::FinishWithGlobalRootLock() {
   cout<<"Mean Bz*dL in 5 sigma region: "<<BzdL_mean<<"   Std: "<<sqrt( BzdL_mean2 - pow(BzdL_mean,2) )<<endl;
 
     
-  //printf(" LUMI B FIELD: %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  \n",
+    //printf(" LUMI B FIELD: %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  \n",
   //    posV[0]/dd4hep::cm, posV[1]/dd4hep::cm,  posV[2]/dd4hep::cm,
   //    bfieldV[0]/dd4hep::tesla , bfieldV[1]/dd4hep::tesla, bfieldV[2]/dd4hep::tesla ) ;
 }

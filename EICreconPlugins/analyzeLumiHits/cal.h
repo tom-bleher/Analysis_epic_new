@@ -31,17 +31,17 @@ using namespace histogramManager;
 
 class CALAnalysis {
 
- public:
+  public:
 
   CALAnalysis();
 
   void Prepare( 
-	       std::vector<const edm4hep::SimCalorimeterHit*> &CALHits, 
-	       std::vector<const edm4hep::RawCalorimeterHit*> &CALadc, 
-	       std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
-	       std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
-	       std::vector<const edm4eic::Cluster*> &CALClusters,
-	       std::shared_ptr<DD4hep_service> geoSvc );
+      std::vector<const edm4hep::SimCalorimeterHit*> &CALHits, 
+      std::vector<const edm4hep::RawCalorimeterHit*> &CALadc, 
+      std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
+      std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
+      std::vector<const edm4eic::Cluster*> &CALClusters,
+      std::shared_ptr<DD4hep_service> geoSvc );
 
   void LoadCalibration();
   void FillTrees();
@@ -61,7 +61,7 @@ class CALAnalysis {
   double m_EtopTotal = 0.0;
   double m_EbotTotal = 0.0;
 
- protected:
-  std::shared_ptr<DD4hep_service> m_geoSvc;
+  protected:
+    std::shared_ptr<DD4hep_service> m_geoSvc;
 };
 #endif

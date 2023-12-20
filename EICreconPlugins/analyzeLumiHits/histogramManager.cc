@@ -33,7 +33,7 @@ namespace histogramManager {
     for( int i=0; i < variables::maxModules; i++ ) {
       for( int j=0; j < variables::maxSectors; j++ ) {
         gHistList->Add( new TH2D( 
-				 Form("hGlobalXY_%d_%d", i,j), "Global Tracker Hits X vs Y;X (mm);Y (mm)", 600,-300,300, 600,-300,300) );
+              Form("hGlobalXY_%d_%d", i,j), "Global Tracker Hits X vs Y;X (mm);Y (mm)", 600,-300,300, 600,-300,300) );
       }
     }
 
@@ -171,5 +171,5 @@ namespace histogramManager {
     treePhotons->Branch("primaryBot", &g_recPhoton.primaryBot);
   }
 
-  }
+}
 #endif
