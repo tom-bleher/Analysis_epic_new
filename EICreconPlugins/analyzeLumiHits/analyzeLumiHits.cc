@@ -45,9 +45,10 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   m_geoSvc = app->template GetService<DD4hep_service>();
 
   // example of how to get a parameter variable
-  //app->GetParameter("analyzeLumiHits:Egen", variables::Einput);
+  //app->GetParameter("analyzeLumiHits:variable", variable );
 
   MCgenAnalysis();
+
   FillDiagnosticHistograms();
 
   /////////////////////////////
@@ -57,6 +58,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   CAL->FillDiagnostics();
   CAL->FillAcceptances();
   CAL->CollectGoodClusters();
+
 
   /////////////////////////////
   // Tracker Studies
@@ -68,6 +70,9 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   /////////////////////////////
   // CAL + Tracker Studies
+  //
+  // Track / Cluster matching
+
     
 } // End of the Sequential Process Function
 
@@ -133,5 +138,68 @@ void analyzeLumiHits::FillDiagnosticHistograms() {
 //-------------------------------------------
 void analyzeLumiHits::FinishWithGlobalRootLock() {
 
-  // Do any final calculations here.
+  // calculate B*dL
+  std::cout<<"Calculating B*dL in lumi analyzer magnet"<<std::endl;
+  
+  double FiveSigmaLimits = 7.5 /5.; // cm
+  
+  double BxdL_mean = 0;
+  double BydL_mean = 0;
+  double BzdL_mean = 0;
+  double BxdL_mean2 = 0;
+  double BydL_mean2 = 0;
+  double BzdL_mean2 = 0;
+  double entries_mean = 0;
+
+  gsl::not_null<const dd4hep::Detector*> description = m_geoSvc->detector();
+
+  for( double x = -8; x < 8.1; x += 0.5 ) {
+    for( double y = -20; y < 20.1; y += 0.5 ) {
+
+      double BxdL = 0;
+      double BydL = 0;
+      double BzdL = 0;
+
+      for( double z = -5850; z < -6150; z += 1.0 ) {
+
+        double posV[3] = { x, y, z };
+        double bfieldV[3];
+        description->field().magneticField( posV  , bfieldV  ) ;
+
+        BxdL += bfieldV[0] / dd4hep::tesla / dd4hep::m; // 1 cm steps
+        BydL += bfieldV[1] / dd4hep::tesla / dd4hep::m; // 1 cm steps  
+        BzdL += bfieldV[2] / dd4hep::tesla / dd4hep::m; // 1 cm steps  
+      }
+
+      if( sqrt(x*x + y*y) < FiveSigmaLimits ) {
+	BxdL_mean += BxdL;
+	BydL_mean += BydL;
+	BzdL_mean += BzdL;
+	BxdL_mean2 += pow(BxdL, 2);
+	BydL_mean2 += pow(BydL, 2);
+	BzdL_mean2 += pow(BzdL, 2);
+	entries_mean++;
+      }
+
+      ((TH2D *)gHistList->FindObject("hBxdotdL"))->Fill( x, y, BxdL );
+      ((TH2D *)gHistList->FindObject("hBydotdL"))->Fill( x, y, BydL );
+      ((TH2D *)gHistList->FindObject("hBzdotdL"))->Fill( x, y, BzdL );
+    }
+  }
+
+  BxdL_mean /= entries_mean;
+  BydL_mean /= entries_mean;
+  BzdL_mean /= entries_mean;
+  BxdL_mean2 /= entries_mean;
+  BydL_mean2 /= entries_mean;
+  BzdL_mean2 /= entries_mean;
+
+  cout<<"Mean Bx*dL in 5 sigma region: "<<BxdL_mean<<"   Std: "<<sqrt( BxdL_mean2 - pow(BxdL_mean,2) )<<endl;
+  cout<<"Mean By*dL in 5 sigma region: "<<BydL_mean<<"   Std: "<<sqrt( BydL_mean2 - pow(BydL_mean,2) )<<endl;
+  cout<<"Mean Bz*dL in 5 sigma region: "<<BzdL_mean<<"   Std: "<<sqrt( BzdL_mean2 - pow(BzdL_mean,2) )<<endl;
+
+    
+  //printf(" LUMI B FIELD: %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  \n",
+  //    posV[0]/dd4hep::cm, posV[1]/dd4hep::cm,  posV[2]/dd4hep::cm,
+  //    bfieldV[0]/dd4hep::tesla , bfieldV[1]/dd4hep::tesla, bfieldV[2]/dd4hep::tesla ) ;
 }
