@@ -95,13 +95,17 @@ namespace histogramManager {
     gHistList->Add( new TH1D("hEnergy", "CAL. Energy; Rec. Energy (GeV); Events",  200, 0,20) );
     gHistList->Add( new TH2D("hCALCluster_Eres", "E_{#gamma gen} vs (E_{top}+E_{bot})_{rec}; E_{#gamma gen} (GeV); (E_{topRec}+E_{BotRec}) (GeV)", 80,0,20, 200,0,20) );
 
-    gHistList->Add( new TH2D("hSampFracTop", " Top Det Sampling Fraction; E_{e-MC}; Sampling Fraction", 200, 0, 20, 100, 0, 1) );
-    gHistList->Add( new TH2D("hSampFracTopRaw", " Top Det Sampling Fraction (raw hits); E_{e-MC}; Sampling Fraction", 200, 0, 20, 100, 0, 1) );
-    gHistList->Add( new TH2D("hSampFracBot", " Bot Det Sampling Fraction; E_{e+MC}; Sampling Fraction", 200, 0, 20, 100, 0, 1) );
-    gHistList->Add( new TH2D("hSampFracBotRaw", " Bot Det Sampling Fraction (raw hits); E_{e+MC}; Sampling Fraction", 200, 0, 20, 100, 0, 1) );
+    gHistList->Add( new TH2D("hSampFracTop", " Top Det Sampling Fraction; E_{e-MC} (GeV); Sampling Fraction", 200, 0, 20, 1000, 0, 1) );
+    gHistList->Add( new TH2D("hSampFracTopRaw", " Top Det Sampling Fraction (raw hits); E_{e-MC} (GeV); Sampling Fraction", 200, 0, 20, 1000, 0, 1) );
+    gHistList->Add( new TH2D("hSampFracBot", " Bot Det Sampling Fraction; E_{e+MC} (GeV); Sampling Fraction", 200, 0, 20, 1000, 0, 1) );
+    gHistList->Add( new TH2D("hSampFracBotRaw", " Bot Det Sampling Fraction (raw hits); E_{e+MC} (GeV); Sampling Fraction", 200, 0, 20, 1000, 0, 1) );
+
+    gHistList->Add( new TH2D("hErawTotal_EMC_Top", "Top Det Summed Energy vs E_{e-MC}; E_{e-MC} (GeV); E_{#Sigma hits} (GeV)", 200, 0, 20, 200, 0, 20) );
+    gHistList->Add( new TH2D("hErawTotal_EMC_Bot", "Bot Det Summed Energy vs E_{e+MC}; E_{e+MC} (GeV); E_{#Sigma hits} (GeV)", 200, 0, 20, 200, 0, 20) );
+    gHistList->Add( new TH2D("hErawTotal_EMC_Coin", "Coin Det Summed Energy vs E_{#gamma MC}; E_{#gamma MC} (GeV); E_{#Sigma hits} (GeV)", 200, 0, 20, 200, 0, 20) );
 
     gHistList->Add( new TH2D("hCAL_ClusterFracE_Top", "Cal Cluster E Frac E_{MC}; E_{e-MC}; E_{Clus}/E_{#Sigma hits}", 200, 0, 20, 120, 0, 1.2));
-    gHistList->Add( new TH2D("hCAL_ClusterFracE_Bot", "Cal Cluster E Frac E_{MC}; E_{+MC}; E_{Clus}/E_{#Sigma hits}", 200, 0, 20, 120, 0, 1.2));
+    gHistList->Add( new TH2D("hCAL_ClusterFracE_Bot", "Cal Cluster E Frac E_{MC}; E_{e+MC}; E_{Clus}/E_{#Sigma hits}", 200, 0, 20, 120, 0, 1.2));
 
     gHistList->Add( new TH2D("hCALYE", "CAL EDep Y; E_{Det} (GeV); y (mm)", 200, 0, 20, 600, -300, 300));
     gHistList->Add( new TH3D("hCALYZE", "CAL YZ Energy Dep; y (mm); z (mm); E_{Det} (GeV)", 600, -300, 300, 500, -70000, -6000, 200, 0, 20) );

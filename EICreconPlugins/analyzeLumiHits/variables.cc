@@ -15,9 +15,14 @@ namespace variables {
   double EposMC = 0; 
   // spectrometer dimensions/placements in mm
   // DXY, and DZ stand for FULL widths
-  double LumiSpecMag_Z = -56000;
-  double LumiSpecMag_DZ = 780;
-  double LumiSpecCAL_Z = -65000;
+  // SJDK - 23/08/23 - Old values
+  //double LumiSpecMag_Z = -56000;
+  //double LumiSpecMag_DZ = 780;
+  //double LumiSpecCAL_Z = -65000;
+  // SJDK - 23/08/23 - Updated values
+  double LumiSpecMag_Z = -66500;
+  double LumiSpecMag_DZ = 1540;
+  double LumiSpecCAL_Z = -70600;
   double LumiSpecCALTower_DZ = 300;
   double LumiSpecCAL_DXY = 300;
   double LumiSpecCAL_FiveSigma = 69;

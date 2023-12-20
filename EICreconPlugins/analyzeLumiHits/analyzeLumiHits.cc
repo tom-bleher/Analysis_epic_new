@@ -42,7 +42,7 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
   //cout<<"New Event"<<endl;
 
   auto app = GetApplication();
-  m_geoSvc = app->template GetService<JDD4hep_service>();
+  m_geoSvc = app->template GetService<DD4hep_service>();
 
   // example of how to get a parameter variable
   //app->GetParameter("analyzeLumiHits:Egen", variables::Einput);

@@ -18,7 +18,7 @@ void CALAnalysis::Prepare(std::vector<const edm4hep::SimCalorimeterHit*> &CalHit
       std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
       std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
       std::vector<const edm4eic::Cluster*> &CALClusters,
-      std::shared_ptr<JDD4hep_service> geoSvc ) {
+      std::shared_ptr<DD4hep_service> geoSvc ) {
 
   m_CALhits = CalHits;
   m_CALadc = CALadc;
@@ -154,9 +154,18 @@ void CALAnalysis::FillDiagnostics() {
     }
   }
   
-  if( E_CALhits_total > 0 ) { ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total ); }
-  if( E_CALtophits_total > 0 ){((TH1D *)gHistList->FindObject("hErawTotalTop"))->Fill( E_CALtophits_total );}
-  if( E_CALbothits_total > 0 ){((TH1D *)gHistList->FindObject("hErawTotalBot"))->Fill( E_CALbothits_total );}
+  if( E_CALhits_total > 0 ) {
+    ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total );
+    ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Coin"))->Fill(variables::EgammaMC, E_CALhits_total ); 
+  }
+  if( E_CALtophits_total > 0 ){
+    ((TH1D *)gHistList->FindObject("hErawTotalTop"))->Fill( E_CALtophits_total );
+    ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Top"))->Fill(variables::EelecMC, E_CALtophits_total ); 
+  }
+  if( E_CALbothits_total > 0 ){
+    ((TH1D *)gHistList->FindObject("hErawTotalBot"))->Fill( E_CALbothits_total );
+    ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Bot"))->Fill(variables::EposMC, E_CALbothits_total ); 
+  }
 
   for( auto adc : m_CALadc ) { ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() ); }
   

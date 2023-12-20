@@ -43,14 +43,17 @@ TF1 *PDGsplitting;
 TLorentzVector electron;
 TLorentzVector hadron;
 TLorentzVector electron_trf; // target rest frame
-
+// SJDK - 18/08/23 - OLD Values
 // converter center: -55609.5, full thickness = 1 mm
 // end of spectrometer magnet: -56390
+// SJDK - 18/08/23
+// Converter centre: -64500, full thickness 1mm
+// end of spectrometer magnet: -67270
 FourVector PV = {0,0,0,0}; // Primary vertex location (x,y,z,t) in mm or mm/c
 
 int PhotonsPerEvent = 1;
 // x,y,z,t location of particle(pair) origin wrt to PV in mm or mm/c
-vector<FourVector> pos_origins = { FourVector(0,0,-55609,0), FourVector(0,0,-55610,0) };
+vector<FourVector> pos_origins = { FourVector(0,0,-64499.5,0), FourVector(0,0,-64500.5,0) };
 
 double Z = 1; // ion beam particle charge
 double electronPz = -18;
@@ -63,7 +66,6 @@ double photonMass = 0;
 double muonMass = 0.1056583745;
 double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
-
 
 void lumi_particles(int n_events = 1e5, bool flat=false, bool convert = false, bool displaceVertices = false, double Egamma_start = 5.0, double Egamma_end = 18.0, string out_fname="genParticles.hepmc") {
  

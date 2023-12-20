@@ -20,7 +20,7 @@
 #include <edm4eic/RawCalorimeterHit.h>
 #include <edm4eic/ProtoCluster.h>
 
-#include <services/geometry/dd4hep/JDD4hep_service.h>
+#include <services/geometry/dd4hep/DD4hep_service.h>
 
 #include "constants.h"
 #include "variables.h"
@@ -35,7 +35,7 @@ class TrackerAnalysis {
 
     TrackerAnalysis();
 
-    void Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<JDD4hep_service> geoSvc );
+    void Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<DD4hep_service> geoSvc );
     void FillTrackerHits();
     void AssembleAllTracks();
     void AssembleTracks(std::vector<TrackClass> *tracks, std::vector<TrackHit> tracker1Hits, std::vector<TrackHit> tracker2Hits, std::vector<TrackHit> tracker3Hits);
@@ -68,6 +68,6 @@ class TrackerAnalysis {
     std::vector<TrackClass> m_BotTracks;
 
   protected:
-    std::shared_ptr<JDD4hep_service> m_geoSvc;
+    std::shared_ptr<DD4hep_service> m_geoSvc;
 };
 #endif

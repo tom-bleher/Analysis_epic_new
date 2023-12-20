@@ -23,7 +23,7 @@
 #include <edm4eic/RawCalorimeterHit.h>
 #include <edm4eic/ProtoCluster.h>
 
-#include <services/geometry/dd4hep/JDD4hep_service.h>
+#include <services/geometry/dd4hep/DD4hep_service.h>
 
 using namespace std;
 
@@ -53,6 +53,6 @@ class analyzeLumiHits: public JEventProcessorSequentialRoot {
     void FillDiagnosticHistograms();
 
   protected:
-    std::shared_ptr<JDD4hep_service> m_geoSvc;
+    std::shared_ptr<DD4hep_service> m_geoSvc;
 };
 

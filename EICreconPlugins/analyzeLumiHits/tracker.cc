@@ -9,7 +9,7 @@ TrackerAnalysis::TrackerAnalysis() { }
 
 // The data structure from the simulation has to be passed for each event
 //-------------------------------------------------------------------------
-void TrackerAnalysis::Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<JDD4hep_service> geoSvc ) {
+void TrackerAnalysis::Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<DD4hep_service> geoSvc ) {
   
   // hit structure
   m_Tracker_hits = hits;

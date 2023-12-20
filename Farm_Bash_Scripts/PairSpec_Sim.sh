@@ -69,6 +69,8 @@ fi
 # Standardise capitlisation of true/false statement, catch any expected/relevant cases and standardise them
 if [[ $SpagCal == "TRUE" || $SpagCal == "True" || $SpagCal == "true" ]]; then
     SpagCal="True"
+    Fiber_Size=$(sed -n 7p ${SimDir}/epic/compact/far_backward/lumi/spec_scifi_cal.xml | sed -e 's/[^0-9]/ /g' | sed -e 's/^ *//g' | sed -e 's/ *$//g' | sed 's/ /p/g')
+    Mod_Size=$(sed -n 8p ${SimDir}/epic/compact/far_backward/lumi/spec_scifi_cal.xml | sed -e 's/[^0-9]/ /g' | sed -e 's/^ *//g' | sed -e 's/ *$//g' | sed 's/ /p/g')
 elif [[ $SpagCal == "FALSE" || $SpagCal == "False" || $SpagCal == "false" ]]; then
     SpagCal="False"
 fi
@@ -112,7 +114,8 @@ Disk_Space=$(( (($NumEvents +(5000/2) ) /5000) +1 )) # Request disk space depend
 for (( i=1; i<=$NumFiles; i++ ))
 do
     if [[ $SpagCal == "True" ]]; then
-	Output_tmp="$OutputPath/PairSpecSim_SpagCal_${i}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
+	#Output_tmp="$OutputPath/PairSpecSim_SpagCal_${i}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
+	Output_tmp="$OutputPath/PairSpecSim_SpagCal_${Fiber_Size}mmFiber_${Mod_Size}mmMod_${FileNum}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
     else
 	Output_tmp="$OutputPath/PairSpecSim_${i}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
     fi

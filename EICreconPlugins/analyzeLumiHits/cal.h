@@ -20,7 +20,7 @@
 #include <edm4eic/RawCalorimeterHit.h>
 #include <edm4eic/ProtoCluster.h>
 
-#include <services/geometry/dd4hep/JDD4hep_service.h>
+#include <services/geometry/dd4hep/DD4hep_service.h>
 
 #include "constants.h"
 #include "variables.h"
@@ -41,7 +41,7 @@ class CALAnalysis {
       std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
       std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
       std::vector<const edm4eic::Cluster*> &CALClusters,
-      std::shared_ptr<JDD4hep_service> geoSvc );
+      std::shared_ptr<DD4hep_service> geoSvc );
 
   void LoadCalibration();
   void FillTrees();
@@ -62,6 +62,6 @@ class CALAnalysis {
   double m_EbotTotal = 0.0;
 
   protected:
-    std::shared_ptr<JDD4hep_service> m_geoSvc;
+    std::shared_ptr<DD4hep_service> m_geoSvc;
 };
 #endif
