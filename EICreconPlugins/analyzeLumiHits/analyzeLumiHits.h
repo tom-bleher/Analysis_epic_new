@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <bitset>
 #include <spdlog/spdlog.h>
+#include <cstdlib>
+#include <iostream>
 
 #include <JANA/JEventProcessorSequentialRoot.h>
 #include <TH2D.h>

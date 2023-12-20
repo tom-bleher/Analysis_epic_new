@@ -4,12 +4,15 @@
 #include "HepMC3/Print.h"
 #include <iostream>
 
+#include "TF1.h"
+
 #include "../utilities/constants.h"
 
 using namespace HepMC3;
 using namespace std;
 
 struct positions {
+<<<<<<< HEAD
   // SJDK 18/08/23 - These were the original positions before the new design was implemented
   //double ConvStart   = -55609;
   //double ConvEnd     = -55610;
@@ -20,15 +23,23 @@ struct positions {
   //double SweeperEnd  = -63270;
   double ConvMiddle     = -58000;
   double AnalyzerStart  = -59400;
+=======
+  double ConvMiddle     = -58000;
+  double AnalyzerStart  = -59400; // -59400
+>>>>>>> 3ca9060562d2830af6b50745136634df8e2a1636
 };
 
 positions POS;
 
 void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.AnalyzerStart) {
+<<<<<<< HEAD
   /*
+=======
+
+>>>>>>> 3ca9060562d2830af6b50745136634df8e2a1636
   if( infile.empty() ) {
     cout<<"infile is blank"<<endl;
-    return -1;
+    return;
   }
   */
   // photon splitting fuction from PDG Eq 34.31
@@ -83,19 +94,25 @@ void PropagateAndConvert(string infile="", string outfile="converterElectrons.he
             p_positron*sin(theta)*sin(phi), 
             p_positron*cos(theta), 
             E_positron), -11, 1);
+      GenParticlePtr photonOUT = std::make_shared<GenParticle>( 
+          photonIN->momentum(), 22, 4);
+      
 
       vertices[vtx]->add_particle_out( electron );
       vertices[vtx]->add_particle_out( positron );
+      vertices[vtx]->add_particle_out( photonOUT );
+
+      // linearly propagate particles to new Z location
+      double deltaZ = Zprop - PV.z();
+      double deltaX = photonIN->momentum().x() / photonIN->momentum().z() * deltaZ;
+      double deltaY = photonIN->momentum().y() / photonIN->momentum().z() * deltaZ;
+      FourVector RelVtxAtNewLocation( deltaX, deltaY, deltaZ, 0 );
+      // set new vertex (absolute)
+      vertices[vtx]->set_position( RelVtxAtNewLocation + PV );
+
       // remove the old outgoing photon (now it's converted)
       evt.remove_particle( vertices[vtx]->particles_out()[0] );
-      
-      // linearly propagate particles to Converter Z location
-      double DeltaZ = PV.z() - Zprop;
-      double newX = photonIN->momentum().x() / photonIN->momentum().z() * DeltaZ;
-      double newY = photonIN->momentum().y() / photonIN->momentum().z() * DeltaZ;
-      FourVector VertexAtConverter( newX, newY, Zprop, 0 );
-      // set new particle vertex, relative to PV
-      vertices[vtx]->set_position( VertexAtConverter - PV );
+
     }
     
     // Save event to output file

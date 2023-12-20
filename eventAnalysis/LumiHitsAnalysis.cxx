@@ -27,7 +27,7 @@ R__LOAD_LIBRARY(libfmt)
 
 int LumiHitsAnalysis() {
 
-  TString simFile = "../simulations/Output.edm4hep.root";
+  TString simFile = "../simulations/outputMappedB.edm4hep.root";
   TString geomFile = "/home/dhevan/eic/epic/epic_ip6.xml";
   TFile *fout = new TFile("anaOutput.root","RECREATE");
 
@@ -55,6 +55,14 @@ int LumiHitsAnalysis() {
   const int sector_idx = id_dec->index("sector");
   const int module_idx = id_dec->index("module");
 
+  double posV[3] = { 0, 0, -6250 }  ;
+  double bfieldV[3] ;
+  det->field().magneticField( posV  , bfieldV  ) ;
+
+  printf(" LUMI B FIELD: %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  \n",
+      posV[0]/dd4hep::cm, posV[1]/dd4hep::cm,  posV[2]/dd4hep::cm,
+      bfieldV[0]/dd4hep::tesla , bfieldV[1]/dd4hep::tesla, bfieldV[2]/dd4hep::tesla ) ;
+
   // C++ Lambda function to contain the analysis algorithm.
   auto LumiSpecCALroutine =
       [&]( const std::vector<edm4hep::SimCalorimeterHitData>& h ) {
@@ -79,7 +87,7 @@ int LumiHitsAnalysis() {
   ROOT::RDataFrame df{"events", simFile.Data()};
 
   // Run the Lambda function over the contents of the DataFrame
-  df.Foreach( LumiSpecCALroutine, {"LumiSpecCALHits"} );
+  //df.Foreach( LumiSpecCALroutine, {"LumiSpecCALHits"} );
 
   // Save each element of gHistList to file
   TIter iter(gHistList);

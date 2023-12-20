@@ -2,31 +2,10 @@
 #define VARIABLES_H
 
 #include <vector>
+#include <math.h>
+//                  hitX , hitY , hitZ , Edep , time , primary?
+typedef std::tuple<double,double,double,double,double,double> TrackHit;
 
-typedef std::tuple<double,double,double> TrackHit;
-
-struct TrackClass {
-  double charge;
-  double X0;
-  double Y0;
-  double slopeX;
-  double slopeY;
-  double theta;
-  double phi;
-  double Chi2;
-};
-
-struct TreeTrackClass {
-  std::vector<double> X0_e;
-  std::vector<double> Y0_e;
-  std::vector<double> slopeX_e;
-  std::vector<double> slopeY_e;
-
-  std::vector<double> X0_p;
-  std::vector<double> Y0_p;
-  std::vector<double> slopeX_p;
-  std::vector<double> slopeY_p;
-};
 
 namespace variables {
   extern const int maxModules;
@@ -34,31 +13,37 @@ namespace variables {
 
   extern int Nhits_min; // cluster hits min
 
-  extern double EgammaMC;
-  extern double EelecMC;
-  extern double EposMC;
+  extern double Ephoton;
+  extern double Eelectron;
+  extern double Epositron;
+  extern double Xphoton;
+  extern double Xelectron;
+  extern double Xpositron;
+  extern double Yphoton;
+  extern double Yelectron;
+  extern double Ypositron;
+  extern double ThetaPhoton;
+  extern double PhiPhoton;
 
-  extern double LumiSpecMag_Z;
-  extern double LumiSpecMag_DZ;
+  extern double LumiAnalyzerMag_Z;
+  extern double LumiAnalyzerMag_DZ;
   extern double LumiSpecCAL_Z;
   extern double LumiSpecCALTower_DZ;
   extern double LumiSpecCAL_DXY;
+  extern double LumiBeamDiv_pref;
   extern double LumiSpecCAL_FiveSigma;
   extern double LumiConverter_Z;
-  extern double LumiSpecMagEnd_Z;
+  extern double LumiAnalyzerMagStart_Z;
+  extern double LumiAnalyzerMagEnd_Z;
   extern double LumiConverterCut_DXY;
+  extern double LumiPhotonDCAcut;
 
+  extern double Bx_sign;
   extern double pT;   
   extern double RmagPreFactor; 
 
-  extern double SpecMag_to_SpecCAL_DZ;
-
   extern double LumiSpecTracker_Z1;
   extern double LumiSpecTracker_Z2;
-  extern double LumiSpecTracker_Z3;
-  extern std::vector<double> Tracker_Zs;
-
-  extern double Tracker_meanZ;
 
   extern double Tracker_pixelSize;
 
@@ -80,7 +65,6 @@ namespace variables {
   extern double E_cluster;
   extern double x_cluster;
   extern double y_cluster;
-  extern double z_cluster;
   extern double r_cluster;
   extern double t_cluster;
   extern double Radius_cluster;
@@ -88,5 +72,54 @@ namespace variables {
   extern double SigmaThetaPhi1_cluster;
   extern double SigmaThetaPhi2_cluster;
 }
+
+struct TrackClass {
+  double e;
+  double charge;
+  double x0; // x intercept of least-chi2 fit
+  double y0; // y intercept of least-chi2 fit
+  double xGamma; // x that ideally corresponds to xGamma
+  double yGamma; // y that ideally corresponds to yGamma
+  double slopeX;
+  double slopeY;
+  double theta;
+  double phi;
+  double chi2;
+  double nHits;
+  std::vector<double> eDeps;
+  std::vector<double> time;
+  bool primary;
+};
+
+struct PhotonGenClass {
+  double e;
+  double eElec;
+  double ePos;
+  double theta;
+  double phi;
+  double x;
+  double y;
+};
+
+struct PhotonRecClass {
+  double e;
+  double eTop;
+  double eBot;
+  double mass;
+  double x;
+  double y;
+  double dca;
+  double eGen;
+  double xGen;
+  double yGen;
+  double thetaGen;
+  double phiGen;
+  double chi2Top;
+  double nHitsTop;
+  bool primaryTop;
+  double chi2Bot;
+  double nHitsBot;
+  bool primaryBot;
+};
 
 #endif

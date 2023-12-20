@@ -5,49 +5,54 @@
 
 namespace variables {
   
-  const int maxModules = 3;
+  const int maxModules = 5;
   const int maxSectors = 2;
 
   int Nhits_min = 1; // cluster hits min
 
-  double EgammaMC = 0;
-  double EelecMC = 0;
-  double EposMC = 0; 
+  double Ephoton;
+  double Eelectron;
+  double Epositron;
+  double Xphoton;
+  double Xelectron;
+  double Xpositron;
+  double Yphoton;
+  double Yelectron;
+  double Ypositron;
+  double ThetaPhoton;
+  double PhiPhoton;
+
+  // New design
+  double LumiSweepMag_Z = -56000;
+  double LumiAnalyzerMag_Z = -4000 + LumiSweepMag_Z;
+  double LumiAnalyzerMag_DZ = 1200;
+  double LumiSpecCALTower_DZ = 200;
+  double LumiSpecCAL_DXY = 200;
+  double LumiSpecCAL_Z = -8000 + LumiSweepMag_Z - LumiSpecCALTower_DZ/2.0;
+  double LumiBeamDiv_pref = 5 * 211e-6;
+  double LumiSpecCAL_FiveSigma = LumiBeamDiv_pref * fabs(LumiSpecCAL_Z);
+  // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
+  double BxDotDz = 1.13844; // abs val, Tesla*m, value for x=y=0 (center of magnet bore)
+  double pT = 0.29979 * BxDotDz; // GeV. (c*GeV/eV)*B(T)*dZ(m)
+  double Bx_sign = -1;
+  double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q), divide by B(T) and multiply by E(GeV) to get R in mm
+  //double RmagPreFactor = 3335.3950 / B; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
+
+  double LumiConverter_Z = (LumiSweepMag_Z + LumiAnalyzerMag_Z)/2.0;
+  double LumiAnalyzerMagStart_Z = LumiAnalyzerMag_Z + LumiAnalyzerMag_DZ/2.0;
+  double LumiAnalyzerMagEnd_Z = LumiAnalyzerMag_Z - LumiAnalyzerMag_DZ/2.0;
+  
+  double LumiConverterCut_DXY = 35; // roughly selects 5-sigma zone
+  double LumiPhotonDCAcut = 20; // based on dca dist of primaries wrt secondaries
+
   // spectrometer dimensions/placements in mm
-  // DXY, and DZ stand for FULL widths
-  // SJDK - 23/08/23 - Old values
-  //double LumiSpecMag_Z = -56000;
-  //double LumiSpecMag_DZ = 780;
-  //double LumiSpecCAL_Z = -65000;
-  // SJDK - 23/08/23 - Updated values
-  double LumiSpecMag_Z = -66500;
-  double LumiSpecMag_DZ = 1540;
-  double LumiSpecCAL_Z = -70600;
-  double LumiSpecCALTower_DZ = 300;
-  double LumiSpecCAL_DXY = 300;
-  double LumiSpecCAL_FiveSigma = 69;
-  double LumiConverter_Z = LumiSpecMag_Z + LumiSpecMag_DZ/2.0;
-  double LumiSpecMagEnd_Z = LumiSpecMag_Z - LumiSpecMag_DZ/2.0;
-  double LumiConverterCut_DXY = 60;
-
-  double pT = 0.117; // GeV. 0.3*B(T)*dZ(m)
-              // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  double RmagPreFactor = 6670.79; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
-
-  // spectrometer dimensions/placements in mm
-  double SpecMag_to_SpecCAL_DZ = (LumiSpecMag_Z - LumiSpecMag_DZ/2.0) - (LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0);
-
-  double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 210;
+  double LumiSpecTracker_Z1 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;
   double LumiSpecTracker_Z2 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 110;
-  double LumiSpecTracker_Z3 = LumiSpecCAL_Z + LumiSpecCALTower_DZ/2.0 + 10;
-  std::vector<double> Tracker_Zs = {LumiSpecTracker_Z1, LumiSpecTracker_Z2, LumiSpecTracker_Z3};
 
-  double Tracker_meanZ = (LumiSpecTracker_Z1 + LumiSpecTracker_Z2 + LumiSpecTracker_Z3)/3.;
+  double Tracker_pixelSize = 0.0; // mm
+  double max_chi2ndf = 0.01; // maximal reduced chi^2 for tracks
 
-  double Tracker_pixelSize = 0.05; // mm
-                            //maximal reduced chi^2 for tracks
-  double max_chi2ndf = 0.01;
-  double Tracker_sigma = 3.9; // mm from reconstructed photon origins decaying to 2 electrons.
+  double Tracker_sigma = 3.9; // mm, from distribution of reconstructed photon decaying to 2 electrons.
 
   double E_hit = 0;
   double x_hit = 0;
@@ -64,7 +69,6 @@ namespace variables {
   double E_cluster = 0;
   double x_cluster = 0;
   double y_cluster = 0;
-  double z_cluster = 0;
   double r_cluster = 0;
   double t_cluster = 0;
   double Radius_cluster = 0;

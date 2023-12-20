@@ -26,36 +26,38 @@ double muonMass = 0.1056583745;
 double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
-double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = nullptr );
+double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, double SF = 1.0, TH1D *Acc = nullptr );
 
 void BH_plotter(bool plotFromFile = false) {
 
   gStyle->SetOptStat(0);
 
   TFile *fin = nullptr;
-  TH1D *acc = nullptr;
+  TH1D *accTop = nullptr;
+  TH1D *accCoinc = nullptr;
 
   TCanvas *c2 = new TCanvas("c2","c2",10,10,700,500);
  
-  gPad->DrawFrame(0.,0.,35,0.55);
+  gPad->DrawFrame(0.,0.,20,0.55);
 
   if(plotFromFile) {
-    fin = new TFile("../recoPlugins/eicrecon.root","READ");
-    acc = (TH1D*)fin->Get("hCAL_Acceptance");
-    acc->Scale(1/1000.);
-    acc->SetMarkerStyle(20);
-    acc->GetXaxis()->SetRangeUser(0,35);
-    acc->GetYaxis()->SetRangeUser(0,0.55);
-    acc->GetYaxis()->SetTitle("CAL acceptance");
-    acc->SetTitle("");
-    acc->Draw("p");
+    fin = new TFile("../eventAnalysis/ConvMiddle_Z2/MergedOutput.root","READ");
+    accTop = (TH1D*)fin->Get("LumiTracker/hTrackerTop_Acceptance");
+    TH1D *genPhoton_E = (TH1D*)fin->Get("hGenPhoton_E");
+    accTop->Divide(genPhoton_E);
+    accTop->SetMarkerStyle(20);
+    accTop->GetXaxis()->SetRangeUser(0,20);
+    accTop->GetYaxis()->SetRangeUser(0,0.55);
+    accTop->GetYaxis()->SetTitle("acceptance");
+    accTop->SetTitle("");
+    accTop->Draw("p");
   }
 
     TF1 *BH_E = new TF1("BH_E", "[0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5)", 0.1,20);
     TF1 *BH_E_scaled = new TF1("BH_E_scaled", "1/10.*log([0] * ([1] - x)/(x*[1])*([1]/([1] - x) + ([1] - x)/[1] - 2/3.)*(log(4*[2]*[1]*([1] - x)/([3]*[4]*x)) - 0.5))", 0.1,20);
     vector<TF1*> funcs = {BH_E, BH_E_scaled};
     for( auto el : funcs ) {
-      el->SetParameter( 0, Z*Z*prefactor );
+      el->SetParameter( 0, prefactor * Z*Z );
       el->SetParameter( 1, fabs( electronPz ) );
       el->SetParameter( 2, fabs( hadronPz ) );
       el->SetParameter( 3, protonMass );
@@ -72,7 +74,7 @@ void BH_plotter(bool plotFromFile = false) {
     
     double Emin_eff = BH_E_scaled->GetX(0.55);
     double Emax_eff = BH_E_scaled->GetX(0.04);
-    TGaxis *A3 = new TGaxis(35,0.04,34.999,0.55,BH_E->Eval(Emax_eff),BH_E->Eval(Emin_eff),50510,"G");
+    TGaxis *A3 = new TGaxis(20,0.04,19.999,0.55,BH_E->Eval(Emax_eff),BH_E->Eval(Emin_eff),50510,"G");
     A3->SetTitle("Bethe-Heitler d#sigma/dE (mb/GeV)");
     A3->SetLabelSize(0.04);
     A3->SetTitleSize(0.04);
@@ -80,8 +82,8 @@ void BH_plotter(bool plotFromFile = false) {
     A3->SetLabelOffset(0.025);
     A3->Draw("same");
   
-    TLegend *leg = new TLegend(0.6,0.7,0.83,0.9);
-    leg->AddEntry(acc,"CAL acceptance","p");
+    TLegend *leg = new TLegend(0.35,0.7,0.73,0.9);
+    leg->AddEntry(accTop,"Tracker acceptance","p");
     leg->AddEntry(BH_E,"Bethe-Heitler d#sigma/dE","l");
     leg->Draw("same");
   }
@@ -91,33 +93,85 @@ void BH_plotter(bool plotFromFile = false) {
   }
 
   double Elow = 1, Ehigh = 18; // GeV
-  TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Apr28.root","READ");
-  TH1D *hAcc = nullptr;
+  TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Nov14.root","READ");
   if( fAcc ) {
      cout<<"Acceptance file found"<<endl;
-     //hAcc = (TH1D*)fAcc->Get("hCALCoincidence_Acceptance");
-     hAcc = (TH1D*)fAcc->Get("hCALTop_Acceptance");
+     accTop = (TH1D*)fAcc->Get("hTrackerTop_Acceptance");
+     accCoinc = (TH1D*)fAcc->Get("hTrackerCoincidence_Acceptance");
   }
   
-  double crossSection = IntegratedCrossSection( Elow, Ehigh, BH_E, hAcc );
 
-  double LumiInst = 1.54e33; // instantenous lumi (cm^-2*sec^-1)
+  // Inst Lumi (cm^-2*sec^-1)
+  // Tbunch is spacing between bunch centers in sec for 18 GeV electron beam (~10 ns for lower E)
+  const int Nconfigs = 9;
+  string configs[Nconfigs] = {"ep 275x18", "ep 275x10", "ep 100x10", "ep 100x5", "ep 41x5", "eAu 110x18", "eAu 110x10", "eAu 110x5", "eAu 41x5"};
+  double eEnergies[Nconfigs] = {18, 10, 10, 5, 5, 18, 10, 5, 5};
+  double hEnergies[Nconfigs] = {275, 275, 100, 100, 41, 110, 110, 110, 41};
+  double Z[Nconfigs] = {1, 1, 1, 1, 1, 79, 79, 79, 79};
+  double A[Nconfigs] = {1, 1, 1, 1, 1, 197, 197, 197, 197};
+  double LumiInst[Nconfigs] = {1.54e33, 10.0e33, 4.48e33, 3.68e33, 0.44e33, 0.52e33, 4.76e33, 4.77e33, 1.67e33};
+  double Tbunch[Nconfigs] = {44e-9, 11e-9, 11e-9, 11e-9, 11e-9, 44e-9, 11e-9, 11e-9, 11e-9};
+  double BfieldSF[Nconfigs] = {1.0, 10/18., 10/18., 5/18., 5/18., 1.0, 10/18., 5/18., 5/18.};
+
   double mbTocm2 = 1e-27;
-  double Tbunch = 44e-9; // spacing between bunch centers in sec
-  double LumiPerBunch = LumiInst * mbTocm2 * Tbunch;
-  double photonsPerSec = LumiInst * mbTocm2 * crossSection;
-  double photonsPerBunchCrossing = LumiPerBunch * crossSection;
 
-  cout<<"Integrated Bremsstrahlung cross section = "<<crossSection<<" mb"<<endl;
-  cout<<"Number of photons per second = "<<photonsPerSec<<endl;
-  cout<<"Number of photons per bunch crossing = "<<photonsPerBunchCrossing<<endl;
+  // conversion: 1cm Al exit-window, 37m air, 1cm Al entrance cap, 1mm Al conversion foil
+  // For photons, mean free path = lambda = 9/7 * X0 
+  // radiation lengths found in PDF: ATOMIC AND NUCLEAR PROPERTIES OF MATERIALS
+  // X0_air = 304.2 m, X0_Al = 0.089 m
+  // Pconv = 1 - exp( - DeltaZ / lambda )
+  double convProb = 0.92 * 0.91 * 0.92 * 0.01;
+  
+  double Ncoinc[Nconfigs] = {100};
+  double Nsingle[Nconfigs] = {100};
 
+  TF1 *BH_clone = (TF1*)BH_E->Clone("BH_clone");
+  TH1D *RatesTop = new TH1D("Rates","single",Nconfigs,-0.5,Nconfigs-0.5);
+  TH1D *RatesCoinc = new TH1D("Rates","coincidence",Nconfigs,-0.5,Nconfigs-0.5);
+
+  for( int i = 0; i < Nconfigs; i++ ) {
+    cout<<configs[i]<<endl;
+    BH_clone->SetParameter( 0, prefactor * Z[ i ]*Z[ i ] );
+    BH_clone->SetParameter( 1, eEnergies[ i ] );
+    BH_clone->SetParameter( 2, hEnergies[ i ] );
+    double IntCrossSectionTop = IntegratedCrossSection( Elow, Ehigh, BH_clone, BfieldSF[ i ], accTop );
+    double IntCrossSectionCoinc = IntegratedCrossSection( Elow, Ehigh, BH_clone, BfieldSF[ i ], accCoinc );
+    double LumiPerBunch = LumiInst[ i ] / A[ i ] * mbTocm2 * Tbunch[ i ];
+    Nsingle[ i ] = convProb * LumiPerBunch * IntCrossSectionTop;
+    Ncoinc[ i ] = convProb * LumiPerBunch * IntCrossSectionCoinc;
+    RatesTop->Fill( i, Nsingle[ i ] );
+    RatesCoinc->Fill( i, Ncoinc[ i ] );
+    RatesTop->GetXaxis()->SetBinLabel(i+1, configs[i].data());
+    RatesCoinc->GetXaxis()->SetBinLabel(i+1, configs[i].data());
+    cout<<"Integrated Bremsstrahlung cross section with coincidence = "<<IntCrossSectionCoinc<<" mb"<<endl;
+    cout<<"Number of photons per bunch crossing with coincidence = "<<Ncoinc[ i ]<<endl;
+  }
+
+
+  TCanvas *c3 = new TCanvas("c3","c3",10,10,700,500);
+  
+  RatesTop->SetMarkerStyle(20);
+  RatesTop->SetMarkerColor(4);
+  RatesCoinc->SetMarkerStyle(20);
+  RatesCoinc->SetMarkerColor(2);
+  RatesTop->GetYaxis()->SetTitle("N / bunch xing");
+  RatesTop->GetXaxis()->SetLabelSize( 0.05 );
+  RatesTop->SetTitle("");
+
+  TLegend *legRates = new TLegend(0.15,0.7,0.45,0.9);
+
+  RatesTop->Draw("hist p");
+  RatesCoinc->Draw("hist p same");
+  legRates->AddEntry(RatesTop,"single", "p");
+  legRates->AddEntry(RatesCoinc,"coincidence", "p");
+  legRates->Draw("same");
+ 
   gPad->SetGridx();
   gPad->SetGridy();
 
 }
 
-double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = nullptr ) {
+double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, double SF = 1.0, TH1D *Acc = nullptr ) {
 
   double crossSection = 0;
 
@@ -132,6 +186,7 @@ double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = n
     for( int bin = 1; bin <= Acc->GetNbinsX(); bin++ ) {
       
       double E = Acc->GetXaxis()->GetBinCenter(bin);
+      
       if( E < 0.001 || E > 18 ) continue;
       
       if( Acc->GetBinContent(bin) > 0 ) {
@@ -143,11 +198,13 @@ double IntegratedCrossSection( double Elow, double Ehigh, TF1 *BH, TH1D *Acc = n
           SecondBinCenter = Acc->GetXaxis()->GetBinCenter( bin );
         }
       }
-      crossSection += Acc->GetBinContent(bin) * BH->Eval( E );
+     
+      // SF is to scale up/down to simulate scaled magnet current
+      crossSection += Acc->GetBinContent(bin) * BH->Eval( SF * E );
     }
   
     // Bin Width correction
-    crossSection *= (SecondBinCenter - FirstBinCenter); 
+    crossSection *= SF * (SecondBinCenter - FirstBinCenter); 
   }
 
   return crossSection;
