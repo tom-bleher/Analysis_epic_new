@@ -75,36 +75,56 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 void analyzeLumiHits::MCgenAnalysis() {
   
   for( auto particle : MCParticles() ) {
-    // SJDK 14/06/23 - Neither of these seems to give values that make sense for the e-/e+
+     
     edm4hep::Vector3f p = particle->getMomentum();
     edm4hep::Vector3d v = particle->getVertex(); // Units of mm !!
-    
+
     // Brem photons
-    if( particle->getPDG() == 22 ) {
+    if( particle->getPDG() == 22 && particle->getGeneratorStatus() == 4 ) {
       // Set the photon energy for the acceptance histograms
-      variables::EgammaMC = particle->getEnergy();
-      
+      variables::Ephoton = particle->getEnergy();
+      variables::ThetaPhoton = atan2( sqrt(pow(p.x,2) + pow(p.y,2)), p.z );
+      variables::PhiPhoton = atan2( p.y, p.x );
+      variables::Xphoton = v.x;
+      variables::Yphoton = v.y;
       ((TH1D *)gHistList->FindObject("hGenPhoton_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenPhoton_xy"))->Fill( v.x, v.y );
     }
     else if( particle->getPDG() == +11 && particle->getGeneratorStatus() == 1 ) {
-      variables::EelecMC = particle->getEnergy();
+      variables::Eelectron = particle->getEnergy();
+      variables::Xelectron = v.x;
+      variables::Yelectron = v.y;
+
       ((TH1D *)gHistList->FindObject("hGenElectron_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenElectron_xy"))->Fill( v.x, v.y );
     }
     else if( particle->getPDG() == -11 && particle->getGeneratorStatus() == 1 ) {
-      variables::EposMC = particle->getEnergy();
+      variables::Epositron = particle->getEnergy();
+      variables::Xpositron = v.x;
+      variables::Ypositron = v.y;
+
       ((TH1D *)gHistList->FindObject("hGenPositron_E"))->Fill( particle->getEnergy() );
       ((TH2D *)gHistList->FindObject("hGenPositron_xy"))->Fill( v.x, v.y );
     }
     else {}
   }
+
+  g_genPhoton.e = variables::Ephoton;
+  g_genPhoton.eElec = variables::Eelectron;
+  g_genPhoton.ePos = variables::Epositron;
+  g_genPhoton.theta = variables::ThetaPhoton;
+  g_genPhoton.phi = variables::PhiPhoton;
+  g_genPhoton.x = variables::Xphoton;
+  g_genPhoton.y = variables::Yphoton;
+
+  treeGenPhotons->Fill();
+
 }
 
 //-------------------------------------------------------------------------
 void analyzeLumiHits::FillDiagnosticHistograms() {
 
-  ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( variables::EgammaMC );
+  ((TH1D *)gHistList->FindObject("hGenEventCount"))->Fill( variables::Ephoton );
   
 }
 

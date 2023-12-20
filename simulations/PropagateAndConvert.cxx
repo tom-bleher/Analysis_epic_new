@@ -12,7 +12,6 @@ using namespace HepMC3;
 using namespace std;
 
 struct positions {
-<<<<<<< HEAD
   // SJDK 18/08/23 - These were the original positions before the new design was implemented
   //double ConvStart   = -55609;
   //double ConvEnd     = -55610;
@@ -23,25 +22,11 @@ struct positions {
   //double SweeperEnd  = -63270;
   double ConvMiddle     = -58000;
   double AnalyzerStart  = -59400;
-=======
-  double ConvMiddle     = -58000;
-  double AnalyzerStart  = -59400; // -59400
->>>>>>> 3ca9060562d2830af6b50745136634df8e2a1636
 };
 
 positions POS;
 
 void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.AnalyzerStart) {
-<<<<<<< HEAD
-  /*
-=======
-
->>>>>>> 3ca9060562d2830af6b50745136634df8e2a1636
-  if( infile.empty() ) {
-    cout<<"infile is blank"<<endl;
-    return;
-  }
-  */
   // photon splitting fuction from PDG Eq 34.31
   TF1 *PDGsplitting = new TF1("PDGsplitting","1 - 4/3.*x*(1-x)", 0,1);
 
