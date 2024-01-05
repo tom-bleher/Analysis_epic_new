@@ -71,9 +71,14 @@ double muonMass = 0.1056583745;
 double pionZeroMass = 0.1349768;
 double pionMass = 0.13957039;
 
+// Random number generator
+TRandom* RandN = new TRandom();
+
 
 void lumi_particles(int n_events = 1e5, bool flat=false, bool convert = false, bool displaceVertices = false, double Egamma_start = 5.0, double Egamma_end = 18.0, string out_fname="genParticles.hepmc") {
  
+  RandN->SetSeed(0);
+
   TFile *fout = new TFile("genEventsDiagnostics.root","RECREATE");
   TH1D *BH_h1 = new TH1D("BH_h1","E",100,0,10);
   TH1D *BH_trf_h1 = new TH1D("BH_trf_h1","E",100,0,10);
@@ -86,10 +91,7 @@ void lumi_particles(int n_events = 1e5, bool flat=false, bool convert = false, b
   int events_parsed = 0;
   
   GenEvent evt(Units::GEV, Units::MM);
-
-  // Random number generator
-  TRandom* r1 = new TRandom();
-
+ 
   InitializeFunctions();
   
   // Create events
@@ -117,7 +119,7 @@ void lumi_particles(int n_events = 1e5, bool flat=false, bool convert = false, b
       // E and theta of photon
       Double_t E, theta;
       if( flat ) { // Flat
-        E = r1->Uniform(Egamma_start, Egamma_end); 
+        E = RandN->Uniform(Egamma_start, Egamma_end); 
         theta = TMath::Pi();
       }
       else { // Bethe-Heitler
@@ -268,7 +270,7 @@ std::tuple<double, double> DD_BH() {
   double E=0, delta=0, theta=0, phi=0;
 
   // Sample 2D E and delta in Target Rest Frame
-  QED_BH->GetRandom2( E, delta );
+  QED_BH->GetRandom2( E, delta, RandN );
   phi = BH_Phi->GetRandom();
 
   // From Lifshitz QED, delta = E_e/m_e * theta
@@ -295,7 +297,7 @@ std::tuple<double, double> DD_BH() {
 //----------------------------------------------------------------------------
 std::tuple<double, double> SD_BH(double Emin, double Emax) {
 
-  double E = BH_E->GetRandom(Emin, Emax);
+  double E = BH_E->GetRandom(Emin, Emax, RandN);
   double theta = BH_Theta->GetRandom();
 
   return std::make_tuple( E, theta );
