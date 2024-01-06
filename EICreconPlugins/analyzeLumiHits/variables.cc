@@ -32,9 +32,6 @@ namespace variables {
   double LumiBeamDiv_pref = 5 * 211e-6;
   double LumiSpecCAL_FiveSigma = LumiBeamDiv_pref * fabs(LumiSpecCAL_Z);
   // cyclotron radius = speed / cyclotron frequency -> p/(q*B) = E/(c*q*B) in ultrarelativistic limit
-  double BxDotDz = 1.13844; // abs val, Tesla*m, value for x=y=0 (center of magnet bore)
-  double pT = 0.29979 * BxDotDz; // GeV. (c*GeV/eV)*B(T)*dZ(m)
-  double Bx_sign = -1;
   double RmagPreFactor = 3335.3950; // (J/GeV)/(c * q), divide by B(T) and multiply by E(GeV) to get R in mm
   //double RmagPreFactor = 3335.3950 / B; // (J/GeV)/(c * q * B), multiply this by E in GeV to get R in mm
 

@@ -38,8 +38,6 @@ namespace variables {
   extern double LumiConverterCut_DXY;
   extern double LumiPhotonDCAcut;
 
-  extern double Bx_sign;
-  extern double pT;   
   extern double RmagPreFactor; 
 
   extern double LumiSpecTracker_Z1;

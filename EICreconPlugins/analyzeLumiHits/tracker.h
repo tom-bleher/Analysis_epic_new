@@ -36,12 +36,10 @@ class TrackerAnalysis {
   
   public:
 
-    TrackerAnalysis();
+    TrackerAnalysis(std::shared_ptr<DD4hep_service> geoSvc);
 
     void Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits, std::shared_ptr<DD4hep_service> geoSvc );
-    void LoadMagnetFile();
-    bool GetIndices(float X, float Y, float Z, int *idxX, int *idxY, int *idxZ, float *deltaX, float *deltaY, float *deltaZ);
-    array<double,3> GetBfield(double x, double y, double z);
+    void CalcBdotDl();
     void InsertSensorNoise();
     //void get_sensitive_volumeIDs(const dd4hep::IDDescriptor &id_desc, const dd4hep::PlacedVolume &pv, std::vector<dd4hep::VolumeID> *result, dd4hep::VolumeID id);
     void FillTrackerHits();
@@ -69,6 +67,9 @@ class TrackerAnalysis {
     // low Chi2 tracks
     std::vector<TrackClass> m_TopTracks;
     std::vector<TrackClass> m_BotTracks;
+
+    double m_BxDotDz_central;
+    double m_Bx_sign;
 
   private:
     std::vector<float>                          steps, mins, maxs;

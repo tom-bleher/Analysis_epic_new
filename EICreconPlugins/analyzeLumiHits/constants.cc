@@ -4,7 +4,8 @@
 #include "constants.h"
 
 namespace constants {
-  
+ 
+  double speedLight = 0.29979; // speed of light in m / nsec
   double BH_prefactor = 2.3179; // 4 alpha r_e^2 (mb)
   double mass_proton = 0.938272;
   double mass_electron = 0.51099895e-3;
