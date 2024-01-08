@@ -3,6 +3,7 @@
 
 namespace constants {
 
+  extern double speedLight; // m / nsec
   extern double BH_prefactor; // 4 alpha r_e^2 (mb)
   extern double mass_proton;
   extern double mass_electron;

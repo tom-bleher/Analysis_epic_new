@@ -48,10 +48,9 @@ for file in sorted(os.listdir(genPath),):
   if fileType not in file:
     continue
   inFile = genPath + "/" + file
-  fileNum = re.search("\d+\.+\d", inFile).group()
-  #fileNum = re.search("\d+", inFile).group()
-  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}.edm4hep.root --compactFile {3} -N 5000".format(inFile, simPath, fileNum, epicPath)
-  #cmd = "ddsim --inputFiles genParticles_ConvStart.hepmc --outputFile simEvents/ConvStartPhotons/output_{0}.edm4hep.root --compactFile {1} -N 5000".format(it, epicPath)
+  #fileNum = re.search("\d+\.+\d\.", inFile).group()
+  fileNum = re.search("\d+\.", inFile).group()
+  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 5000".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
   commands.append( cmd )
 

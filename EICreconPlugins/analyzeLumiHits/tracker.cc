@@ -5,12 +5,14 @@
 
 // Constructor
 //-------------------------------------------------------------------------
-TrackerAnalysis::TrackerAnalysis() { 
+TrackerAnalysis::TrackerAnalysis( std::shared_ptr<DD4hep_service> geoSvc ) { 
   
+  m_geoSvc = geoSvc;
+
   ROOT::Math::Translation3D trans(0.0, 0.0, variables::LumiAnalyzerMag_Z);//( rot, tr2 );
   coordTranslate_inv = trans.Inverse();
 
-  LoadMagnetFile();
+  CalcBdotDl();
 }
 
 // The data structure from the simulation has to be passed for each event
@@ -22,7 +24,6 @@ void TrackerAnalysis::Prepare( std::vector<const edm4hep::SimTrackerHit*> &hits,
 
   // geometry service
   m_geoSvc = geoSvc;
-
   // clear all vectors
   m_AllTopTracks.clear();
   m_AllBotTracks.clear();
@@ -228,7 +229,7 @@ void TrackerAnalysis::ComputeLinearRegressionComponents( vector<TrackClass> *tra
 
     TrackClass track;
 
-    if( (*y * variables::Bx_sign) > 0 ) { track.charge = -1; }// electrons go to bot CAL (Bx < 0)
+    if( (*y * m_Bx_sign) > 0 ) { track.charge = -1; }// electrons go to bot CAL (Bx < 0)
     else                          { track.charge = +1; }
 
     track.slopeX = ( Nmods * (*xz) - (*x) * (*z) ) / ( Nmods * (*zz) - (*z) * (*z) );
@@ -294,12 +295,22 @@ void TrackerAnalysis::BackPropagate( TrackClass *track ) {
   double py = P_yz * sin(track->theta) * sin(track->phi);
   double pz = P_yz * cos(track->theta);
 
+  gsl::not_null<const dd4hep::Detector*> description = m_geoSvc->detector();
+  
   //cout<<"Initial y: "<<y<<"   dy: "<<dz * slopeYZ<<"   Nsteps: "<<fabs(variables::LumiConverter_Z - z)/dz<<endl;
   //cout<<"P_yz: "<<P_yz<<"  Initial theta: "<<track->theta<<"  Initial phi: "<<track->phi<<endl;
 
   while( z < variables::LumiConverter_Z && P_yz > 0 ) {
 
-    array<double,3> B = GetBfield( x, y, z );
+    // convert mm to cm (dd4hep description in cm)
+    double posV[3] = { x/10., y/10., z/10. };
+    double B[3];
+    description->field().magneticField( posV , B );
+    // divide by dd4hep::tesla to get the field in tesla
+    B[0] /= dd4hep::tesla;
+    B[1] /= dd4hep::tesla;
+    B[2] /= dd4hep::tesla;
+
     double dx = 0;
     double dy = 0;
 
@@ -351,7 +362,8 @@ double TrackerAnalysis::TrackerErec( double slopeY ) {
  
   if( sinTheta == 0 ) { return 0.0; }
 
-  double E = variables::pT / sinTheta;
+  // ( c * BxDotDz ) = pT generated in B field in GeV: (c*GeV/eV)*B(T)*dZ(m)
+  double E = fabs(constants::speedLight * m_BxDotDz_central) / sinTheta;
   
   return E;
 }
@@ -398,7 +410,7 @@ double TrackerAnalysis::GetPairMass( TrackClass top, TrackClass bot ) {
     double py = p * sin(track.theta) * sin(track.phi);
     double pz = p * cos(track.theta);
     double pYZ = sqrt( pow(py, 2) + pow(pz, 2) ); // conserved
-    double new_py = py + pow(-1, i+1) * variables::pT; // subtract py induced by B field
+    double new_py = py + pow(-1, i+1) * fabs(constants::speedLight * m_BxDotDz_central); // subtract py induced by B field
     double new_pz = sqrt( pow(pYZ, 2) - pow(new_py, 2) );
     fourVectors[i].SetXYZM( px, new_py, new_pz, constants::mass_electron ); 
   }
@@ -485,118 +497,80 @@ void TrackerAnalysis::FillTrackerTrees() {
 }
 
 //-------------------------------------------------------------------------
-bool TrackerAnalysis::GetIndices(float X, float Y, float Z, int *idxX, int *idxY, int *idxZ, float *deltaX, float *deltaY, float *deltaZ)
-{
-  // boundary check
-  if( X > maxs[0] || X < mins[0] || Y > maxs[1] || Y < mins[1] || Z > maxs[2] || Z < mins[2] ) {
-    return false;
-  }
+void TrackerAnalysis::CalcBdotDl() {
 
-  // get indices
-  *deltaX = std::modf( (X - mins[0]) / steps[0], &idx_1_f );
-  *deltaY = std::modf( (Y - mins[1]) / steps[1], &idx_2_f );
-  *deltaZ = std::modf( (Z - mins[2]) / steps[2], &idx_3_f );
-  *idxX = static_cast<int>(idx_1_f);
-  *idxY = static_cast<int>(idx_2_f);
-  *idxZ = static_cast<int>(idx_3_f);
+   // calculate B*dL
+  std::cout<<"Calculating B*dL in lumi analyzer magnet"<<std::endl;
 
-  return true;
-}
+  gsl::not_null<const dd4hep::Detector*> description = m_geoSvc->detector();
 
-//-------------------------------------------------------------------------
-void TrackerAnalysis::LoadMagnetFile() {
+  double FiveSigmaLimits = 7.5 / 5.; // cm
+  
+  double BxdL_mean = 0;
+  double BydL_mean = 0;
+  double BzdL_mean = 0;
+  double BxdL_mean2 = 0;
+  double BydL_mean2 = 0;
+  double BzdL_mean2 = 0;
+  double entries_mean = 0;
 
-  string line;
-  char* epic_dir = getenv("EPIC_DIR");
-  string filePath = string(epic_dir) + string("/fieldmaps/LumiDipoleMapping_2023_09_15_XYZ_coords_cm_T.txt");
-  //string filePath = string(epic_dir) + string("/fieldmaps/extended.txt");
-  //string filePath = string(epic_dir) + string("/fieldmaps/LumiDipoleMappingQuarterCurrent_2023_11_21_XYZ_coords_cm_T.txt");
-  ifstream input( filePath );
+  for( double x = -8; x < 8.1; x += 0.5 ) {
+    for( double y = -20; y < 20.1; y += 0.5 ) {
 
-  if( ! input ) {
-   cout<<"Lumi field map file read error.  Could not read "<<filePath<<endl;
-   return;
-  }
+      double BxdL = 0;
+      double BydL = 0;
+      double BzdL = 0;
 
-  // For extended mapping: minZ = -1200, maxZ = 1200
-  steps = {5, 20, 20}; // mm
-  mins  = {-75, -340, -800}; // mm
-  maxs  = {75, 340, 800}; // mm
+      for( double z = -5850; z > -6150; z -= 1.0 ) {
 
-  // calculate binning: (max - min)/step_size
-  int nx = int( (maxs[0] - mins[0])/steps[0] ) + 2;
-  int ny = int( (maxs[1] - mins[1])/steps[1] ) + 2;
-  int nz = int( (maxs[2] - mins[2])/steps[2] ) + 2;
+        double posV[3] = { x, y, z };
+        double bfieldV[3];
+        description->field().magneticField( posV , bfieldV );
 
-  Bvals_XYZ.resize( nx );
-  for (auto& B3 : Bvals_XYZ) {
-    B3.resize( ny );
-    for (auto& B2 : B3) {
-      B2.resize( nz );
+        BxdL += bfieldV[0] / dd4hep::tesla / dd4hep::m; // 1 cm steps
+        BydL += bfieldV[1] / dd4hep::tesla / dd4hep::m; // 1 cm steps  
+        BzdL += bfieldV[2] / dd4hep::tesla / dd4hep::m; // 1 cm steps  
+      }
+
+      if( sqrt(x*x + y*y) < FiveSigmaLimits ) {
+        BxdL_mean += BxdL;
+        BydL_mean += BydL;
+        BzdL_mean += BzdL;
+        BxdL_mean2 += pow(BxdL, 2);
+        BydL_mean2 += pow(BydL, 2);
+        BzdL_mean2 += pow(BzdL, 2);
+        entries_mean++;
+      }
+
+      // central value used for back propagation
+      if( fabs(x) < 0.25 && fabs(y) < 0.25 ) {
+        m_BxDotDz_central = BxdL;
+        m_Bx_sign = int( BxdL / fabs(BxdL) );
+      }
+
+      ((TH2D *)gHistList->FindObject("hBxdotdL"))->Fill( x, y, BxdL );
+      ((TH2D *)gHistList->FindObject("hBydotdL"))->Fill( x, y, BydL );
+      ((TH2D *)gHistList->FindObject("hBzdotdL"))->Fill( x, y, BzdL );
     }
   }
 
-  std::array<float,3> coord = {};
-  std::array<float,3> Bcomp = {};
+  BxdL_mean /= entries_mean;
+  BydL_mean /= entries_mean;
+  BzdL_mean /= entries_mean;
+  BxdL_mean2 /= entries_mean;
+  BydL_mean2 /= entries_mean;
+  BzdL_mean2 /= entries_mean;
 
-  while (std::getline(input, line).good()) {
-    std::istringstream iss(line);
-
-    iss >> coord[0] >> coord[1] >> coord[2] >> Bcomp[0] >> Bcomp[1] >> Bcomp[2];
-
-    // convert cm to mm in file coordinates
-    if( ! GetIndices(10*coord[0], 10*coord[1], 10*coord[2], &ix, &iy, &iz, &dx, &dy, &dz) ) {
-      cout<<"WARNING: FieldMap coordinates out of range, skipped it: "<<coord[0]<<"  "<<coord[1]<<"  "<<coord[2]<<endl;
-    }
-    else { // scale and rotate B field vector
-      auto B = ROOT::Math::XYZPoint( Bcomp[0], Bcomp[1], Bcomp[2] );
-      Bvals_XYZ[ ix ][ iy ][ iz ] = { float(B.x()), float(B.y()), float(B.z()) };
-      //cout<<ix<<"  "<<iy<<"  "<<iz<<"  "<<B.x()<<"  "<<B.y()<<"  "<<B.z()<<endl;
-    }
-  }
+  cout<<"Central Bx*dL: "<<m_BxDotDz_central<<endl;
+  cout<<"Mean Bx*dL in 5 sigma region: "<<BxdL_mean<<"   Std: "<<sqrt( BxdL_mean2 - pow(BxdL_mean,2) )<<endl;
+  cout<<"Mean By*dL in 5 sigma region: "<<BydL_mean<<"   Std: "<<sqrt( BydL_mean2 - pow(BydL_mean,2) )<<endl;
+  cout<<"Mean Bz*dL in 5 sigma region: "<<BzdL_mean<<"   Std: "<<sqrt( BzdL_mean2 - pow(BzdL_mean,2) )<<endl;
+   
+  //printf(" LUMI B FIELD: %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  %+15.8e  \n",
+  //    posV[0]/dd4hep::cm, posV[1]/dd4hep::cm,  posV[2]/dd4hep::cm,
+  //    bfieldV[0]/dd4hep::tesla , bfieldV[1]/dd4hep::tesla, bfieldV[2]/dd4hep::tesla ) ;
 
 }
-
-//-------------------------------------------------------------------------
-array<double,3> TrackerAnalysis::GetBfield(double x, double y, double z)
-{
-  array<double,3> field = {0,0,0};
-  // coordinate conversion
-  auto p = coordTranslate_inv * ROOT::Math::XYZPoint(x, y, z);
-  //cout<<"epic coord: "<<x<<"  "<<y<<"  "<<z<<endl;
-  //cout<<"magnet coord: "<<p.x()<<"  "<<p.y()<<"  "<<p.z()<<endl;
-
-  if( ! GetIndices(p.x(), p.y(), p.z(), &ix, &iy, &iz, &dx, &dy, &dz) ) {
-    return field; // out of range
-  }
-
-  float b[3] = {0};
-  for(int comp = 0; comp < 3; comp++) { 
-    // field component loop
-    // Trilinear interpolation
-    // First along X, along 4 lines
-    float b00 = Bvals_XYZ[ ix      ][ iy      ][ iz      ][comp] * (1 - dx)
-      + Bvals_XYZ[ ix  + 1 ][ iy      ][ iz      ][comp] * dx;
-    float b01 = Bvals_XYZ[ ix      ][ iy      ][ iz  + 1 ][comp] * (1 - dx)
-      + Bvals_XYZ[ ix  + 1 ][ iy      ][ iz  + 1 ][comp] * dx;
-    float b10 = Bvals_XYZ[ ix      ][ iy  + 1 ][ iz      ][comp] * (1 - dx)
-      + Bvals_XYZ[ ix  + 1 ][ iy  + 1 ][ iz      ][comp] * dx;
-    float b11 = Bvals_XYZ[ ix      ][ iy  + 1 ][ iz  + 1 ][comp] * (1 - dx)
-      + Bvals_XYZ[ ix  + 1 ][ iy  + 1 ][ iz  + 1 ][comp] * dx;
-    // Next along Y, along 2 lines
-    float b0 = b00 * (1 - dy) + b10 * dy;
-    float b1 = b01 * (1 - dy) + b11 * dy;
-    // Finally along Z
-    b[comp] = b0 * (1 - dz) + b1 * dz;
-  }
-
-  field[0] = b[0];
-  field[1] = b[1];
-  field[2] = b[2];
-
-  return field;
-}
-
 
 
 #endif

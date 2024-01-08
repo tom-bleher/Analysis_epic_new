@@ -42,16 +42,16 @@ for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
   if ".root" not in inFile:
     continue
-  fileNum = re.search("\d+\.+\d", inFile).group()
-#fileNum = re.search("\d+", file).group()
-#cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
-  outFile = outputPath + "/eicrecon_{0}.root".format(fileNum)
-  
+  #fileNum = re.search("\d+\.+\d\.", inFile).group()
+  fileNum = re.search("\d+\.", file).group()
+  #cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
+  outFile = outputPath + "/eicrecon_{0}root".format(fileNum)
+ 
   # Exclude existing files from a previous analysis
   #fileSize = Path(outFile).stat().st_size
   #if Path(outFile).stat().st_size > 1000:
   #continue
-  cmd = "eicrecon -Pplugins=analyzeLumiHits -Phistsfile={1} {2}".format(fileNum, outFile, inFile)  
+  cmd = "eicrecon -Pplugins=analyzeLumiHits -Phistsfile={0} {1}".format(outFile, inFile)  
   print(cmd)
   commands.append( cmd )
 

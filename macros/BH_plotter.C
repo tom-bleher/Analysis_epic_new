@@ -130,19 +130,24 @@ void BH_plotter(bool plotFromFile = false) {
   TH1D *RatesCoinc = new TH1D("Rates","coincidence",Nconfigs,-0.5,Nconfigs-0.5);
 
   for( int i = 0; i < Nconfigs; i++ ) {
-    cout<<configs[i]<<endl;
+    cout<<"-------------  "<<configs[i]<<"  -------------"<<endl;
     BH_clone->SetParameter( 0, prefactor * Z[ i ]*Z[ i ] );
     BH_clone->SetParameter( 1, eEnergies[ i ] );
     BH_clone->SetParameter( 2, hEnergies[ i ] );
     double IntCrossSectionTop = IntegratedCrossSection( Elow, Ehigh, BH_clone, BfieldSF[ i ], accTop );
     double IntCrossSectionCoinc = IntegratedCrossSection( Elow, Ehigh, BH_clone, BfieldSF[ i ], accCoinc );
     double LumiPerBunch = LumiInst[ i ] / A[ i ] * mbTocm2 * Tbunch[ i ];
+    //
     Nsingle[ i ] = convProb * LumiPerBunch * IntCrossSectionTop;
-    Ncoinc[ i ] = convProb * LumiPerBunch * IntCrossSectionCoinc;
+    Ncoinc[ i ]  = convProb * LumiPerBunch * IntCrossSectionCoinc;
+    //
     RatesTop->Fill( i, Nsingle[ i ] );
     RatesCoinc->Fill( i, Ncoinc[ i ] );
     RatesTop->GetXaxis()->SetBinLabel(i+1, configs[i].data());
     RatesCoinc->GetXaxis()->SetBinLabel(i+1, configs[i].data());
+    cout<<"Integrated Bremsstrahlung cross section in Top = "<<IntCrossSectionTop<<" mb"<<endl;
+    cout<<"Number of singles per bunch crossing in Top = "<<Nsingle[ i ]<<endl;
+    cout<<"---"<<endl;
     cout<<"Integrated Bremsstrahlung cross section with coincidence = "<<IntCrossSectionCoinc<<" mb"<<endl;
     cout<<"Number of photons per bunch crossing with coincidence = "<<Ncoinc[ i ]<<endl;
   }
