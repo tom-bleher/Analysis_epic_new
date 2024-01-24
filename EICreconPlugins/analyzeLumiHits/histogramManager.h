@@ -7,6 +7,7 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TH3D.h"
+#include "TF1.h"
 #include "THashList.h"
 #include "TProfile.h"
 #include "TDirectory.h"
@@ -34,6 +35,8 @@ namespace histogramManager {
   extern PhotonGenClass g_genPhoton;
 
   extern void bookHistograms( TDirectory *dir);
+
+  extern TF1 *posres_pol1;
   
 }
 #endif

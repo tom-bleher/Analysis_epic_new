@@ -63,6 +63,19 @@ export EICSHELL=${SimDir}/eic-shell
 cd ${SimDir}
 # Run EIC shell, generate the events, afterburn them, run the simulation, reconstruct the events
 # Note, no obvious way to reduce screen dump from eicreon, so piping output to dev/null for now
+
+if test -f "${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root"; then
+    # Should add additional checks on this, check how old files is (if before 2024, run anyway, if small, re-rerun etc)
+    echo "${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root already exists, running reconstruction only"
+cat <<EOF | $EICSHELL
+source Init_Env.sh
+cd $Output_tmp
+eicrecon -Pplugins=analyzeLumiHits -Pjana:nevents=${NumEvents} -Phistsfile=EICReconOut_${FileNum}_${NumEvents}.root ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+sleep 5
+
+echo; echo; echo "Reconstruction finished, output file is - ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root"; echo; echo;
+EOF
+else
 cat <<EOF | $EICSHELL
 
 source Init_Env.sh
@@ -92,15 +105,20 @@ sleep 5
 
 echo; echo; echo "Simulation finished, running reconstruction."; echo; echo;
 cd $Output_tmp
-eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
-sleep 30
+eicrecon -Pplugins=analyzeLumiHits -Pjana:nevents=${NumEvents} -Phistsfile=EICReconOut_${FileNum}_${NumEvents}.root ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+sleep 5
 
-mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
 echo; echo; echo "Reconstruction finished, output file is - ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root"; echo; echo;
 
 EOF
+fi
 
 exit 0
+
+# Name output file directly with Phistsfile arg
+#eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+#sleep 5
+#mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
 
 #  > /dev/null
 # Positions of FB components for propagate and convert fn

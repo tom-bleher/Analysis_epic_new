@@ -41,6 +41,7 @@ class CALAnalysis {
       std::vector<const edm4eic::CalorimeterHit*> &CALrecHits,
       std::vector<const edm4eic::ProtoCluster*> &CALprotoClusters,
       std::vector<const edm4eic::Cluster*> &CALClusters,
+      std::vector<const edm4hep::SimTrackerHit*> &tracker_hits,
       std::shared_ptr<DD4hep_service> geoSvc );
 
   void LoadCalibration();
@@ -57,9 +58,21 @@ class CALAnalysis {
   std::vector<const edm4eic::CalorimeterHit*> m_CALrecHits;
   std::vector<const edm4eic::ProtoCluster*> m_CALprotoClusters;
   std::vector<const edm4eic::Cluster*> m_CALclusters;
+  std::vector<const edm4hep::SimTrackerHit*> m_edm4hepTrackerHits;
 
   double m_EtopTotal = 0.0;
   double m_EbotTotal = 0.0;
+
+  double m_E_CALhits_total = 0.0;
+  double m_E_CALtophits_total = 0.0;
+  double m_E_CALbothits_total = 0.0;
+  double m_CALtophits_total = 0.0;
+  double m_CALbothits_total = 0.0;
+
+  double xhit_TopTrack2;
+  double yhit_TopTrack2;
+  double xhit_BotTrack2;
+  double yhit_BotTrack2;
 
   protected:
     std::shared_ptr<DD4hep_service> m_geoSvc;

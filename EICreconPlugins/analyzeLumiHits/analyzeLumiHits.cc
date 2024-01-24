@@ -1,5 +1,4 @@
 #include <services/rootfile/RootFile_service.h>
-
 #include "histogramManager.h"
 #include "constants.h"
 #include "variables.h"
@@ -56,12 +55,11 @@ void analyzeLumiHits::ProcessSequential(const std::shared_ptr<const JEvent>& eve
 
   /////////////////////////////
   // CAL Studies
-  CAL->Prepare( CAL_hits(), CAL_adc(), CAL_rechits(), CAL_protoClusters(), CAL_clusters(), m_geoSvc );
-  CAL->FillTrees();
+  CAL->Prepare( CAL_hits(), CAL_adc(), CAL_rechits(), CAL_protoClusters(), CAL_clusters(), Tracker_hits(), m_geoSvc );
+  //CAL->FillTrees();
   CAL->FillDiagnostics();
   CAL->FillAcceptances();
-  CAL->CollectGoodClusters();
-
+  //CAL->CollectGoodClusters();
 
   /////////////////////////////
   // Tracker Studies
