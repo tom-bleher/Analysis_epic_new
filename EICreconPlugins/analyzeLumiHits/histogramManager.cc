@@ -81,32 +81,34 @@ namespace histogramManager {
     // Plots for Moliere radius
     gHistList->Add( new TH2D("h2ZdXTop",  "Z#DeltaX (X_{hit} - X_{mc}) Top Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
     gHistList->Add( new TH2D("h2ZdXBot",  "Z#DeltaX (X_{hit} - X_{mc}) Bot Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
+    gHistList->Add( new TH2D("h2ZdYTop",  "Z#DeltaX (Y_{hit} - Y_{mc}) Top Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
+    gHistList->Add( new TH2D("h2ZdYBot",  "Z#DeltaX (Y_{hit} - Y_{mc}) Bot Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
 
-    gHistList->Add( new TH2D("h2EdXTop_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (1mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdXBot_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (1mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdXTop_3mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (3mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdXBot_3mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (3mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdXTop_9mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (9mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdXBot_9mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (9mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXTop_1mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (1mm pixel);E_{e^{+}MC};#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXBot_1mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (1mm pixel);E_{e^{-}MC};#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXTop_3mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (3mm pixel);E_{e^{+}MC} ;#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXBot_3mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (3mm pixel);E_{e^{-}MC} ;#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXTop_9mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (9mm pixel);E_{e^{+}MC};#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdXBot_9mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (9mm pixel);E_{e^{-}MC} ;#DeltaX(mm)", 200, 0, 20, 200, -100, 100 ));
+    gHistList->Add( new TH2D("h2EdXTop_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (1mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdXBot_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (1mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdXTop_3mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (3mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdXBot_3mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (3mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdXTop_9mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (9mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdXBot_9mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (9mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXTop_1mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (1mm pixel);E_{e^{+}MC};#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXBot_1mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (1mm pixel);E_{e^{-}MC};#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXTop_3mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (3mm pixel);E_{e^{+}MC} ;#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXBot_3mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (3mm pixel);E_{e^{-}MC} ;#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXTop_9mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Top Det (9mm pixel);E_{e^{+}MC};#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdXBot_9mm",  "E_{MC}#DeltaX (X_{hit} - X_{mc}) Bot Det (9mm pixel);E_{e^{-}MC} ;#DeltaX(mm)", 200, 0, 20, 320, -40, 40 ));
     
-    gHistList->Add( new TH2D("h2EdYTop_1mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (1mm pixel);E_{e^{+}Rec};DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdYBot_1mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (1mm pixel);E_{e^{-}Rec};#DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdYTop_3mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (3mm pixel);E_{e^{+}Rec};#DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdYBot_3mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (3mm pixel);E_{e^{-}Rec};#DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdYTop_9mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (9mm pixel);E_{e^{+}Rec};#DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EdYBot_9mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (9mm pixel);E_{e^{-}Rec} ;#DeltaY(mm)", 100, 0, 1, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYTop_1mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (1mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYBot_1mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (1mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYTop_3mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (3mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYBot_3mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (3mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYTop_9mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (9mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2EMCdYBot_9mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (9mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 200, -100, 100 ));
+    gHistList->Add( new TH2D("h2EdYTop_1mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (1mm pixel);E_{e^{+}Rec};#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdYBot_1mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (1mm pixel);E_{e^{-}Rec};#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdYTop_3mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (3mm pixel);E_{e^{+}Rec};#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdYBot_3mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (3mm pixel);E_{e^{-}Rec};#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdYTop_9mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Top Det (9mm pixel);E_{e^{+}Rec};#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EdYBot_9mm",  "E#DeltaY (Y_{hit} - Y_{mc}) Bot Det (9mm pixel);E_{e^{-}Rec} ;#DeltaY(mm)", 100, 0, 1, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYTop_1mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (1mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYBot_1mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (1mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYTop_3mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (3mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYBot_3mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (3mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYTop_9mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Top Det (9mm pixel);E_{e^{+}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
+    gHistList->Add( new TH2D("h2EMCdYBot_9mm",  "E_{MC}#DeltaY (Y_{hit} - Y_{mc}) Bot Det (9mm pixel);E_{e^{-}MC};#DeltaY(mm)", 200, 0, 20, 320, -40, 40 ));
 
     // Event level versions, reset at end of each event filling loop - Test incorporating here
     dir->mkdir("CAL_Position_Info_Event_Level")->cd();
@@ -132,31 +134,32 @@ namespace histogramManager {
     gHistList->Add( new TH2D("h2SampFracBot_Coin", "Bot Det Sampling Fraction (Coin events only); E_{e^{-}MC} (GeV); Sampling Fraction", 200, 0, 20, 100, 0, 0.1) );
     gHistList->Add( new TH2D("h2SampFracCoin", "Coin Sampling Fraction; E_{#gammaMC} (GeV); Sampling Fraction", 200, 0, 20, 100, 0, 0.1) );
 
-    gHistList->Add( new TH1D("h1CALTopAccept", "Top Det acceptance;E_{e^{+}MC} (GeV);Counts", 200, 0, 20) );  
-    gHistList->Add( new TH1D("h1CALBotAccept", "Bot Det acceptance;E_{e^{-}MC} (GeV);Counts", 200, 0, 20) );
-    gHistList->Add( new TH1D("h1CALCoinAccept", "Coin acceptance;E_{#gammaMC} (GeV);Counts", 200, 0, 20) );
+    gHistList->Add( new TH1D("h1CALTopAccept", "Top Det acceptance;E_{e^{+}MC} (GeV);Counts", 2000, 0, 20) );  
+    gHistList->Add( new TH1D("h1CALBotAccept", "Bot Det acceptance;E_{e^{-}MC} (GeV);Counts", 2000, 0, 20) );
+    gHistList->Add( new TH1D("h1CALCoinAccept", "Coin acceptance;E_{#gammaMC} (GeV);Counts", 2000, 0, 20) );
     gHistList->Add( new TH2D("h2CALTopAccept", "Top Det acceptance;E_{e^{+}MC} (GeV);E_{TopDet} (GeV)", 200, 0, 20, 100, 0, 1) );
     gHistList->Add( new TH2D("h2CALBotAccept", "Bot Det acceptance;E_{e^{-}MC} (GeV);E_{BotDet} (GeV)", 200, 0, 20, 100, 0, 1) );
     gHistList->Add( new TH2D("h2CALCoinAccept", "Coin acceptance;E_{#gammaMC} (GeV);E_{Coin} (GeV)", 200, 0, 20, 100, 0, 1) );
 
     dir->mkdir("CAL_Acceptance_Info_Position_Cuts")->cd();
     for(int i = 0; i < 5; i++){
-      gHistList->Add( new TH1D(Form("h1CALTopAccept_%i", (i+1)), Form("Top Det acceptance %i cm < y < %i cm;E_{e^{+}MC} (GeV);Counts",(7+(i+1)), (23-(i+1))), 200, 0, 20) );  
-      gHistList->Add( new TH1D(Form("h1CALBotAccept_%i", (i+1)), Form("Bot Det acceptance %i cm < y < %i cm;E_{e^{-}MC} (GeV);Counts",(-23+(i+1)),(-7-(i+1))), 200, 0, 20) );
-      gHistList->Add( new TH1D(Form("h1CALCoinAccept_%i", (i+1)), Form("Coin acceptance %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm;E_{#gammaMC} (GeV);Counts", (-23+(i+1)), (-7-(i+1)), (7+(i+1)), (23-(i+1))), 200, 0, 20) );
+      gHistList->Add( new TH1D(Form("h1CALTopAccept_%i", (i+1)), Form("Top Det acceptance %i cm < y < %i cm;E_{e^{+}MC} (GeV);Counts",(7+(i+1)), (23-(i+1))), 2000, 0, 20) );  
+      gHistList->Add( new TH1D(Form("h1CALBotAccept_%i", (i+1)), Form("Bot Det acceptance %i cm < y < %i cm;E_{e^{-}MC} (GeV);Counts",(-23+(i+1)),(-7-(i+1))), 2000, 0, 20) );
+      gHistList->Add( new TH1D(Form("h1CALCoinAccept_%i", (i+1)), Form("Coin acceptance %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm;E_{#gammaMC} (GeV);Counts", (-23+(i+1)), (-7-(i+1)), (7+(i+1)), (23-(i+1))), 2000, 0, 20) );
       gHistList->Add( new TH2D(Form("h2SampFracTop_%i", (i+1)), Form("Top Det Sampling Fraction %i cm < y < %i cm; E_{e^{+}MC} (GeV); Sampling Fraction",(7+(i+1)), (23-(i+1))), 200, 0, 20, 100, 0, 0.1) );
-      gHistList->Add( new TH2D(Form("h2SampFracBot_%i", (i+1)), Form("Bot Det Sampling Fraction; E_{e^{-}MC} (GeV) %i cm < y < %i cm; Sampling Fraction",(-23+(i+1)),(-7-(i+1))), 200, 0, 20, 100, 0, 0.1) );
+      gHistList->Add( new TH2D(Form("h2SampFracBot_%i", (i+1)), Form("Bot Det Sampling Fraction  %i cm < y < %i cm; E_{e^{-}MC} (GeV); Sampling Fraction",(-23+(i+1)),(-7-(i+1))), 200, 0, 20, 100, 0, 0.1) );
       gHistList->Add( new TH2D(Form("h2SampFracCoin_%i", (i+1)), Form("Coin Sampling Fraction  %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm; E_{#gammaMC} (GeV); Sampling Fraction", (-23+(i+1)), (-7-(i+1)), (7+(i+1)), (23-(i+1))), 200, 0, 20, 100, 0, 0.1) );  
     }
-	////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////
     // root dir histograms 
     dir->cd();
 
-    gHistList->Add( new TH1D("hGenPhoton_E", "Generated #gamma energy;E_{#gamma} (GeV);Nevents", 2500,0,50));
+    gHistList->Add( new TH1D("hGenPhoton_E", "Generated #gamma energy;E_{#gamma} (GeV);Nevents", 2000,0,20));
     gHistList->Add( new TH2D("hGenPhoton_xy", "Generated #gamma vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
-    gHistList->Add( new TH1D("hGenElectron_E", "Generated e^{-} energy;E_{e^{-}} (GeV);Nevents", 2500,0,50));
+    gHistList->Add( new TH1D("hGenElectron_E", "Generated e^{-} energy;E_{e^{-}} (GeV);Nevents", 2000,0,20));
     gHistList->Add( new TH2D("hGenElectron_xy", "Generated e^{-} vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
-    gHistList->Add( new TH1D("hGenPositron_E", "Generated e^{+} energy;E_{e^{+}} (GeV);Nevents", 2500,0,50));
+    gHistList->Add( new TH1D("hGenPositron_E", "Generated e^{+} energy;E_{e^{+}} (GeV);Nevents", 2000,0,20));
     gHistList->Add( new TH2D("hGenPositron_xy", "Generated photon vertex;x (mm);y (mm)", 6000,-300,300, 6000,-300,300));
     gHistList->Add( new TH1D("hGenEventCount", "Number of generated events per Egen;E_{#gamma} (GeV);Nevents", 2500, 0, 50) );
 

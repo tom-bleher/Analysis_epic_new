@@ -205,6 +205,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZXETop_3mm_Event"))->Fill( vec.z, vec.x, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZXETop_9mm_Event"))->Fill( vec.z, vec.x, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZdXTop"))->Fill( vec.z, vec.x-variables::Xpositron, hit->getEnergy() );
+
       }
       if (variables::mod_id % 6 < 3 ){ // Modules 0-2 are x orientated (y info), 3-5 y orientated (x info), so modulo6 of the ID is < 3 for y info (6-8 x, 9-11 y...)
 	((TH1D *)gHistList->FindObject("h1YTop"))->Fill( vec.y );
@@ -214,6 +215,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZYETop_1mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYETop_3mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYETop_9mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
+	((TH2D *)gHistList->FindObject("h2ZdYTop"))->Fill( vec.z, vec.y-variables::Ypositron, hit->getEnergy() );
       }
       ((TH2D *)gHistList->FindObject("h2ZETop"))->Fill( vec.z, hit->getEnergy() );
     }
@@ -238,6 +240,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZYEBot_1mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_3mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_9mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
+	((TH2D *)gHistList->FindObject("h2ZdYBot"))->Fill( vec.z, vec.y-variables::Xelectron, hit->getEnergy() );
       }
       ((TH2D *)gHistList->FindObject("h2ZEBot"))->Fill( vec.z, hit->getEnergy() );
     }
