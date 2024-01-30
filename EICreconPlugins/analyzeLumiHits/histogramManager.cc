@@ -63,6 +63,8 @@ namespace histogramManager {
     gHistList->Add( new TH2D("h2ZE",  "ZE Det;z(mm);E", 180, -64180, -64000, 100, 0, 0.01) );    
     gHistList->Add( new TH2D("h2ZETop",  "ZE Top Det;z(mm);E", 180, -64180, -64000, 100, 0, 0.01) );
     gHistList->Add( new TH2D("h2ZEBot",  "ZE Bot Det;z(mm);E", 180, -64180, -64000, 100, 0, 0.01) );
+    gHistList->Add( new TH2D("h2XYETop",  "XYE Top Det;x(mm);y(mm)", 200, -100, 100, 250, 50, 300) );
+    gHistList->Add( new TH2D("h2XYEBot",  "XYE Bot Det;x(mm);y(mm)", 200, -100, 100, 250, -300, -50) );    
 
     gHistList->Add( new TH2D("h2ZXETop_1mm",  "ZXE Top Det (1mm);z(mm);x(mm)", 180, -64180, -64000, 270, -135, 135 ));
     gHistList->Add( new TH2D("h2ZYETop_1mm",  "ZYE Top Det (1mm);z(mm);Y(mm)", 180, -64180, -64000, 360, 0, 360 ));
@@ -79,10 +81,10 @@ namespace histogramManager {
     gHistList->Add( new TH2D("h2ZYEBot_9mm",  "ZYE Bot Det (9mm);z(mm);Y(mm)", 20, -64180, -64000, 40, -360, 0 ));
 
     // Plots for Moliere radius
-    gHistList->Add( new TH2D("h2ZdXTop",  "Z#DeltaX (X_{hit} - X_{mc}) Top Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2ZdXBot",  "Z#DeltaX (X_{hit} - X_{mc}) Bot Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2ZdYTop",  "Z#DeltaX (Y_{hit} - Y_{mc}) Top Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
-    gHistList->Add( new TH2D("h2ZdYBot",  "Z#DeltaX (Y_{hit} - Y_{mc}) Bot Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 200, -100, 100 ));
+    gHistList->Add( new TH2D("h2ZdXTop",  "Z#DeltaX (X_{hit} - X_{mc}) Top Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 800, -100, 100 ));
+    gHistList->Add( new TH2D("h2ZdXBot",  "Z#DeltaX (X_{hit} - X_{mc}) Bot Det;Z(mm);#DeltaX(mm)", 180, -64180, -64000, 800, -100, 100 ));
+    gHistList->Add( new TH2D("h2ZdYTop",  "Z#DeltaY (Y_{hit} - Y_{mc}) Top Det;Z(mm);#DeltaY(mm)", 180, -64180, -64000, 1200, 0, 300 ));
+    gHistList->Add( new TH2D("h2ZdYBot",  "Z#DeltaY (Y_{hit} - Y_{mc}) Bot Det;Z(mm);#DeltaY(mm)", 180, -64180, -64000, 1200, -300, 0 ));
 
     gHistList->Add( new TH2D("h2EdXTop_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Top Det (1mm pixel);E_{e^{+}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
     gHistList->Add( new TH2D("h2EdXBot_1mm",  "E#DeltaX (X_{hit} - X_{mc}) Bot Det (1mm pixel);E_{e^{-}Rec};#DeltaX(mm)", 100, 0, 1, 320, -40, 40 ));
@@ -127,7 +129,6 @@ namespace histogramManager {
     gHistList->Add( new TH2D("h2ZYEBot_9mm_Event",  "ZYE Bot Det (9mm);z(mm);Y(mm)", 20, -64180, -64000, 40, -360, 0 ));
 
     dir->mkdir("CAL_Acceptance_Info")->cd();
-
     gHistList->Add( new TH2D("h2SampFracTop", "Top Det Sampling Fraction; E_{e^{+}MC} (GeV); Sampling Fraction", 200, 0, 20, 100, 0, 0.1) );
     gHistList->Add( new TH2D("h2SampFracBot", "Bot Det Sampling Fraction; E_{e^{-}MC} (GeV); Sampling Fraction", 200, 0, 20, 100, 0, 0.1) );
     gHistList->Add( new TH2D("h2SampFracTop_Coin", "Top Det Sampling Fraction (Coin events only); E_{e^{+}MC} (GeV); Sampling Fraction", 200, 0, 20, 100, 0, 0.1) );

@@ -177,7 +177,8 @@ void CALAnalysis::FillDiagnostics() {
   for( auto hit : m_CALhits ) { 
     edm4hep::Vector3f vec = hit->getPosition();// mm
     // 17/01/24 - This is duplicated from above to get the module ID, slightly redundant? Works though
-    auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+    //auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+    auto id_dec   = m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
     vector<dd4hep::BitFieldElement> hitFields = id_dec->fields();
     // try to find the expected fields and store field index
     for( auto field : hitFields ) {
@@ -240,7 +241,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZYEBot_1mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_3mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_9mm_Event"))->Fill( vec.z, vec.y, hit->getEnergy() );
-	((TH2D *)gHistList->FindObject("h2ZdYBot"))->Fill( vec.z, vec.y-variables::Xelectron, hit->getEnergy() );
+	((TH2D *)gHistList->FindObject("h2ZdYBot"))->Fill( vec.z, vec.y-variables::Yelectron, hit->getEnergy() );
       }
       ((TH2D *)gHistList->FindObject("h2ZEBot"))->Fill( vec.z, hit->getEnergy() );
     }
@@ -253,6 +254,8 @@ void CALAnalysis::FillDiagnostics() {
   ((TH1D *)gHistList->FindObject("h1nHitsBot"))->Fill(m_CALbothits_total);
 
   int fitStatus;
+  double xpos_top = -10000;
+  double xpos_bot = -10000;
   double ypos_top = -10000;
   double ypos_bot = -10000;
   // Top detector hit filling condition
@@ -275,6 +278,7 @@ void CALAnalysis::FillDiagnostics() {
     fitStatus = h2ZXETop_3mm_Event_1->Fit("posres_pol1","QN");
     if (fitStatus<2){
       double dx = posres_pol1->Eval(-63990) - xhit_TopTrack2; // Subtract tracker hit value
+      xpos_top = (posres_pol1->Eval(-64000))/10; // Evaluate x hit position of event on calorimeter face
       ((TH2D *)gHistList->FindObject("h2EdXTop_3mm"))->Fill(m_E_CALtophits_total, dx);
       ((TH2D *)gHistList->FindObject("h2EMCdXTop_3mm"))->Fill(variables::Epositron, dx);
     }   
@@ -322,6 +326,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject(Form("h2SampFracTop_%i", (i+1))))->Fill(variables::Epositron, (m_E_CALtophits_total/(variables::Epositron)));
       }
     } 
+    ((TH2D *)gHistList->FindObject("h2XYETop"))->Fill(xpos_top*10, ypos_top*10 , m_E_CALtophits_total/0.0263);
   }
   // Bot detector hit filling condition
   if(m_CALbothits_total > 0 && m_E_CALbothits_total > 0.05){
@@ -342,6 +347,7 @@ void CALAnalysis::FillDiagnostics() {
     fitStatus = h2ZXEBot_3mm_Event_1->Fit("posres_pol1","QN");
     if (fitStatus<2){
       double dx = posres_pol1->Eval(-63990) - xhit_BotTrack2; // Subtract tracker hit value
+      xpos_bot = (posres_pol1->Eval(-64000))/10; // Evaluate x hit position of event on calorimeter face
       ((TH2D *)gHistList->FindObject("h2EdXBot_3mm"))->Fill(m_E_CALbothits_total, dx);
       ((TH2D *)gHistList->FindObject("h2EMCdXBot_3mm"))->Fill(variables::Eelectron, dx);
     }   
@@ -382,13 +388,14 @@ void CALAnalysis::FillDiagnostics() {
       double dy = posres_pol1->Eval(-63990) - yhit_BotTrack2; // Subtract tracker hit value
       ((TH2D *)gHistList->FindObject("h2EdYBot_9mm"))->Fill(m_E_CALbothits_total, dy);
       ((TH2D *)gHistList->FindObject("h2EMCdYBot_9mm"))->Fill(variables::Eelectron, dy);
-    } 
+    }
     for(int i = 0; i < 5; i++){
       if ( ypos_bot > (-23+(i+1)) && ypos_bot < (-7-(i+1)) ){
 	((TH1D *)gHistList->FindObject(Form("h1CALBotAccept_%i",(i+1))))->Fill(variables::Eelectron);
 	((TH2D *)gHistList->FindObject(Form("h2SampFracBot_%i", (i+1))))->Fill(variables::Eelectron, (m_E_CALbothits_total/(variables::Eelectron)));
       }
     }
+    ((TH2D *)gHistList->FindObject("h2XYEBot"))->Fill(xpos_bot*10, ypos_bot*10 , m_E_CALbothits_total/0.0263); // Quick version for now, define an actual sampling fraction variable and use this!
   }
   // Coincidence filling condition
   if(m_CALtophits_total > 0 && m_CALbothits_total > 0 && m_E_CALtophits_total > 0.05 && m_E_CALbothits_total > 0.05){
@@ -444,131 +451,3 @@ void CALAnalysis::CollectGoodClusters() {
 }
 
 #endif
-
-// 16/01/24 - Archived version
-// //-------------------------------------------------------------------------
-// void CALAnalysis::FillDiagnostics() {
- 
-//   double E_CALhits_total = 0.0;
-//   double E_CALtophits_total = 0.0;
-//   double E_CALbothits_total = 0.0;
-//   double CALtophits_total = 0.0;
-//   double CALbothits_total = 0.0;
-  
-//   for( auto hit : m_CALhits ) { 
-//     edm4hep::Vector3f vec = hit->getPosition();// mm
-//     E_CALhits_total += hit->getEnergy();
-//     ((TH1D *)gHistList->FindObject("hEraw"))->Fill( hit->getEnergy() );
-//     if (vec.y > 0){
-//       E_CALtophits_total += hit->getEnergy();
-//       CALtophits_total++;
-//     }
-//     else if ( vec.y < 0){
-//       E_CALbothits_total += hit->getEnergy();
-//       CALbothits_total++;
-//     }
-//   }
-  
-//   if( E_CALhits_total > 0 ) {
-//     ((TH1D *)gHistList->FindObject("hErawTotal"))->Fill( E_CALhits_total ); 
-//   }
-
-//   if( E_CALtophits_total > 0 ){
-//     // 16/01/24 - SJDK - Temporary measure for now whilst clustering not implemented, set m_EtopTotal (cluster energy) to sum of hits
-//     m_EtopTotal = E_CALtophits_total;
-//     ((TH1D *)gHistList->FindObject("hErawTotalTop"))->Fill( E_CALtophits_total );
-//     ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Top"))->Fill(variables::Eelectron, E_CALtophits_total ); 
-//     ((TH2D *)gHistList->FindObject("hSampFracTopRaw"))->Fill( variables::Eelectron, ( E_CALtophits_total/variables::Eelectron ));
-    
-//   }
-
-//   if( E_CALbothits_total > 0 ){
-//     m_EbotTotal = E_CALbothits_total;
-//     ((TH1D *)gHistList->FindObject("hErawTotalBot"))->Fill( E_CALbothits_total );
-//     ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Bot"))->Fill(variables::Epositron, E_CALbothits_total ); 
-//     ((TH2D *)gHistList->FindObject("hSampFracBotRaw"))->Fill( variables::Epositron, ( E_CALbothits_total/variables::Epositron ));
-//   }
-
-//   if( E_CALtophits_total > 0 && E_CALbothits_total > 0 ){
-//     ((TH2D *)gHistList->FindObject("hErawTotal_EMC_Coin"))->Fill(variables::Ephoton, E_CALhits_total );
-//   }
-
-//   ((TH1D *)gHistList->FindObject("hnHitsTop"))->Fill(CALtophits_total);
-//   ((TH1D *)gHistList->FindObject("hnHitsBot"))->Fill(CALbothits_total);
-
-//   for( auto adc : m_CALadc ) { ((TH1D *)gHistList->FindObject("hADCsignal"))->Fill( adc->getAmplitude() ); }
-  
-//   // SJDK - 13/06/23 - Title of this is a little misleading, this is Egamma compared to the TOTAL energy detected in both spectrometers, should make this clearer.
-//   // SJDK - 16/01/23 - m_EtopTotal is based on *cluster energy, will be meaningless for now
-//   ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( variables::Ephoton, m_EtopTotal + m_EbotTotal );
-//   ((TH2D *)gHistList->FindObject("hCAL_Eres"))->Fill( variables::Ephoton, (variables::Ephoton - (m_EtopTotal + m_EbotTotal))/variables::Ephoton );  
-
-//   ((TH1D *)gHistList->FindObject("hProtoClusterCount"))->Fill( m_CALprotoClusters.size() );
-  
-//   ((TH1D *)gHistList->FindObject("hClusterCount"))->Fill( m_CALclusters.size() );
-
-//   ((TH2D *)gHistList->FindObject("hCALCluster_Eres"))->Fill( variables::Ephoton, m_EtopTotal + m_EbotTotal );
-
-//   if( (m_EtopTotal + m_EbotTotal) > 0 ) { 
-//     ((TH1D *)gHistList->FindObject("hEnergy"))->Fill( m_EtopTotal + m_EbotTotal );
-//   }
-  
-//   if( m_EtopTotal > 0 ) { 
-//     ((TH1D *)gHistList->FindObject("hEup"))->Fill( m_EtopTotal );
-//     ((TH2D *)gHistList->FindObject("hCALTop_Eres"))->Fill( variables::Eelectron, (variables::Eelectron - (m_EtopTotal))/variables::Eelectron );
-//     ((TH2D *)gHistList->FindObject("hSampFracTop"))->Fill( variables::Eelectron, ( m_EtopTotal/variables::Eelectron ));  
-//   }
-
-//   if( m_EbotTotal > 0 ) { 
-//     ((TH1D *)gHistList->FindObject("hEdw"))->Fill( m_EbotTotal ); 
-//     ((TH2D *)gHistList->FindObject("hCALBot_Eres"))->Fill( variables::Epositron, (variables::Epositron - (m_EbotTotal))/variables::Epositron );
-//     ((TH2D *)gHistList->FindObject("hSampFracBot"))->Fill( variables::Epositron, ( m_EbotTotal/variables::Epositron ));
-//   }
-
-// }
-
-// //-------------------------------------------------------------------------
-// void CALAnalysis::FillAcceptances() {
-
-//   // SJDK 14/06/23 - This acceptance definition is a bit odd, this is the detection of an electron or positron at the energy of the incoming gamma, add some new histograms
-//   if( m_EtopTotal > 0 ) {
-//     ((TH1D *)gHistList->FindObject("hCALTop_Acceptance"))->Fill( variables::Ephoton );
-//   }
-//   if( m_EbotTotal > 0 ) {
-//     ((TH1D *)gHistList->FindObject("hCALBot_Acceptance"))->Fill( variables::Ephoton );
-//   }
-//   if( m_EtopTotal > 0 && m_EbotTotal > 0) { // Emin ~3.7 GeV
-//     ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance"))->Fill( variables::Ephoton );
-//     ((TH2D *)gHistList->FindObject("hCALCoincidence_Acceptance_v2"))->Fill( (variables::Eelectron + variables::Epositron), (m_EtopTotal + m_EbotTotal)  );
-//   }
-
-//   // SJDK 14/06/23 - New acceptance histograms, individual calorimeter plots
-//   if( m_EtopTotal > 0){
-//     ((TH1D *)gHistList->FindObject("hCALTop_Acceptance_v2"))->Fill( variables::Eelectron );
-//     ((TH2D *)gHistList->FindObject("hCALTop_Acceptance_v3"))->Fill( variables::Eelectron, m_EtopTotal );
-//   }
-//   if( m_EbotTotal > 0){
-//     ((TH1D *)gHistList->FindObject("hCALBot_Acceptance_v2"))->Fill( variables::Epositron );
-//     ((TH2D *)gHistList->FindObject("hCALBot_Acceptance_v3"))->Fill( variables::Epositron, m_EbotTotal );
-//   }
-
-//   // SJDK 22/06/23 - Some more new acceptance histograms, these are filled under the condition that you have something that vaguely looks correct compared to MC. The intention is to divide the Numer by the Denom histogram subsequently
-
-//   // Fill numerator only if within +/- tolerance percentage of truth value (see constants.cc), fill denominator with all truth electrons
-//   if ( ( m_EtopTotal < (variables::Eelectron + (variables::Eelectron * constants::Cal_Single_AcceptanceTol))) && ( m_EtopTotal > (variables::Eelectron - (variables::Eelectron * constants::Cal_Single_AcceptanceTol))) ){
-//     ((TH1D *)gHistList->FindObject("hCALTop_Acceptance_v4_Numer"))->Fill( variables::Eelectron );
-//   }
-//   ((TH1D *)gHistList->FindObject("hCALTop_Acceptance_v4_Denom"))->Fill( variables::Eelectron );
-  
-//   if ( ( m_EbotTotal < (variables::Epositron + (variables::Epositron * constants::Cal_Single_AcceptanceTol))) && ( m_EbotTotal > (variables::Epositron - (variables::Epositron * constants::Cal_Single_AcceptanceTol))) ){
-//     ((TH1D *)gHistList->FindObject("hCALBot_Acceptance_v4_Numer"))->Fill( variables::Epositron );
-//   }
-//   ((TH1D *)gHistList->FindObject("hCALBot_Acceptance_v4_Denom"))->Fill( variables::Epositron );
-
-  
-//   if ( ( (m_EbotTotal + m_EtopTotal) < (variables::Ephoton + (variables::Ephoton * constants::Cal_Coin_AcceptanceTol))) && ( (m_EbotTotal + m_EtopTotal) > (variables::Ephoton - (variables::Ephoton * constants::Cal_Coin_AcceptanceTol))) ){
-//     ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance_v3_Numer"))->Fill( variables::Ephoton );
-//   }
-//   ((TH1D *)gHistList->FindObject("hCALCoincidence_Acceptance_v3_Denom"))->Fill( variables::Ephoton );
-
-// }
