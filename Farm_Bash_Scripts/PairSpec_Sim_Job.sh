@@ -7,7 +7,7 @@
 ### Input args are - FileNum NumEvents Egamma_start (optional) Egamma_end (optional) SpagCal (optional)
 ### Intended to be fed to some swif2 job submission script
 
-SimDir="/group/eic/users/${USER}/ePIC"
+SimDir="/group/eic/users/${USER}/ePIC/eic-shell-23p12-stable"
 echo "Running as ${USER}"
 echo "Assuming simulation directory - ${SimDir}"
 if [ ! -d $SimDir ]; then   
@@ -100,7 +100,7 @@ sleep 5
 
 echo; echo; echo "Events propagated and converted, running simulation."; echo; echo;
 
-ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
+npsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
 sleep 5
 
 echo; echo; echo "Simulation finished, running reconstruction."; echo; echo;
@@ -116,7 +116,7 @@ fi
 exit 0
 
 # Name output file directly with Phistsfile arg
-#eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+#eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/npsimOut_${FileNum}_${NumEvents}.edm4hep.root 
 #sleep 5
 #mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
 

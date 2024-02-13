@@ -29,6 +29,8 @@ void PairSpecPlots(string InFilename = ""){
   gROOT->SetBatch(kTRUE); // Force script to always run without flashing up graphics
   //gROOT->ProcessLine("SetECCEStyle()");
   gStyle->SetOptStat(0);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetPadRightMargin(0.15);
   TString LumiCal_rootFile;
 
   if(InFilename == ""){
@@ -49,6 +51,22 @@ void PairSpecPlots(string InFilename = ""){
   
   TFile *InFile = new TFile(LumiCal_rootFile);
 
+  // Hard code a bunch of specific constants, dumped here for easy editing later
+  double Density = 10.95; // Density specified in DD4HEP is 10.95 g/cm3^3 for tungsten+epoxy 
+  double Bunch_Spacing = pow(10,-8); // In seconds - 10ns spacing
+  //double Expected_Rate = 1.4*pow(10,-2); // Expected singles rate per bunch crossing - 18x275 ep value is 10^-2 for singles plus 4*10^-3 for coin
+  double Expected_Rate = 2*pow(10,-1); // Expected singles rate per bunch crossing - Highest rate from 110 Au on 10 e, ~2*10^-1 combined single and coin rate
+  double CalMass = (18*18*18*Density)/1000; // 18cm^3 detector
+  double GeVtoJ = 1.602 * pow(10,-10);
+  //double Lumi18x275 = 1.54*pow(10, 33); // In cm^-2s^-1 - This is the nominal value for 18x275 ep
+  //double Lumi18x275 = 4.76*pow(10, 33); // In cm^-2s^-1 - This is the nominal value for 10x110 eAu
+  double Lumi18x275 = 0.52*pow(10, 33); // In cm^-2s^-1 - This is the nominal value for 18x110 eAu - This will be the highest dosage combination
+  double MachineEff = 0.6; // Assume a 0.6 machine efficiency factor (folds in running time over year too)
+  double Lumi18x275fb = Lumi18x275/(1*(pow(10,39))); // 1 fb^-1 = 10^39 cm^-2
+  double FiberVol = ((TMath::Pi())*(0.025*0.025)*18); // Volume of a single fiber in cm^3
+  double FiberPerLayer = 9*180; // Number of fibers per layer
+  double FiberDensity = 1.032; // In g/cm^3 - Implemented in DD4HEP as polystyrene with this density
+  
   TString DetNames[3]={"Top", "Bot", "Coin"};
   double AcceptMaxY[3];
   
@@ -403,21 +421,6 @@ void PairSpecPlots(string InFilename = ""){
   //ZdYE_Bot_ProjY->Fit(MolFit[1], "Q");
   c_YEnergyDist->Print(Output_Name+".pdf");
   
-  // Moliere radius contains 90% of the energy deposition of the shower
-  // Assuming normally distributed, this is 1.645 sigma
-  //cout << "Moliere radius from Top Det = " << 1.645*MolFit[0]->GetParameter(2)*0.1 << "cm" <<endl;
-  //cout << "Moliere radius from Bot Det = " << 1.645*MolFit[1]->GetParameter(2)*0.1 << "cm" <<endl;
-  // Alternative method, base it upon integral of histogram. When 90& of integral reached, this is the moliere radius
-  cout << ZdXE_Top_ProjY->Integral()/2 << endl;
-  double TopEDep = ZdXE_Top_ProjY->Integral()/2;
-  int Bin = ZdXE_Top_ProjY->GetMaximumBin();
-  double TopIntSum = 0;
-  while(TopIntSum < 0.9*TopEDep & Bin < ZdXE_Top_ProjY->GetNbinsX()){
-    TopIntSum+=ZdXE_Top_ProjY->GetBinContent(Bin);
-    Bin++;
-  }
-  cout << ZdXE_Top_ProjY->GetBinCenter(Bin) << endl;
-
   // Drawing of these is complicated and longwinded. Should be simplified. Make a function which is just fed X/Y and the pixel size?
   TCanvas *c_PositionResX_1mm = new TCanvas("c_PositionResX_1mm", "", 100, 0, 2560, 1920);
   c_PositionResX_1mm->Divide(5,2);
@@ -612,16 +615,10 @@ void PairSpecPlots(string InFilename = ""){
   c_PositionResY_9mm->Print(Output_Name+".pdf");
 
   // Various numbers for rescaling to per day quantities. Hard coded for now!
-  //double n_events = 100*25000;
   double n_events = (XYE_Hists[0]->GetEntries() + XYE_Hists[1]->GetEntries())/2; // Mean of top/bottom
-  double Bunch_Spacing = pow(10,-8); // In seconds - 10ns spacing
-  double Expected_Rate = 1.4*pow(10,-2); // Expected singles rate per bunch crossing - 18x275 ep value is 10^-2 for singles plus 4*10^-3 for coin
   double ElecPerDay = (24*60*60)*(1/Bunch_Spacing)*Expected_Rate;
   double ScaleFact = ElecPerDay/n_events;
-  double Density = 10.95; // Density specified in DD4HEP is 10.95 g/cm3^3 for tungsten+epoxy
-  double CalMass = (18*18*18*Density)/1000; // 18cm^3 detector
-  double GeVtoJ = 1.602 * pow(10,-10);
-
+  
   TCanvas *c_XYE = new TCanvas("c_XYE", "", 100, 0, 2560, 1920);
   c_XYE->Divide(1,2);
   c_XYE->cd(1);
@@ -655,8 +652,6 @@ void PairSpecPlots(string InFilename = ""){
     XYE_Hists_tmp[1][i]=(TH2F*)XYE_Hists[1]->Clone();
     XYE_Hists_tmp[0][i]->Scale(365*GeVtoJ/CalMass);
     XYE_Hists_tmp[1][i]->Scale(365*GeVtoJ/CalMass);
-    XYE_Hists_tmp[0][i]->GetZaxis()->SetLabelSize(0.015);
-    XYE_Hists_tmp[1][i]->GetZaxis()->SetLabelSize(0.015);
     XYE_Hists_tmp[0][i]->Rebin2D(pow(3,i), pow(3,i));
     XYE_Hists_tmp[1][i]->Rebin2D(pow(3,i), pow(3,i));
     xbin_size = ((XYE_Hists_tmp[0][i]->GetXaxis()->GetXmax()-XYE_Hists_tmp[0][i]->GetXaxis()->GetXmin())/XYE_Hists_tmp[0][i]->GetNbinsX())/10; // Size of each x bin in mm
@@ -677,8 +672,6 @@ void PairSpecPlots(string InFilename = ""){
     XYE_Hists_tmp[1][i]=(TH2F*)XYE_Hists[1]->Clone();
     XYE_Hists_tmp[0][i]->Scale(GeVtoJ/CalMass);
     XYE_Hists_tmp[1][i]->Scale(GeVtoJ/CalMass);
-    XYE_Hists_tmp[0][i]->GetZaxis()->SetLabelSize(0.015);
-    XYE_Hists_tmp[1][i]->GetZaxis()->SetLabelSize(0.015);
     XYE_Hists_tmp[0][i]->Rebin2D(pow(3,i), pow(3,i));
     XYE_Hists_tmp[1][i]->Rebin2D(pow(3,i), pow(3,i));
     xbin_size = ((XYE_Hists_tmp[0][i]->GetXaxis()->GetXmax()-XYE_Hists_tmp[0][i]->GetXaxis()->GetXmin())/XYE_Hists_tmp[0][i]->GetNbinsX())/10; // Size of each x bin in mm
@@ -699,8 +692,6 @@ void PairSpecPlots(string InFilename = ""){
     XYE_Hists_tmp[1][i]=(TH2F*)XYE_Hists[1]->Clone();
     XYE_Hists_tmp[0][i]->Scale((GeVtoJ/CalMass)/24);
     XYE_Hists_tmp[1][i]->Scale((GeVtoJ/CalMass)/24);
-    XYE_Hists_tmp[0][i]->GetZaxis()->SetLabelSize(0.015);
-    XYE_Hists_tmp[1][i]->GetZaxis()->SetLabelSize(0.015);
     XYE_Hists_tmp[0][i]->Rebin2D(pow(3,i), pow(3,i));
     XYE_Hists_tmp[1][i]->Rebin2D(pow(3,i), pow(3,i));
     xbin_size = ((XYE_Hists_tmp[0][i]->GetXaxis()->GetXmax()-XYE_Hists_tmp[0][i]->GetXaxis()->GetXmin())/XYE_Hists_tmp[0][i]->GetNbinsX())/10; // Size of each x bin in mm
@@ -712,7 +703,98 @@ void PairSpecPlots(string InFilename = ""){
     c_XYE_Dose_GyHour->cd(i+4);
     XYE_Hists_tmp[1][i]->Draw("COLZ");
   }
-  c_XYE_Dose_GyHour->Print(Output_Name+".pdf"+")");
+  c_XYE_Dose_GyHour->Print(Output_Name+".pdf");
+
+  // Add a print/out calculation of dosage to all fibers
+  // Use XZE and YZE plots to get a dose per fiber
+  TH2F* ZX_Hists_tmp[2][2][3][3]; // Energy/Dose, Top/Bot, 1mm/3mm/9mm and second/day/year is indexing
+  TH2F* ZY_Hists_tmp[2][2][3][3];
+  TString PixelSizes[3]={"1", "3", "9"};
+  TString TimeScale[3]={"second", "day", "year"};
+  double Times[3]={1,(24*60*60), (365*24*60*60)};
+  
+  TCanvas *c_FiberDose_Top[3][3]; // Indexing is 1mm/3mm/9mm and second/day/year
+  TCanvas *c_FiberDose_Bot[3][3]; // Indexing is 1mm/3mm/9mm and second/day/year
+  double ElemMass;
+  // Need to rescale volume used in ZYE histograms by 40/180
+  // X orientated fibers give y info -> Hits on all fibers, but in narrow spread of positions (~40/180 with width from ZXE hist)
+  // Y orientated fibers give x info -> Hits on narrow range of fibers, but across full width of fiber, so use full fiber volume
+  for(int i = 0; i<3; i++){ // Loop over pixel sizes
+    for(int j = 0; j<3; j++){ // Loop over time
+      c_FiberDose_Top[i][j] = new TCanvas(Form("c_%s_mm_Pixel_FiberDose_per_%s_TopDet", PixelSizes[i].Data(), TimeScale[j].Data()), "", 100, 0, 2560, 1920);
+      ElemMass = (FiberDensity*FiberVol*(1*pow(PixelSizes[i].Atof(), 2)))/1000; // Mass in kg
+      ZX_Hists_tmp[0][0][i][j]=(TH2F*)ZX_Hists[0][i]->Clone();
+      ZY_Hists_tmp[0][0][i][j]=(TH2F*)ZY_Hists[0][i]->Clone();
+
+      // ZX_Hists_tmp[0][0][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(ZX_Hists_tmp[0][0][i][j]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      // ZY_Hists_tmp[0][0][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(ZY_Hists_tmp[0][0][i][j]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      ZX_Hists_tmp[0][0][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(XYE_Hists[0]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      ZY_Hists_tmp[0][0][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(XYE_Hists[0]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+
+      c_FiberDose_Top[i][j]->Divide(2,2);
+      c_FiberDose_Top[i][j]->cd(1);
+      ZX_Hists_tmp[0][0][i][j]->SetTitle(Form("Energy (J) deposited per %s mm^{2} pixel per %s, Top Det", PixelSizes[i].Data(), TimeScale[j].Data())); 
+      ZX_Hists_tmp[0][0][i][j]->Draw("COLZ");
+      c_FiberDose_Top[i][j]->cd(2);
+      ZX_Hists_tmp[1][0][i][j]=(TH2F*)ZX_Hists_tmp[0][0][i][j]->Clone();
+      ZX_Hists_tmp[1][0][i][j]->Scale(1/ElemMass);
+      ZX_Hists_tmp[1][0][i][j]->SetTitle(Form("Dose deposited in %s mm^{2} pixel (Gy/%s), Top Det", PixelSizes[i].Data(), TimeScale[j].Data()));
+      ZX_Hists_tmp[1][0][i][j]->Draw("COLZ");
+      
+      c_FiberDose_Top[i][j]->cd(3);
+      ZY_Hists_tmp[0][0][i][j]->SetTitle(Form("Energy (J) deposited per %s mm^{2} pixel per %s, Top Det", PixelSizes[i].Data(), TimeScale[j].Data())); 
+      ZY_Hists_tmp[0][0][i][j]->Draw("COLZ");
+      c_FiberDose_Top[i][j]->cd(4);
+      ZY_Hists_tmp[1][0][i][j]=(TH2F*)ZY_Hists_tmp[0][0][i][j]->Clone(); 
+      ZY_Hists_tmp[1][0][i][j]->Scale(1/(ElemMass*4/18)); // See notes at top for 4/18 factor
+      //ZY_Hists_tmp[1][0][i][j]->Scale(1/(ElemMass)); // See notes at top for 4/18 factor
+      ZY_Hists_tmp[1][0][i][j]->SetTitle(Form("Dose deposited in %s mm^{2} pixel (Gy/%s), Top Det", PixelSizes[i].Data(), TimeScale[j].Data()));
+      ZY_Hists_tmp[1][0][i][j]->Draw("COLZ");
+      
+      c_FiberDose_Top[i][j]->Print(Output_Name+".pdf");
+      
+    }
+  }
+  
+  for(int i = 0; i<3; i++){
+    for(int j = 0; j<3; j++){
+      c_FiberDose_Bot[i][j] = new TCanvas(Form("c_%s_mm_Pixel_FiberDose_per_%s_BotDet", PixelSizes[i].Data(), TimeScale[j].Data()), "", 100, 0, 2560, 1920);
+      ElemMass = (FiberDensity*FiberVol*(1*pow(PixelSizes[i].Atof(), 2)))/1000; // Mass in kg
+      ZX_Hists_tmp[0][1][i][j]=(TH2F*)ZX_Hists[1][i]->Clone();
+      ZY_Hists_tmp[0][1][i][j]=(TH2F*)ZY_Hists[1][i]->Clone();
+      // ZX_Hists_tmp[0][1][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(ZX_Hists_tmp[0][1][i][j]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      // ZY_Hists_tmp[0][1][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(ZY_Hists_tmp[0][1][i][j]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      ZX_Hists_tmp[0][1][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(XYE_Hists[1]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+      ZY_Hists_tmp[0][1][i][j]->Scale(GeVtoJ*((Times[j]*(1/Bunch_Spacing)*Expected_Rate)/(XYE_Hists[1]->GetEntries()))); // Rescale to energy deposition expected per second/day/year
+
+      c_FiberDose_Bot[i][j]->Divide(2,2);
+      c_FiberDose_Bot[i][j]->cd(1);
+      ZX_Hists_tmp[0][1][i][j]->SetTitle(Form("Energy (J) deposited per %s mm^{2} pixel per %s, Bot Det", PixelSizes[i].Data(), TimeScale[j].Data())); 
+      ZX_Hists_tmp[0][1][i][j]->Draw("COLZ");
+      c_FiberDose_Bot[i][j]->cd(2);
+      ZX_Hists_tmp[1][1][i][j]=(TH2F*)ZX_Hists_tmp[0][1][i][j]->Clone();
+      ZX_Hists_tmp[1][1][i][j]->Scale(1/ElemMass);
+      ZX_Hists_tmp[1][1][i][j]->SetTitle(Form("Dose deposited in %s mm^{2} pixel (Gy/%s), Bot Det", PixelSizes[i].Data(), TimeScale[j].Data()));
+      ZX_Hists_tmp[1][1][i][j]->Draw("COLZ");
+      
+      c_FiberDose_Bot[i][j]->cd(3);
+      ZY_Hists_tmp[0][1][i][j]->SetTitle(Form("Energy (J) deposited per %s mm^{2} pixel per %s, Bot Det", PixelSizes[i].Data(), TimeScale[j].Data())); 
+      ZY_Hists_tmp[0][1][i][j]->Draw("COLZ");
+      c_FiberDose_Bot[i][j]->cd(4);
+      ZY_Hists_tmp[1][1][i][j]=(TH2F*)ZY_Hists_tmp[0][1][i][j]->Clone();
+      ZY_Hists_tmp[1][1][i][j]->Scale(1/(ElemMass*4/18));
+      //ZY_Hists_tmp[1][1][i][j]->Scale(1/(ElemMass));
+      ZY_Hists_tmp[1][1][i][j]->SetTitle(Form("Dose deposited in %s mm^{2} pixel (Gy/%s), Bot Det", PixelSizes[i].Data(), TimeScale[j].Data()));
+      ZY_Hists_tmp[1][1][i][j]->Draw("COLZ");
+      
+      if ( i == 2 && j == 2){
+	c_FiberDose_Bot[i][j]->Print(Output_Name+".pdf"+")");
+      }
+      else{
+	c_FiberDose_Bot[i][j]->Print(Output_Name+".pdf");
+      }
+    }
+  }
   
   // Crappy segment of code to quickly determine and print out the sampling fraction of the calorimeter
   // TCanvas *c_SampFracResult = new TCanvas("c_SampFracResult", "", 100, 0, 2560, 1920);
@@ -724,14 +806,168 @@ void PairSpecPlots(string InFilename = ""){
 
   double EnergyDeposDay_GeV = (XYE_Hists[0]->Integral() + XYE_Hists[1]->Integral())/2; // Energy histograms - all in GeV? Take mean of top/bottom
   double EnergyDeposDay_J = EnergyDeposDay_GeV * GeVtoJ;
+  double FiberMassKG = (FiberVol*FiberDensity)/1000;
+  cout << endl << "From the XYE energy distribution plots." << endl;
   cout << "Under the assumption of " << Bunch_Spacing << " second ep bunch spacing and an expected singles rate of " << Expected_Rate << " Hz..." << endl;
   cout << "In one day each spectrometer - " << endl;
   cout << "Detects " << ElecPerDay << " electrons/positrons." << endl;
   cout << "Corresponding to " << EnergyDeposDay_GeV << " GeV energy deposited."<< endl;
   cout << "Corresponding to " << EnergyDeposDay_J << " J energy deposited."<< endl;
-  cout << "Assuming a calorimeter mass of " << CalMass << endl;
+  cout << endl << "Assuming a calorimeter mass of " << CalMass << " kg" << endl;
   cout << "This is a dose of " << EnergyDeposDay_J/CalMass << " Gy/day" << endl;
   cout << "Or " << (EnergyDeposDay_J/CalMass)/24 << " Gy/hr" << endl;
+  cout << "And if you prefer inverse fb, that's..." << endl;
+  cout << ((EnergyDeposDay_J/(24*60*60))/CalMass)*(1/Lumi18x275fb) << " Gy/fb^-1" << endl; // Time to accumulate X fb^-1 is X/Lumi with Lumi in fb^-1s^-1
+  cout << "Or " << ((EnergyDeposDay_J/(24*60*60))/CalMass)*(100/Lumi18x275fb) << " Gy/100fb^-1" << endl; // For 18x275, 100 fb^-1 is approx 2 years
+  cout << "Assuming " << Lumi18x275fb << " fb^-1s^-1 luminosity" << endl;
+  //Rescale to get back to energy deposit in fibers!
+  cout << endl << "Rescaling back to the energy deposited in the fibers, this is -" << endl;
+  cout << EnergyDeposDay_GeV*0.0263 << " GeV energy deposited." << endl;
+  cout << EnergyDeposDay_J*0.0263 << " J energy deposited."<< endl;
+  cout << "Averaging across all fibers for one calorimeter, this is -" << endl;
+  cout << ((EnergyDeposDay_J*0.0263)/(FiberMassKG*FiberPerLayer*20))/24 << " Gy/hr" << endl;
+  cout << ((EnergyDeposDay_J*0.0263)/(FiberMassKG*FiberPerLayer*20)) << " Gy/day" << endl;
+  cout << ((EnergyDeposDay_J*0.0263)/(FiberMassKG*FiberPerLayer*20))*365 << " Gy/year" << endl;
+  cout << (((EnergyDeposDay_J*0.0263)/(24*60*60))/(FiberMassKG*FiberPerLayer*20))*(1/Lumi18x275fb) << " Gy/fb^-1" << endl;
+  cout << (((EnergyDeposDay_J*0.0263)/(24*60*60))/(FiberMassKG*FiberPerLayer*20))*(100/Lumi18x275fb) << " Gy/100fb^-1" << endl;
+  // This is the same calculation as the above
+  // cout << "With the averaged dose for a single fiber being - " << endl;
+  // cout << (((EnergyDeposDay_J*0.0263)/(FiberPerLayer*20))/(FiberMassKG))/24 << " Gy/hr" << endl;
+  // cout << (((EnergyDeposDay_J*0.0263)/(FiberPerLayer*20))/(FiberMassKG)) << " Gy/day" << endl;
+  // cout << (((EnergyDeposDay_J*0.0263)/(FiberPerLayer*20))/(FiberMassKG))*365 << " Gy/year" << endl;
+  // cout << ((((EnergyDeposDay_J*0.0263)/(24*60*60))/(FiberPerLayer*20))/(FiberMassKG))*(1/Lumi18x275fb) << " Gy/fb^-1" << endl;
+  // cout << ((((EnergyDeposDay_J*0.0263)/(24*60*60))/(FiberPerLayer*20))/(FiberMassKG))*(100/Lumi18x275fb) << " Gy/100fb^-1" << endl;
+
+  double nBinsFilled;
+  double Sum;
+  double MeanX[2][3];
+  double MeanY[2][3];
+  
+  // Getting the mean value is suprisingly non trivial since root is stupid. Need to sum ONLY non zero bins then divide by number of non zero bins. Here goes on this tedious exercise
+  for(int Det = 0; Det<2; Det++){
+    for(int Pix = 0; Pix<3; Pix++){
+      nBinsFilled=0;
+      Sum=0;
+      MeanX[Det][Pix]=0;
+      for(int i = 0; i < ZX_Hists_tmp[1][Det][Pix][0]->GetNbinsX(); i++){ // Energy/Dose, Top/Bottom, 1mm/3mm/9mm, s/day/year
+	for(int j = 0; j < ZX_Hists_tmp[1][Det][Pix][0]->GetNbinsY(); j++){
+	  if(ZX_Hists_tmp[1][Det][Pix][0]->GetBinContent(i,j) > 0){
+	    nBinsFilled+=1;
+	  }
+	  Sum+=ZX_Hists_tmp[1][Det][Pix][0]->GetBinContent(i,j);
+	}
+      }
+      MeanX[Det][Pix] = Sum/nBinsFilled;
+    }
+  }
+
+  for(int Det = 0; Det<2; Det++){
+    for(int Pix = 0; Pix<3; Pix++){
+      nBinsFilled=0;
+      Sum=0;
+      MeanY[Det][Pix]=0;
+      for(int i = 0; i < ZY_Hists_tmp[1][Det][Pix][0]->GetNbinsX(); i++){ // Energy/Dose, Top/Bottom, 1mm/3mm/9mm, s/day/year
+	for(int j = 0; j < ZY_Hists_tmp[1][Det][Pix][0]->GetNbinsY(); j++){
+	  if(ZY_Hists_tmp[1][Det][Pix][0]->GetBinContent(i,j) > 0){
+	    nBinsFilled+=1;
+	  }
+	  Sum+=ZY_Hists_tmp[1][Det][Pix][0]->GetBinContent(i,j);
+	}
+      }
+      MeanY[Det][Pix] = Sum/nBinsFilled;
+    }
+  }
+
+  cout << endl << "If only considering the energy deposited in the fibers and using the ZXE/ZYE histograms -" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " << MachineEff*(((ZX_Hists_tmp[0][0][0][0]->Integral()+ZX_Hists_tmp[0][1][0][0]->Integral())/2) + (ZY_Hists_tmp[0][0][0][0]->Integral()+ZY_Hists_tmp[0][1][0][0]->Integral())/2) << " J/s" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/s" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/s" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][0]->GetMaximum() + ZX_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/s" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][0]->GetMaximum() + ZY_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/s" << endl;
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*(MeanX[0][0] + MeanX[1][0])/2 << " Gy/s" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*(MeanY[0][0] + MeanY[1][0])/2 << " Gy/s" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " << MachineEff*(((ZX_Hists_tmp[0][0][0][1]->Integral()+ZX_Hists_tmp[0][1][0][1]->Integral())/2) + (ZY_Hists_tmp[0][0][0][1]->Integral()+ZY_Hists_tmp[0][1][0][1]->Integral())/2) << " J/day" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][1]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][1]->GetMinimum(0) )/2 << " Gy/day" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][1]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][1]->GetMinimum(0) )/2 << " Gy/day" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][1]->GetMaximum() + ZX_Hists_tmp[1][1][0][1]->GetMaximum() )/2 << " Gy/day" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][1]->GetMaximum() + ZY_Hists_tmp[1][1][0][1]->GetMaximum() )/2 << " Gy/day" << endl;
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*((MeanX[0][0] + MeanX[1][0])/2)*24*60*60 << " Gy/day" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*((MeanY[0][0] + MeanY[1][0])/2)*24*60*60 << " Gy/day" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " << MachineEff*(((ZX_Hists_tmp[0][0][0][2]->Integral()+ZX_Hists_tmp[0][1][0][2]->Integral())/2) + (ZY_Hists_tmp[0][0][0][2]->Integral()+ZY_Hists_tmp[0][1][0][2]->Integral())/2) << " J/yr" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][2]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][2]->GetMinimum(0) )/2 << " Gy/yr" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][2]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][2]->GetMinimum(0) )/2 << " Gy/yr" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*(ZX_Hists_tmp[1][0][0][2]->GetMaximum() + ZX_Hists_tmp[1][1][0][2]->GetMaximum() )/2 << " Gy/yr" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*(ZY_Hists_tmp[1][0][0][2]->GetMaximum() + ZY_Hists_tmp[1][1][0][2]->GetMaximum() )/2 << " Gy/yr" << endl;
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*((MeanX[0][0] + MeanX[1][0])/2)*365*24*60*60 << " Gy/yr" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*((MeanY[0][0] + MeanY[1][0])/2)*365*24*60*60 << " Gy/yr" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " << MachineEff*10*(((ZX_Hists_tmp[0][0][0][2]->Integral()+ZX_Hists_tmp[0][1][0][2]->Integral())/2) + (ZY_Hists_tmp[0][0][0][2]->Integral()+ZY_Hists_tmp[0][1][0][2]->Integral())/2) << " J/10yr" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*10*(ZX_Hists_tmp[1][0][0][2]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][2]->GetMinimum(0) )/2 << " Gy/10yr" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*10*(ZY_Hists_tmp[1][0][0][2]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][2]->GetMinimum(0) )/2 << " Gy/10yr" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*10*(ZX_Hists_tmp[1][0][0][2]->GetMaximum() + ZX_Hists_tmp[1][1][0][2]->GetMaximum() )/2 << " Gy/10yr" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*10*(ZY_Hists_tmp[1][0][0][2]->GetMaximum() + ZY_Hists_tmp[1][1][0][2]->GetMaximum() )/2 << " Gy/10yr" << endl;
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*((MeanX[0][0] + MeanX[1][0])/2)*365*24*60*60*10 << " Gy/10yr" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*((MeanY[0][0] + MeanY[1][0])/2)*365*24*60*60*10 << " Gy/10yr" << endl;
+  cout << endl;
+  cout << endl << "For integrated luminosity, assumed Luminosity value of " << Lumi18x275 << " cm^-2s^-1 and an expected event rate of " << Expected_Rate << " per bunch crossing" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " <<  MachineEff*(1/Lumi18x275fb)*(((ZX_Hists_tmp[0][0][0][0]->Integral()+ZX_Hists_tmp[0][1][0][0]->Integral())/2) + (ZY_Hists_tmp[0][0][0][0]->Integral()+ZY_Hists_tmp[0][1][0][0]->Integral())/2) << " J/fb^1" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*(1/Lumi18x275fb)*(ZX_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/fb^-1" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*(1/Lumi18x275fb)*(ZY_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/fb^-1" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*(1/Lumi18x275fb)*(ZX_Hists_tmp[1][0][0][0]->GetMaximum() + ZX_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/fb^-1" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*(1/Lumi18x275fb)*(ZY_Hists_tmp[1][0][0][0]->GetMaximum() + ZY_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/fb^-1" << endl;
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*(1/Lumi18x275fb)*(MeanX[0][0] + MeanX[1][0])/2 << " Gy/fb^-1" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*(1/Lumi18x275fb)*(MeanY[0][0] + MeanY[1][0])/2 << " Gy/fb^-1" << endl;
+  cout << endl;
+  cout << "Total energy deposition per calorimeter " << MachineEff*(100/Lumi18x275fb)*(((ZX_Hists_tmp[0][0][0][0]->Integral()+ZX_Hists_tmp[0][1][0][0]->Integral())/2) + (ZY_Hists_tmp[0][0][0][0]->Integral()+ZY_Hists_tmp[0][1][0][0]->Integral())/2) << " J/100fb^1" << endl;
+  cout << "Minimum dose in X (Vertical) fiber - " << MachineEff*(100/Lumi18x275fb)*(ZX_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZX_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/100fb^-1" << endl;
+  cout << "Minimum dose in Y (Horizontal) fiber - " << MachineEff*(100/Lumi18x275fb)*(ZY_Hists_tmp[1][0][0][0]->GetMinimum(0) + ZY_Hists_tmp[1][1][0][0]->GetMinimum(0) )/2 << " Gy/100fb^-1" << endl;
+  cout << "Maximum dose in X (Vertical) fiber - " << MachineEff*(100/Lumi18x275fb)*(ZX_Hists_tmp[1][0][0][0]->GetMaximum() + ZX_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/100fb^-1" << endl;
+  cout << "Maximum dose in Y (Horizontal) fiber - " << MachineEff*(100/Lumi18x275fb)*(ZY_Hists_tmp[1][0][0][0]->GetMaximum() + ZY_Hists_tmp[1][1][0][0]->GetMaximum() )/2 << " Gy/100fb^-1" << endl;   
+  cout << "Mean dose in X (Vertical) fiber - " << MachineEff*(100/Lumi18x275fb)*(MeanX[0][0] + MeanX[1][0])/2 << " Gy/100fb^-1" << endl;
+  cout << "Mean dose in Y (Horizontal) fiber - " << MachineEff*(100/Lumi18x275fb)*(MeanY[0][0] + MeanY[1][0])/2 << " Gy/100fb^-1" << endl;
+  
+  // Moliere radius contains 90% of the energy deposition of the shower
+  // Assuming normally distributed, this is 1.645 sigma
+  //cout << "Moliere radius from Top Det = " << 1.645*MolFit[0]->GetParameter(2)*0.1 << "cm" <<endl;
+  //cout << "Moliere radius from Bot Det = " << 1.645*MolFit[1]->GetParameter(2)*0.1 << "cm" <<endl;
+  // Alternative method, base it upon integral of histogram. When 90& of integral reached, this is the moliere radius
+  // cout << ZdXE_Top_ProjY->Integral()/2 << endl;
+  // double TopEDep = ZdXE_Top_ProjY->Integral()/2;
+  // int Bin = ZdXE_Top_ProjY->GetMaximumBin();
+  // double TopIntSum = 0;
+  // while(TopIntSum < 0.9*TopEDep & Bin < ZdXE_Top_ProjY->GetNbinsX()){
+  //   TopIntSum+=ZdXE_Top_ProjY->GetBinContent(Bin);
+  //   Bin++;
+  // }
+  // cout << ZdXE_Top_ProjY->GetBinCenter(Bin) << endl;
+
+  // Quick numbers for some tracker dosage calculations
+  // double t_SiO = 0.3/10; // cm
+  // double t_Cu = 0.14/10; // cm
+  // double rho_SiO = 2.65; // g/cm^3
+  // double rho_Cu = 8.96; // g/cm^3
+  // double PixSizeX = 1; //cm
+  // double PixSizeY = 20; //cm
+  // double TrackMass = ((PixSizeX*PixSizeY*t_SiO*rho_SiO) + (PixSizeX*PixSizeY*t_Cu*rho_Cu))/1000; // in kg
+  // double TrackerHits = (1827175 + 1807077)/2; // Very scuffed, just average of top/bottom from 25000 * 100 thrown
+  // double FracTracker = TrackerHits/(25000*100);
+  // double eHitTracker = 0.00013; // GeV
+  
+  // cout << endl;
+  // cout << "Some quick tracker dosage calculations - " << endl;
+  // cout << "Each tracker layer will see roughly - " << ElecPerDay*FracTracker << " electrons/positrons per day" << endl;
+  // cout << "Which deposit - " << ElecPerDay*FracTracker*eHitTracker << " GeV in ONE tracker layer per day" << endl;
+  // cout << "Or - " << ElecPerDay*FracTracker*eHitTracker*GeVtoJ << " J in ONE tracker layer per day" << endl;
+  // cout << "Assuming each hit deposits energy in a " << PixSizeX << " cm by " << PixSizeY << " cm strip, then this yields a dose of..." << endl;
+  // cout << ((ElecPerDay*FracTracker*eHitTracker*GeVtoJ)/TrackMass) << " Gy/s" << endl;
+  // cout << ((ElecPerDay*FracTracker*eHitTracker*GeVtoJ)/TrackMass)/(24) << " Gy/hr" << endl;
+  // cout << (ElecPerDay*FracTracker*eHitTracker*GeVtoJ)/TrackMass << " Gy/day" << endl;
+  // cout << ((ElecPerDay*FracTracker*eHitTracker*GeVtoJ)/TrackMass)*365 << " Gy/yr" << endl;
+  // cout << ((ElecPerDay*FracTracker*eHitTracker*GeVtoJ)/TrackMass)*3650 << " Gy/10yr" << endl;
   
   InFile->Close();
 

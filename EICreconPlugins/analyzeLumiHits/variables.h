@@ -56,6 +56,7 @@ namespace variables {
   extern double t_hit;
   extern int sec_id ;
   extern int mod_id ;
+  extern int lay_id ;
   extern int fiber_x_id;
   extern int fiber_y_id;
 

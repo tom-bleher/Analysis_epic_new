@@ -24,7 +24,7 @@ class SimpleAcceptanceProcessor: public JEventProcessorSequentialRoot {
 private:
 
     // Data objects we will need from JANA e.g.
-    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "LumiSpecCALHits"};
+    PrefetchT<edm4hep::SimCalorimeterHit> CAL_hits      = {this, "EcalLumiSpecHits"};
 
     // Declare histogram and tree pointers here. e.g.
     TH1D* hAcceptance  = nullptr;

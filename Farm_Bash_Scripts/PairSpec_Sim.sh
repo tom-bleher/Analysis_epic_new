@@ -7,7 +7,7 @@
 ### Input args are - NumFiles NumEventsPerFile Egamma_start (optional) Egamma_end (optional)
 ### This file creates and submits the jobs
 
-SimDir="/group/eic/users/${USER}/ePIC"
+SimDir="/group/eic/users/${USER}/ePIC/eic-shell-23p12-stable"
 echo "Running as ${USER}"
 echo "Assuming simulation directory - ${SimDir}"
 if [ ! -d $SimDir ]; then   
@@ -107,8 +107,8 @@ if [ ! -d $OutputPath ]; then
 	exit 5
     fi
 fi
-
-Workflow="ePIC_PairSpecSim_${USER}" # Change this as desired
+Timestamp=$(date +'%d_%m_%Y')
+Workflow="ePIC_PairSpecSim_${USER}_${Timestamp}" # Change this as desired
 export EICSHELL=${SimDir}/eic-shell
 Disk_Space=$(( (($NumEvents +(5000/2) ) /5000) +1 )) # Request disk space depending upon number of simulated events requested, always round up to nearest integer value of GB, add 1 GB at end for safety too
 for (( i=1; i<=$NumFiles; i++ ))

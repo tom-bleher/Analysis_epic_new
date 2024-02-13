@@ -73,7 +73,7 @@ void CALAnalysis::LoadCalibration() {
 //   for( auto hit : m_CALhits ) {
 
 //     const auto id = hit->getCellID();
-//     auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+//     auto id_dec   = m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
 
 //     // field of readout fields
 //     vector<dd4hep::BitFieldElement> hitFields = id_dec->fields();
@@ -159,7 +159,8 @@ void CALAnalysis::FillDiagnostics() {
     }    
   }
 
-  map<string, int> CALfield_idx_Map{ {"sector", 0}, {"module", 0}, {"fiber_x", 0}, {"fiber_y", 0}};
+  //map<string, int> CALfield_idx_Map{ {"sector", 0}, {"module", 0}, {"fiber_x", 0}, {"fiber_y", 0}}; // Cal map for old design
+  map<string, int> CALfield_idx_Map{ {"sector", 0}, {"layer", 0}, {"module", 0}, {"fiber_x", 0}, {"fiber_y", 0}}; // Cal map for new design 13/02/24 - Sectors/layers/modules/fibers
   // Reset histograms before looping over hits for new event
   ((TH2D *)gHistList->FindObject("h2ZXETop_1mm_Event"))->Reset();
   ((TH2D *)gHistList->FindObject("h2ZXETop_3mm_Event"))->Reset();
@@ -177,7 +178,7 @@ void CALAnalysis::FillDiagnostics() {
   for( auto hit : m_CALhits ) { 
     edm4hep::Vector3f vec = hit->getPosition();// mm
     // 17/01/24 - This is duplicated from above to get the module ID, slightly redundant? Works though
-    //auto id_dec   = m_geoSvc->detector()->readout( "LumiSpecCALHits" ).idSpec().decoder();
+    //auto id_dec   = m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
     auto id_dec   = m_geoSvc->detector()->readout( "EcalLumiSpecHits" ).idSpec().decoder();
     vector<dd4hep::BitFieldElement> hitFields = id_dec->fields();
     // try to find the expected fields and store field index
@@ -187,7 +188,8 @@ void CALAnalysis::FillDiagnostics() {
       }
     }
         
-    variables::mod_id = (int) id_dec->get(hit->getCellID(), CALfield_idx_Map["module"] );
+    //variables::mod_id = (int) id_dec->get(hit->getCellID(), CALfield_idx_Map["module"] );
+    variables::lay_id = (int) id_dec->get(hit->getCellID(), CALfield_idx_Map["layer"] );
 
     m_E_CALhits_total += hit->getEnergy();
     
@@ -197,7 +199,7 @@ void CALAnalysis::FillDiagnostics() {
     if (vec.y > 0 && hit->getEnergy() > 0.0001){ // Add condition that hit not look like noise
       m_E_CALtophits_total += hit->getEnergy();
       m_CALtophits_total++;
-      if (variables::mod_id % 6 > 2 ){ // Modules 0-2 are x orientated (y info), 3-5 y orientated (x info), so modulo6 of the ID is >2 for x info (6-8 x, 9-11 y...)
+      if (variables::lay_id % 2 != 0 ){ // Layer 0 is orientated horizontally (y info), layer 1 is orientated vertically (x info) and so on. So if layer is even, y info, else, x info
 	((TH1D *)gHistList->FindObject("h1XTop"))->Fill( vec.x );
 	((TH2D *)gHistList->FindObject("h2ZXETop_1mm"))->Fill( vec.z, vec.x, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZXETop_3mm"))->Fill( vec.z, vec.x, hit->getEnergy() );
@@ -208,7 +210,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZdXTop"))->Fill( vec.z, vec.x-variables::Xpositron, hit->getEnergy() );
 
       }
-      if (variables::mod_id % 6 < 3 ){ // Modules 0-2 are x orientated (y info), 3-5 y orientated (x info), so modulo6 of the ID is < 3 for y info (6-8 x, 9-11 y...)
+      if (variables::lay_id % 2 == 0 ){ // Layer 0 is orientated horizontally (y info), layer 1 is orientated vertically (x info) and so on. So if layer is even, y info, else, x info
 	((TH1D *)gHistList->FindObject("h1YTop"))->Fill( vec.y );
 	((TH2D *)gHistList->FindObject("h2ZYETop_1mm"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYETop_3mm"))->Fill( vec.z, vec.y, hit->getEnergy() );
@@ -223,7 +225,7 @@ void CALAnalysis::FillDiagnostics() {
     else if ( vec.y < 0  && hit->getEnergy() > 0.0001){
       m_E_CALbothits_total += hit->getEnergy();
       m_CALbothits_total++;
-      if (variables::mod_id % 6 > 2 ){
+      if (variables::lay_id % 2 != 0 ){
 	((TH1D *)gHistList->FindObject("h1XBot"))->Fill( vec.x );
 	((TH2D *)gHistList->FindObject("h2ZXEBot_1mm"))->Fill( vec.z, vec.x, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZXEBot_3mm"))->Fill( vec.z, vec.x, hit->getEnergy() );
@@ -233,7 +235,7 @@ void CALAnalysis::FillDiagnostics() {
 	((TH2D *)gHistList->FindObject("h2ZXEBot_9mm_Event"))->Fill( vec.z, vec.x, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZdXBot"))->Fill( vec.z, vec.x-variables::Xelectron, hit->getEnergy() );
       }
-      if (variables::mod_id % 6 < 3 ){ 
+      if (variables::lay_id % 2 == 0 ){ 
 	((TH1D *)gHistList->FindObject("h1YBot"))->Fill( vec.y );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_1mm"))->Fill( vec.z, vec.y, hit->getEnergy() );
 	((TH2D *)gHistList->FindObject("h2ZYEBot_3mm"))->Fill( vec.z, vec.y, hit->getEnergy() );
