@@ -33,17 +33,7 @@
 	  - Egamma_start
 	  - Egamma_end
 	  - Spag_Cal - True or false - WARNING, requires some extra files in EICRecon and the epic detector directory
-- Pair_Spec_Sim_v2.sh
-  - Similar to the previous version, but with a subtle difference
-    - Produces X files of Y event PER BEAM ENERGY in range from Egamma_start to Egamma_end (incremented in steps of Egamma_step)
-  - Now has 7 arguments
-    	  - Number of files per beam energy
-	  - Number of events per file
-	  - Egamma_start
-	  - Egamma_end
-	  - Egamma_step - Defaults to 0.5, can only go as low as 0.01
-	  - Gun - True or False, run with a particle gun steering file or not
-	  - Spag_Cal - True or false - WARNING, requires some extra files in EICRecon and the epic detector directory
+
 - Pair_Spec_Sim_Job.sh
   - Script executed as a farm job, can run interactively
   - Generates events
@@ -56,6 +46,24 @@
 	  - Egamma_start
 	  - Egamma_end
 	  - Spag_Cal - True or false - WARNING, requires some extra files in EICRecon and the epic detector directory
+- Combine_Results_PairSpec_Sim.sh
+  - Script to combine output after it has run into a single EICRecon file
+  - Run this from the directory containing all of your output folders
+  - The output is named based upon input arguments
+  - 5 arguments
+    	  - Number of files
+	  - Number of events per file
+	  - Egamma_start
+	  - Egamma_end
+	  - Spag_Cal - True or false - WARNING, requires some extra files in EICRecon and the epic detector directory
+
+- Note that the Spag_Cal option is HIGHLY dated at this point and should not be used, will delete in future.
+
+# Outdated Scripts
+
+- Note that as of 14/02/24, the following scripts are slightly dated and not in regular use. Check before usage.
+
+
 - Pair_Spec_Sim_Job_Gun.sh
   - Script executed as a farm job, can run interactively
   - Creates a steering file with a particle gun, settings depend upon input args
@@ -66,15 +74,17 @@
     	  - File number
 	  - Number of events to process
 	  - Egamma_start
-- Combine_Results_PairSpec_Sim.sh
-  - Script to combine output after it has run into a single EICRecon file
-  - Run this from the directory containing all of your output folders
-  - The output is named based upon input arguments
-  - 5 arguments
-    	  - Number of files
+
+- Pair_Spec_Sim_v2.sh
+  - Similar to the previous version, but with a subtle difference
+    - Produces X files of Y event PER BEAM ENERGY in range from Egamma_start to Egamma_end (incremented in steps of Egamma_step)
+  - Now has 7 arguments
+    	  - Number of files per beam energy
 	  - Number of events per file
 	  - Egamma_start
 	  - Egamma_end
+	  - Egamma_step - Defaults to 0.5, can only go as low as 0.01
+	  - Gun - True or False, run with a particle gun steering file or not
 	  - Spag_Cal - True or false - WARNING, requires some extra files in EICRecon and the epic detector directory
 - Combine_Results_PairSpec_Sim_v2.sh
   - Script to combine output after it has run into a single EICRecon file
