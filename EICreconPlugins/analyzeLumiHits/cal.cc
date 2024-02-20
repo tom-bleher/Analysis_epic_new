@@ -323,7 +323,7 @@ void CALAnalysis::FillDiagnostics() {
       ((TH2D *)gHistList->FindObject("h2EMCdYTop_9mm"))->Fill(variables::Epositron, dy);
     }
     for(int i = 0; i < 5; i++){
-      if ( ypos_top > (7+(i+1)) && ypos_top < (23-(i+1)) ){
+      if ( ypos_top > (6+(i+1)) && ypos_top < (24-(i+1)) ){
 	((TH1D *)gHistList->FindObject(Form("h1CALTopAccept_%i",(i+1))))->Fill(variables::Epositron);
 	((TH2D *)gHistList->FindObject(Form("h2SampFracTop_%i", (i+1))))->Fill(variables::Epositron, (m_E_CALtophits_total/(variables::Epositron)));
       }
@@ -392,7 +392,7 @@ void CALAnalysis::FillDiagnostics() {
       ((TH2D *)gHistList->FindObject("h2EMCdYBot_9mm"))->Fill(variables::Eelectron, dy);
     }
     for(int i = 0; i < 5; i++){
-      if ( ypos_bot > (-23+(i+1)) && ypos_bot < (-7-(i+1)) ){
+      if ( ypos_bot > (-24+(i+1)) && ypos_bot < (-6-(i+1)) ){
 	((TH1D *)gHistList->FindObject(Form("h1CALBotAccept_%i",(i+1))))->Fill(variables::Eelectron);
 	((TH2D *)gHistList->FindObject(Form("h2SampFracBot_%i", (i+1))))->Fill(variables::Eelectron, (m_E_CALbothits_total/(variables::Eelectron)));
       }
