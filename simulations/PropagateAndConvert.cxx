@@ -27,6 +27,12 @@ struct positions {
 positions POS;
 
 void PropagateAndConvert(string infile="", string outfile="converterElectrons.hepmc", double Zprop = POS.AnalyzerStart) {
+  
+  if( infile.empty() ) {
+    cout << "infile argument is blank." << endl;
+    return;
+  }
+  
   // photon splitting fuction from PDG Eq 34.31
   TF1 *PDGsplitting = new TF1("PDGsplitting","1 - 4/3.*x*(1-x)", 0,1);
 
