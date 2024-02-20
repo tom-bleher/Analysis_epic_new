@@ -144,12 +144,12 @@ namespace histogramManager {
 
     dir->mkdir("CAL_Acceptance_Info_Position_Cuts")->cd();
     for(int i = 0; i < 5; i++){
-      gHistList->Add( new TH1D(Form("h1CALTopAccept_%i", (i+1)), Form("Top Det acceptance %i cm < y < %i cm;E_{e^{+}MC} (GeV);Counts",(7+(i+1)), (23-(i+1))), 2000, 0, 20) );  
-      gHistList->Add( new TH1D(Form("h1CALBotAccept_%i", (i+1)), Form("Bot Det acceptance %i cm < y < %i cm;E_{e^{-}MC} (GeV);Counts",(-23+(i+1)),(-7-(i+1))), 2000, 0, 20) );
-      gHistList->Add( new TH1D(Form("h1CALCoinAccept_%i", (i+1)), Form("Coin acceptance %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm;E_{#gammaMC} (GeV);Counts", (-23+(i+1)), (-7-(i+1)), (7+(i+1)), (23-(i+1))), 2000, 0, 20) );
-      gHistList->Add( new TH2D(Form("h2SampFracTop_%i", (i+1)), Form("Top Det Sampling Fraction %i cm < y < %i cm; E_{e^{+}MC} (GeV); Sampling Fraction",(7+(i+1)), (23-(i+1))), 200, 0, 20, 100, 0, 0.1) );
-      gHistList->Add( new TH2D(Form("h2SampFracBot_%i", (i+1)), Form("Bot Det Sampling Fraction  %i cm < y < %i cm; E_{e^{-}MC} (GeV); Sampling Fraction",(-23+(i+1)),(-7-(i+1))), 200, 0, 20, 100, 0, 0.1) );
-      gHistList->Add( new TH2D(Form("h2SampFracCoin_%i", (i+1)), Form("Coin Sampling Fraction  %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm; E_{#gammaMC} (GeV); Sampling Fraction", (-23+(i+1)), (-7-(i+1)), (7+(i+1)), (23-(i+1))), 200, 0, 20, 100, 0, 0.1) );  
+      gHistList->Add( new TH1D(Form("h1CALTopAccept_%i", (i+1)), Form("Top Det acceptance %i cm < y < %i cm;E_{e^{+}MC} (GeV);Counts",(6+(i+1)), (24-(i+1))), 2000, 0, 20) );  
+      gHistList->Add( new TH1D(Form("h1CALBotAccept_%i", (i+1)), Form("Bot Det acceptance %i cm < y < %i cm;E_{e^{-}MC} (GeV);Counts",(-24+(i+1)),(-6-(i+1))), 2000, 0, 20) );
+      gHistList->Add( new TH1D(Form("h1CALCoinAccept_%i", (i+1)), Form("Coin acceptance %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm;E_{#gammaMC} (GeV);Counts", (-24+(i+1)), (-6-(i+1)), (6+(i+1)), (24-(i+1))), 2000, 0, 20) );
+      gHistList->Add( new TH2D(Form("h2SampFracTop_%i", (i+1)), Form("Top Det Sampling Fraction %i cm < y < %i cm; E_{e^{+}MC} (GeV); Sampling Fraction",(6+(i+1)), (24-(i+1))), 200, 0, 20, 100, 0, 0.1) );
+      gHistList->Add( new TH2D(Form("h2SampFracBot_%i", (i+1)), Form("Bot Det Sampling Fraction  %i cm < y < %i cm; E_{e^{-}MC} (GeV); Sampling Fraction",(-24+(i+1)),(-6-(i+1))), 200, 0, 20, 100, 0, 0.1) );
+      gHistList->Add( new TH2D(Form("h2SampFracCoin_%i", (i+1)), Form("Coin Sampling Fraction  %i cm < y_{Bot} < %i cm & %i cm < y_{Top} < %i cm; E_{#gammaMC} (GeV); Sampling Fraction", (-24+(i+1)), (-6-(i+1)), (6+(i+1)), (24-(i+1))), 200, 0, 20, 100, 0, 0.1) );  
     }
 
     ////////////////////////////////////////////////////////
