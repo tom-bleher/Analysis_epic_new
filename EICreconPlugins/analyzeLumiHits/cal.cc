@@ -408,7 +408,7 @@ void CALAnalysis::FillDiagnostics() {
     ((TH2D *)gHistList->FindObject("h2SampFracBot_Coin"))->Fill(variables::Eelectron, (m_E_CALbothits_total/(variables::Eelectron)));
     ((TH2D *)gHistList->FindObject("h2SampFracCoin"))->Fill(variables::Ephoton, ((m_E_CALtophits_total + m_E_CALbothits_total)/(variables::Ephoton)));
     for(int i = 0; i < 5; i++){
-      if ( ypos_bot > (-23+(i+1)) && ypos_bot < (-7-(i+1)) && ypos_top > (7+(i+1)) && ypos_top < (23-(i+1)) ){
+      if ( ypos_bot > (-24+(i+1)) && ypos_bot < (-6-(i+1)) && ypos_top > (6+(i+1)) && ypos_top < (24-(i+1)) ){
 	((TH1D *)gHistList->FindObject(Form("h1CALCoinAccept_%i",(i+1))))->Fill(variables::Ephoton);
 	((TH2D *)gHistList->FindObject(Form("h2SampFracCoin_%i", (i+1))))->Fill(variables::Ephoton, ((m_E_CALbothits_total+m_E_CALtophits_total)/(variables::Ephoton)));
       }
