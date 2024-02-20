@@ -4,10 +4,10 @@
 ### 26/05/23
 ### stephen.kay@york.ac.uk
 ### A script to execute an individual simulation for the far backward pair spectrometer
-### Input args are - FileNum NumEvents Egamma_start (optional) Egamma_end (optional)
+### Input args are - FileNum NumEvents Egamma_start (optional) Egamma_end (optional) SpagCal (optional)
 ### Intended to be fed to some swif2 job submission script
 
-SimDir="/group/eic/users/${USER}/ePIC"
+SimDir="/group/eic/users/${USER}/ePIC/eic-shell-23p12-stable"
 echo "Running as ${USER}"
 echo "Assuming simulation directory - ${SimDir}"
 if [ ! -d $SimDir ]; then   
@@ -45,9 +45,10 @@ if [[ -z "$4" ]]; then
 else
     Egamma_end=$4
 fi
+
 # Change output path as desired
 OutputPath="/volatile/eic/${USER}/FarBackward_Det_Sim"
-export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_${Egamma_start}_${Egamma_end}"
+export Output_tmp="$OutputPath/PairSpecSim_${FileNum}_${NumEvents}_${Egamma_start/./p}_${Egamma_end/./p}"
 if [ ! -d "${Output_tmp}" ]; then # Add this in this script too so it can be run interactively
     mkdir $Output_tmp
 else
@@ -59,15 +60,28 @@ else
 fi
 
 export EICSHELL=${SimDir}/eic-shell
+cd ${SimDir}
 # Run EIC shell, generate the events, afterburn them, run the simulation, reconstruct the events
 # Note, no obvious way to reduce screen dump from eicreon, so piping output to dev/null for now
+
+if test -f "${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root"; then
+    # Should add additional checks on this, check how old files is (if before 2024, run anyway, if small, re-rerun etc)
+    echo "${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root already exists, running reconstruction only"
 cat <<EOF | $EICSHELL
-cd $SimDir
+source Init_Env.sh
+cd $Output_tmp
+eicrecon -Pplugins=analyzeLumiHits -Pjana:nevents=${NumEvents} -Phistsfile=EICReconOut_${FileNum}_${NumEvents}.root ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+sleep 5
+
+echo; echo; echo "Reconstruction finished, output file is - ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root"; echo; echo;
+EOF
+else
+cat <<EOF | $EICSHELL
+
 source Init_Env.sh
 echo; echo; echo "Generating events."; echo; echo;
-
-cd $SimDir/ePIC_PairSpec_Sim/simulations/
-if (( ${Egamma_start} == ${Egamma_end} )); then
+cd ${SimDir}/ePIC_PairSpec_Sim/simulations/
+if (( $(echo "$Egamma_start == $Egamma_end" | bc -l) )); then
 echo "Egamma_start (${Egamma_start}) = Egamma_end (${Egamma_end}), running flat distribution"
 root -l -b -q 'lumi_particles.cxx(${NumEvents}, true, false, false, ${Egamma_start}, ${Egamma_end},"${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc")'
 else
@@ -79,32 +93,40 @@ abconv ${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc --pl
 echo; echo; echo "Events generated and afterburned, propagating and converting."; echo; echo;
 sleep 5
 
-root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/genParticles_electrons_${FileNum}_${NumEvents}.hepmc", -55610)'
+root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/genParticles_electrons_${FileNum}_${NumEvents}.hepmc", -58000)'
 sleep 5
-root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/genParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc", -55610)'
+root -b -l -q 'PropagateAndConvert.cxx("${Output_tmp}/abParticles_PhotonsAtIP_${FileNum}_${NumEvents}.hepmc", "${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc", -58000)'
 sleep 5
 
 echo; echo; echo "Events propagated and converted, running simulation."; echo; echo;
 
-ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
+npsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
 sleep 5
 
 echo; echo; echo "Simulation finished, running reconstruction."; echo; echo;
 cd $Output_tmp
-eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -PanalyzeLumiHits:Egen=${Egamma_start} -Pjana:nevents=${NumEvents} -PLUMISPECCAL:ECalLumiSpecIslandProtoClusers:splitCluster=1 -PEcalLumiSpecIslandProtoClusters:LogLevel=debug ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root > /dev/null
-sleep 30
+eicrecon -Pplugins=analyzeLumiHits -Pjana:nevents=${NumEvents} -Phistsfile=EICReconOut_${FileNum}_${NumEvents}.root ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+sleep 5
 
-mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
 echo; echo; echo "Reconstruction finished, output file is - ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root"; echo; echo;
 
 EOF
+fi
 
 exit 0
 
+# Name output file directly with Phistsfile arg
+#eicrecon -Pplugin=analyzeLumiHits -Pjana:nevents=${NumEvents} ${Output_tmp}/npsimOut_${FileNum}_${NumEvents}.edm4hep.root 
+#sleep 5
+#mv ${Output_tmp}/eicrecon.root ${Output_tmp}/EICReconOut_${FileNum}_${NumEvents}.root
+
+#  > /dev/null
 # Positions of FB components for propagate and convert fn
-# ConvStart   = -55609;
-# ConvEnd     = -55610; 
-# SweeperEnd  = -36390;
+#  double ConvStart   = -64499.5;
+#  double ConvEnd     = -64500.5;
+#  double SweeperEnd  = -63270;
+#  double ConvMiddle     = -58000;
+#  double AnalyzerStart  = -59400;
 
 # Original set of event generation commands
 # cd $SimDir/ePIC_PairSpec_Sim/simulations/
@@ -117,4 +139,11 @@ exit 0
 # fi
 # sleep 5
 # abconv ${Output_tmp}/genParticles_${FileNum}_${NumEvents}.hepmc -o ${Output_tmp}/abParticles_${FileNum}_${NumEvents}
+# sleep 5
+
+#ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic/epic_ip6_FB.xml -N ${NumEvents}
+#sleep 5
+
+# Run Aranya's new design command
+# ddsim -v 4 --inputFiles ${Output_tmp}/abParticles_electrons_${FileNum}_${NumEvents}.hepmc --outputFile ${Output_tmp}/ddsimOut_${FileNum}_${NumEvents}.edm4hep.root --compactFile ${SimDir}/epic_Aranya_PairSpec/epic_ip6_FB.xml -N ${NumEvents}
 # sleep 5

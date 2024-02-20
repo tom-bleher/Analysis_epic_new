@@ -59,6 +59,7 @@ namespace variables {
   double t_hit = 0;
   int sec_id = 0;
   int mod_id = 0;
+  int lay_id = 0;
   int fiber_x_id = 0;
   int fiber_y_id = 0;
 

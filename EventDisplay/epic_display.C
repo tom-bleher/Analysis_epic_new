@@ -97,10 +97,10 @@ void epic_display()
   lumiTracker_z = new TTreeReaderArray<Double_t>(myReader, "LumiSpecTrackerHits.position.z"); 
 
   // Lumi spectrometer CAL Hits  
-  lumiCAL_x = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.x"); 
-  lumiCAL_y = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.y"); 
-  lumiCAL_z = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.position.z"); 
-  lumiCAL_E = new TTreeReaderArray<Float_t>(myReader, "LumiSpecCALHits.energy"); 
+  lumiCAL_x = new TTreeReaderArray<Float_t>(myReader, "EcalLumiSpecHits.position.x"); 
+  lumiCAL_y = new TTreeReaderArray<Float_t>(myReader, "EcalLumiSpecHits.position.y"); 
+  lumiCAL_z = new TTreeReaderArray<Float_t>(myReader, "EcalLumiSpecHits.position.z"); 
+  lumiCAL_E = new TTreeReaderArray<Float_t>(myReader, "EcalLumiSpecHits.energy"); 
 
   can = new TCanvas("can","Energy dist", 1000,0, 600, 1000);
   can->Divide(1,2);
