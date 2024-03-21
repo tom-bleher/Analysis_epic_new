@@ -41,10 +41,10 @@ void BH_plotter(bool plotFromFile = false) {
   gPad->DrawFrame(0.,0.,20,0.55);
 
   if(plotFromFile) {
-    fin = new TFile("../eventAnalysis/ConvMiddle_Z2/MergedOutput.root","READ");
-    accTop = (TH1D*)fin->Get("LumiTracker/hTrackerTop_Acceptance");
-    TH1D *genPhoton_E = (TH1D*)fin->Get("hGenPhoton_E");
-    accTop->Divide(genPhoton_E);
+    fin = new TFile("../results/Acceptances/Acceptances_2023_Nov14.root","READ");
+    accTop = (TH1D*)fin->Get("hTrackerCoincidence_Acceptance");
+    //TH1D *genPhoton_E = (TH1D*)fin->Get("hGenPhoton_E");
+    //accTop->Divide(genPhoton_E);
     accTop->SetMarkerStyle(20);
     accTop->GetXaxis()->SetRangeUser(0,20);
     accTop->GetYaxis()->SetRangeUser(0,0.55);
@@ -93,13 +93,14 @@ void BH_plotter(bool plotFromFile = false) {
   }
 
   double Elow = 1, Ehigh = 18; // GeV
-  TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Nov14.root","READ");
-  if( fAcc ) {
-     cout<<"Acceptance file found"<<endl;
-     accTop = (TH1D*)fAcc->Get("hTrackerTop_Acceptance");
-     accCoinc = (TH1D*)fAcc->Get("hTrackerCoincidence_Acceptance");
-  }
-  
+  //TFile *fAcc = new TFile("../results/Acceptances/Acceptances_2023_Nov14.root","READ");
+  //if( fAcc ) {
+  //   cout<<"Acceptance file found"<<endl;
+  //   accTop = (TH1D*)fAcc->Get("hTrackerTop_Acceptance");
+  //   accCoinc = (TH1D*)fAcc->Get("hTrackerCoincidence_Acceptance");
+  //}
+
+  return;
 
   // Inst Lumi (cm^-2*sec^-1)
   // Tbunch is spacing between bunch centers in sec for 18 GeV electron beam (~10 ns for lower E)

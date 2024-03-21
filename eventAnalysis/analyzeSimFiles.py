@@ -42,8 +42,8 @@ for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
   if ".root" not in inFile:
     continue
-  #fileNum = re.search("\d+\.+\d\.", inFile).group()
-  fileNum = re.search("\d+\.", file).group()
+  fileNum = re.search("\d+\.+\d\.", inFile).group()
+  #fileNum = re.search("\d+\.", file).group()
   #cmd = "eicrecon -Pplugins=LUMISPECCAL,analyzeLumiHits -Ppodio:output_include_collections=EcalLumiSpecClusters,EcalLumiSpecClusterAssociations -Phistsfile={1}/eicrecon_{0}.root {2}".format(fileNum, outputPath, inFile)  
   outFile = outputPath + "/eicrecon_{0}root".format(fileNum)
  

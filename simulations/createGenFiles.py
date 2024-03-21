@@ -2,7 +2,7 @@ import os
 import sys
 
 # BH (1) or flat E spectrum (0)
-BH = 1
+BH = 0
 
 # POS.ConvMiddle POS.AnalyzerStart
 location = "POS.ConvMiddle"
@@ -21,12 +21,12 @@ if len(os.listdir(genPath)) != 0:
   print("{0} directory not empty.  Clear directory".format(genPath))
   exit()
 
-for n in range(52):
+for n in range(25):
   if BH == 1: # BH E spectrum
     ID = n # just the index of statistically independent sample
     cmd = "root -q 'lumi_particles.cxx(1e4,false,false,false,4,18,\"{1}/idealPhotonsAtIP_{0}.hepmc\")'".format(ID,genPath)
   else: # flat E spectrum
-    ID = 4 + n/2 # Energy of photon
+    ID = 1 + n/2 # Energy of photon
     cmd = "root -q 'lumi_particles.cxx(1e4,true,false,false,{0},{0},\"{1}/idealPhotonsAtIP_{0}.hepmc\")'".format(ID,genPath)
 
   os.system(cmd)
