@@ -19,7 +19,7 @@ if not outPath:
 
 genPath = "genEvents{0}".format(inPath)
 simPath = "simEvents{0}".format(outPath)
-epicPath = "/home/dhevan/eic/epic/epic_ip6_extended.xml"
+epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 
 if not os.path.exists(simPath):
     print("Out dir doesn't exist.  Create a dir called " + simPath)
