@@ -33,7 +33,7 @@ if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPat
     os.mkdir(SimBackUpPath)
     for file in os.listdir(simPath):
         print(os.path.join(os.getcwd()), file)
-        if os.path.isfile(os.path.join(os.getcwd(), f"/file")):
+        if os.path.isfile(os.path.join(simPath, file)):
             print("meow")
             print(f"simbackup: {SimBackUpPath}")
             shutil.move(os.path.join(simPath, file), SimBackUpPath)
