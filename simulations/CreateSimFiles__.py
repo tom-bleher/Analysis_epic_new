@@ -20,6 +20,7 @@ if not outPath:
   outPath = inPath
 
 genPath = "genEvents{0}".format(inPath)
+print(f"{genPath}")
 simPath = "simEvents{0}".format(outPath)
 epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
@@ -32,11 +33,7 @@ if not os.path.exists(simPath):
 if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPath)):
     os.mkdir(SimBackUpPath)
     for file in os.listdir(simPath):
-        print(os.path.join(os.getcwd()), file)
-        if os.path.isfile(os.path.join(simPath, file)):
-            print("meow")
-            print(f"simbackup: {SimBackUpPath}")
-            shutil.move(os.path.join(simPath, file), SimBackUpPath)
+        shutil.move(os.path.join(simPath, file), SimBackUpPath)
     print("Created new back up simulation files in {0}".format(SimBackUpPath))
 else:
     print("No need to create backup.")
@@ -55,14 +52,14 @@ def runSims(x):
 commands = []
 
 # create command strings
-for file in sorted(os.listdir(genPath),):
+for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEvents/results")):
 #for it in range(1,50):
   if fileType not in file:
     continue
   inFile = genPath + "/" + file
   fileNum = re.search("\d+\.+\d\.", inFile).group()
   #fileNum = re.search("\d+\.", inFile).group()
-  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 5000".format(inFile, simPath, fileNum, epicPath)
+  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 1000".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
   commands.append( cmd )
 
