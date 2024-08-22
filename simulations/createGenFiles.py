@@ -21,7 +21,7 @@ if len(os.listdir(genPath)) != 0:
   print("{0} directory not empty.  Clear directory".format(genPath))
   exit()
 
-for n in range(20):
+for n in range(10):
   if BH == 1: # BH E spectrum
     ID = n # just the index of statistically independent sample
     cmd = "root -q 'lumi_particles.cxx(1e4,false,false,false,4,18,\"{1}/idealPhotonsAtIP_{0}.hepmc\")'".format(ID,genPath)

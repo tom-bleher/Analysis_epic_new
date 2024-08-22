@@ -56,7 +56,7 @@ for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEv
 
 
 # start Pool of processes
-pool = multiprocessing.Pool(5) # 8 processes to start
+pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )

@@ -25,16 +25,21 @@ epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
 
 if not os.path.exists(simPath):
-    print("Out dir doesn't exist.  Create a dir called " + simPath)
-    exit()
+    os.mkdir(os.path.join(os.getcwd(),simPath)) 
+    print("Out dir doesn't exist.  Created a dir called " + simPath)
 
 # if we have files from a previous run, create a backup and title accordingly 
 if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPath)):
-	os.mkdir(SimBackUpPath)
-	for file in os.listdir(simPath): 
-		if os.path.isfile(file):
-			shutil.move(os.path.join(simPath, file), SimBackUpPath)
-  print("Created new back up simulation files in {0}".format(SimBackUpPath))
+    os.mkdir(SimBackUpPath)
+    for file in os.listdir(simPath):
+        print(os.path.join(os.getcwd()), file)
+        if os.path.isfile(os.path.join(os.getcwd(), f"/file")):
+            print("meow")
+            print(f"simbackup: {SimBackUpPath}")
+            shutil.move(os.path.join(simPath, file), SimBackUpPath)
+    print("Created new back up simulation files in {0}".format(SimBackUpPath))
+else:
+    print("No need to create backup.")
 
 det_dir = os.environ['DETECTOR_PATH']
 compact_dir = det_dir + '/compact'
@@ -57,13 +62,13 @@ for file in sorted(os.listdir(genPath),):
   inFile = genPath + "/" + file
   fileNum = re.search("\d+\.+\d\.", inFile).group()
   #fileNum = re.search("\d+\.", inFile).group()
-  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 10000".format(inFile, simPath, fileNum, epicPath)
+  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 5000".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
   commands.append( cmd )
 
 
 # start Pool of processes
-pool = multiprocessing.Pool(8) # 8 processes to start
+pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
