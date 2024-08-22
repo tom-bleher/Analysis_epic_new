@@ -1,0 +1,70 @@
+[33mcommit 66f2dd79c8b4fb55c1504bd2af1c20e1c44be413[m
+Author: Tom Bleher <72304996+TomBleher@users.noreply.github.com>
+Date:   Thu Jul 25 21:49:03 2024 +0300
+
+    Update createSimFiles.py
+
+[33mcommit 223fd484d8790a23d78a400d6e58d17b3fada6d4[m
+Author: Tom Bleher <72304996+TomBleher@users.noreply.github.com>
+Date:   Thu Jul 25 21:06:52 2024 +0300
+
+    Update createSimFiles.py
+
+[33mcommit 47c6b5139385274ab836b502cd60536b512aeaf7[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Thu Mar 21 09:32:58 2024 -0500
+
+    minor macro update.
+
+[33mcommit da90cff8bc8a5d94e04f241a125527d0335a9e70[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Fri Jan 5 12:18:13 2024 -0600
+
+    script update
+
+[33mcommit 4dfdda21b00b2db9bbb031c6562e3507d485e88f[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Thu Oct 5 10:12:28 2023 -0500
+
+    Update predominately to tracker code to handle arbitrary number of tracking layers.
+
+[33mcommit 7770e7e87e2ccc5354aaadaf521fc5755459cec2[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Fri Jun 9 17:16:41 2023 -0500
+
+    Update tracker algorithm: propagation to arbitrary Z inside analyzer magnet.
+    Change LumiSpecMag to LumiAnalyzerMag.
+    Updates to scripts.
+
+[33mcommit ec36b63e4be2b5a66768285682618fa3af766010[m
+Author: dhevang <dhevanga@gmail.com>
+Date:   Wed May 31 09:19:59 2023 -0500
+
+    update python macros
+
+[33mcommit 6b1084bb2784edcaf2afed2ac894186ae5316cc1[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Fri May 26 15:56:33 2023 -0500
+
+    generate more types of hepmc files.
+
+[33mcommit bcad243073c9e8190877099acd0b37cec984c221[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Thu Apr 27 14:46:08 2023 -0500
+
+    Add acceptance plotting macros.
+    Use multiprocessing in eicrecon analysis script.
+
+[33mcommit 5cfc95b0132aa28b730a64eef1100b8c6cda88b9[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Tue Apr 25 14:52:56 2023 -0500
+
+    Mainly an update to python scripts.
+    Multiprocessing for simulations.
+
+[33mcommit cc51da13b0496746f118b56230b293fdf5b7a4ba[m
+Author: Dhevan Gangadharan <dhevanga@gmail.com>
+Date:   Mon Feb 27 17:32:38 2023 -0600
+
+    Restructure folders.
+    Add non-EICrecon analysis code (eventAnalysis/LumiHitsAnalysis.cxx)
