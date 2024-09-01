@@ -39,7 +39,7 @@ else:
     print("No need to create backup.")
 
 # move according compact folder
-if "compact" in os.listdir(simPath):
+if os.path.isdir(os.path.join(simPath, "compact")):
     shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
     print("Created new back up simulation files in {0}".format(SimBackUpPath))
 
