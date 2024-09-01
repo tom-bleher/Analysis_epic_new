@@ -20,7 +20,6 @@ if not outPath:
   outPath = inPath
 
 genPath = "genEvents{0}".format(inPath)
-print(f"{genPath}")
 simPath = "simEvents{0}".format(outPath)
 epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
@@ -38,7 +37,7 @@ if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPat
 
 # move according compact folder
 if os.path.isdir(os.path.join(simPath, "compact")):
-    print("meow")
+    print("************************************************meow************************************")
     shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
     print("Created new back up simulation files in {0}".format(SimBackUpPath))
 
