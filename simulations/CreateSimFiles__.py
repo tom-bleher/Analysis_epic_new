@@ -34,7 +34,7 @@ if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPat
     os.mkdir(SimBackUpPath)
     for file in os.listdir(simPath):
         shutil.move(os.path.join(simPath, file), SimBackUpPath)
-      
+    print(simPath)
     # move according compact folder
     if "compact" in os.listdir(simPath):
         shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
