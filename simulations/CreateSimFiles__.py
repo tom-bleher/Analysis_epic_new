@@ -35,10 +35,11 @@ if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPat
     for file in os.listdir(simPath):
         shutil.move(os.path.join(simPath, file), SimBackUpPath)
       
-  # move according compact folder
-  if "compact" in os.listdir(simPath):
-    shutil.move(os.path.join(simPath, folder_name), SimBackUpPath)
-    print("Created new back up simulation files in {0}".format(SimBackUpPath))
+    # move according compact folder
+    if "compact" in os.listdir(simPath):
+        shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
+        print("Created new back up simulation files in {0}".format(SimBackUpPath))
+
 else:
     print("No need to create backup.")
 
