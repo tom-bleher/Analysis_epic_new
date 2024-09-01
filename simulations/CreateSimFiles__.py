@@ -25,6 +25,7 @@ simPath = "simEvents{0}".format(outPath)
 epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
 
+# if there is no simEvents
 if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
@@ -35,11 +36,9 @@ if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPat
     for file in os.listdir(simPath):
         shutil.move(os.path.join(simPath, file), SimBackUpPath)
 
-else:
-    print("No need to create backup.")
-
 # move according compact folder
 if os.path.isdir(os.path.join(simPath, "compact")):
+    print("meow")
     shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
     print("Created new back up simulation files in {0}".format(SimBackUpPath))
 
@@ -74,7 +73,6 @@ pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
-
 
 
 
