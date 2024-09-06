@@ -39,7 +39,7 @@ if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
 
-if not os.listdir(simPath) != 0:
+if len(os.listdir(simPath)) != 0:
     os.mkdir(SimBackUpPath)
     print("Created new back up directory in {0}".format(SimBackUpPath))
     
