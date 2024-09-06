@@ -26,7 +26,6 @@ if len(sys.argv) > 2:
 if not outPath:
   outPath = inPath
 
-DEF_PXL_VAL = 0.1
 commands = []
 
 genPath = "genEvents{0}".format(inPath)
@@ -37,6 +36,18 @@ pixel_def = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/defi
 
 # create the path where the simulation file backup will go
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
+
+# get the default pixel value
+DEF_PXL_VAL = None
+
+# Open the file and read its content
+with open(pixel_def, "r") as file:
+    content = file.read()
+    
+    # Use a regular expression to find the value
+    match = re.search(r'<constant name="LumiSpecTracker_pixelSize" value="([^"]*)"/>', content)
+    if match:
+        DEF_PXL_VAL = match.group(1)
 
 det_dir = os.environ['DETECTOR_PATH']
 compact_dir = det_dir + '/compact'
@@ -95,7 +106,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
         cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50".format(inFile, simPath, fileNum, epicPath)
         print( cmd )
         commands.append( cmd )
-            
+        
     # start Pool of processes
     pool = multiprocessing.Pool(40) # 8 processes to start
     
