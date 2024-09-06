@@ -39,9 +39,11 @@ if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
 
-if not os.path.exists(SimBackUpPath):
-    os.makedirs(SimBackUpPath)
+if not os.path.exists(SimBackUpPath) and \
+    all([os.path.isfile(os.path.join(simPath, file)) for file in os.listdir(simPath)]):
+    os.makedir(SimBackUpPath)
     print("Created new back up simulation files in {0}".format(SimBackUpPath))
+    
     
 for item in os.listdir(simPath):
     item_path = os.path.join(simPath, item)
