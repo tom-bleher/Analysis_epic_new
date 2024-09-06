@@ -61,16 +61,19 @@ if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
 
-# if we have files from a previous run, create a backup and title accordingly 
-if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPath)):
-    os.mkdir(SimBackUpPath)
-    for file in os.listdir(simPath):
-        shutil.move(os.path.join(simPath, file), SimBackUpPath)
-        
+if not os.path.exists(SimBackUpPath) and \
+    all([os.path.isfile(os.path.join(simPath, file)) for file in os.listdir(simPath)]):
+    os.makedir(SimBackUpPath)
+    print("Created new back up simulation files in {0}".format(SimBackUpPath))
+    
+for item in os.listdir(simPath):
+    item_path = os.path.join(simPath, item)
+    if os.path.isfile(item_path):
+        shutil.move(item_path, SimBackUpPath)
+
 # move according compact folder to according folder
 if os.path.isdir(os.path.join(simPath, "compact")):
     shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
-    print("Created new back up simulation files in {0}".format(SimBackUpPath))
 
 # prompt user to give pixel values
 user_pixel_input = list(input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value."))
