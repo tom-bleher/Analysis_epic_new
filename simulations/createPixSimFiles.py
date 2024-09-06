@@ -95,7 +95,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
     commands.clear()
     
     # make folders according to pixel values 
-    px_val_dir = os.makedir(os.join(simPath, f"{pixel_value}px"))
+    px_val_dir = os.mkdir(os.join(simPath, f"{pixel_value}px"))
 
     # move the simulation files generated with the pixel value to an accordingly named directory
     for item in os.listdir(simPath):
