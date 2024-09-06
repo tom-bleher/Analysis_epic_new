@@ -110,12 +110,12 @@ for idx, pixel_value in enumerate(pixel_val_list):
     print(f"========================= RAN FOR PIXEL VALUE: {pixel_value} =========================")
 
     # we just ran on the last index, now reset xml file
-    if idx == len(pixel_val_list) - 1:
+    if idx == len(pixel_val_list) - 2:
         # change the original definitions file to the original value once we are done
         with open(pixel_def, "r+") as file:
             content = file.read()
             # replace the default value with the new value
-            content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[pix_val_final]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{DEF_PXL_VAL}*mm"/>')
+            content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[idx]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{DEF_PXL_VAL}*mm"/>')
             file.seek(0)
             file.write(content)
             file.truncate()	
