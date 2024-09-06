@@ -65,21 +65,27 @@ def runSims(x):
   os.system(x)
 
 # prompt user to give pixel values
-user_pixel_input = list(input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value."))
+user_pixel_input = input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value. ")
 
-# take user inputs which are currently in str and transform to list with floats
-# the default value as above is the base for the xml we are changing if the user
-# we add it only for our program's purpose, and we will not run the simulation on unless the user has requested by inserting the default value
-pixel_val_list = [float(value) for value in user_pixel_input if "," not in value].insert(0, DEF_PXL_VAL)
+pixel_val_list = [float(value) for value in user_pixel_input]
 
 # we will run the simulation once for every pixel value configuration in the list
 for idx, pixel_value in enumerate(pixel_val_list):
-
+    
+    # for the first run we need to find and replace the xml containing the default 
+    # after that we change the same xml to hold the pixel value in the list
+    if idx == 0: 
+        pix_val_init = DEF_PXL_VAL
+        pix_val_final = idx
+    else:
+        pix_val_init = idx
+        pix_val_final = idx+1
+        
     # loop over the copied files and replace the default value with the user input
     with open(pixel_def, "r+") as file:
         content = file.read()
         # replace the default value with the new value
-        content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[idx]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[idx+1]}*mm"/>')
+        content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[pix_val_init]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[pix_val_final]}*mm"/>')
         file.seek(0)
         file.write(content)
         file.truncate()	
@@ -126,7 +132,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
         with open(pixel_def, "r+") as file:
             content = file.read()
             # replace the default value with the new value
-            content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[idx]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{DEF_PXL_VAL}*mm"/>')
+            content = content.replace(f'<constant name="LumiSpecTracker_pixelSize" value="{pixel_val_list[pix_val_final]}*mm"/>', f'<constant name="LumiSpecTracker_pixelSize" value="{DEF_PXL_VAL}*mm"/>')
             file.seek(0)
             file.write(content)
             file.truncate()	
