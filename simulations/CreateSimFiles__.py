@@ -74,4 +74,3 @@ pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
-
