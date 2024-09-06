@@ -41,23 +41,9 @@ if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
 
+#HACK:  get default value automatically
 # initialize default pixel value
-DEF_PXL_VAL = None
-
-# open the xml file containing the default pixel size
-with open(pixel_def, "r") as file:
-    content = file.read()
-
-if content.find('LumiSpecTracker_pixelSize') != -1:
-    # Find the position of the value within that line
-    value_start = content.find('value="', content.find('LumiSpecTracker_pixelSize')) + len('value="')
-    value_end = content.find('"', value_start)
-    
-    # extract the value
-    pixel_size_value = content[value_start:value_end]
-
-    # convert it to a float for further usage if needed
-    pixel_size = float(pixel_size_value.split('*')[0])
+DEF_PXL_VAL = 0.1
 
 det_dir = os.environ['DETECTOR_PATH']
 compact_dir = det_dir + '/compact'
