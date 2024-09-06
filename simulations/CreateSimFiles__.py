@@ -22,6 +22,7 @@ if not outPath:
 genPath = "genEvents{0}".format(inPath)
 simPath = "simEvents{0}".format(outPath)
 epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
+commands = []
 
 # create the path where the simulation file backup will go
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
@@ -52,17 +53,15 @@ if os.path.isdir(os.path.join(simPath, "compact")):
 def runSims(x):
   os.system(x)
 
-commands = []
-
 # create command strings
-for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEvents/results")):
+for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEvents/results/")):
 #for it in range(1,50):
   if fileType not in file:
     continue
-  inFile = genPath + "/" + file
+  inFile = genPath + "/results/" + file
   fileNum = re.search("\d+\.+\d\.", inFile).group()
   #fileNum = re.search("\d+\.", inFile).group()
-  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 1000".format(inFile, simPath, fileNum, epicPath)
+  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
   commands.append( cmd )
 
@@ -72,10 +71,3 @@ pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
-
-
-
-
-
-
-
