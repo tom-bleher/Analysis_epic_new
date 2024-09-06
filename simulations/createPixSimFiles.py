@@ -37,14 +37,19 @@ pixel_def = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/defi
 # create the path where the simulation file backup will go
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
 
-# get the default pixel value
+# if there is no simEvents then create it
+if not os.path.exists(simPath):
+    os.mkdir(os.path.join(os.getcwd(),simPath)) 
+    print("Out dir doesn't exist.  Created a dir called " + simPath)
+
+# initialize default pixel value
 DEF_PXL_VAL = None
 
-# Open the file and read its content
+# open the xml file containing the default pixel size
 with open(pixel_def, "r") as file:
     content = file.read()
     
-    # Use a regular expression to find the value
+    # use a regular expression to find the value
     match = re.search(r'<constant name="LumiSpecTracker_pixelSize" value="([^"]*)"/>', content)
     if match:
         DEF_PXL_VAL = match.group(1)
@@ -56,30 +61,11 @@ cmd = 'cp -r {0} {1}'.format(compact_dir, simPath)
 # cp over epic compact dir for parameter reference 
 os.system('cp -r {0} {1}'.format(compact_dir, simPath) )
 
-# if there is no simEvents then create it
-if not os.path.exists(simPath):
-    os.mkdir(os.path.join(os.getcwd(),simPath)) 
-    print("Out dir doesn't exist.  Created a dir called " + simPath)
-
-if not os.path.exists(SimBackUpPath) and \
-    all([os.path.isfile(os.path.join(simPath, file)) for file in os.listdir(simPath)]):
-    os.makedir(SimBackUpPath)
-    print("Created new back up simulation files in {0}".format(SimBackUpPath))
-    
-for item in os.listdir(simPath):
-    item_path = os.path.join(simPath, item)
-    if os.path.isfile(item_path):
-        shutil.move(item_path, SimBackUpPath)
-
-# move according compact folder to according folder
-if os.path.isdir(os.path.join(simPath, "compact")):
-    shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
+def runSims(x):
+  os.system(x)
 
 # prompt user to give pixel values
 user_pixel_input = list(input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value."))
-
-def runSims(x):
-  os.system(x)
 
 # take user inputs which are currently in str and transform to list with floats
 # the default value as above is the base for the xml we are changing if the user
@@ -99,7 +85,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
         file.truncate()	
 
     # create command strings
-    for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEvents/"),):
+    for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEvents/results/"),):
         #for it in range(1,50):
         if fileType not in file:
           continue
@@ -119,15 +105,19 @@ for idx, pixel_value in enumerate(pixel_val_list):
     # reset commands by emptying the list
     commands.clear()
     
-    # make folders according to pixel values (which will be moved to the according date-time folder name in the next run)
+    # make folders according to pixel values 
     px_val_dir = os.makedir(os.join(simPath, f"{pixel_value}px"))
-        
+
     # move the simulation files generated with the pixel value to an accordingly named directory
-    if any(os.path.isfile(os.path.join(simPath, item)) for item in os.listdir(simPath)):
-        os.mkdir(SimBackUpPath)
-        for file in os.listdir(simPath):
+    for item in os.listdir(simPath):
+        item_path = os.path.join(simPath, item)
+        if os.path.isfile(item_path):
             shutil.move(os.path.join(simPath, file), px_val_dir)
     
+    # move according compact folder to according folder
+    if os.path.isdir(os.path.join(simPath, "compact")):
+        shutil.move(os.path.join(simPath, "compact"), px_val_dir)
+        
     print(f"========================= RAN FOR PIXEL VALUE: {pixel_value} =========================")
 
     # we just ran on the last index, now reset xml file
@@ -140,3 +130,18 @@ for idx, pixel_value in enumerate(pixel_val_list):
             file.seek(0)
             file.write(content)
             file.truncate()	
+
+# create a backup for this run
+if len(os.listdir(simPath)) != 0:
+    os.mkdir(SimBackUpPath)
+    print("Created new back up directory in {0}".format(SimBackUpPath))
+    
+    for item in os.listdir(simPath):
+        item_path = os.path.join(simPath, item)
+        if os.path.isfile(item_path):
+            shutil.move(item_path, SimBackUpPath)
+    
+    # move according compact folder to according folder
+    if os.path.isdir(os.path.join(simPath, "compact")):
+        shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
+        
