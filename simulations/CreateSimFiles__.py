@@ -39,11 +39,9 @@ if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
     print("Out dir doesn't exist.  Created a dir called " + simPath)
 
-if not os.path.exists(SimBackUpPath) and \
-    all([os.path.isfile(os.path.join(simPath, file)) for file in os.listdir(simPath)]):
+if os.listdir(simPath) != 0:
     os.makedir(SimBackUpPath)
-    print("Created new back up simulation files in {0}".format(SimBackUpPath))
-    
+    print("Created new back up directory in {0}".format(SimBackUpPath))
     
 for item in os.listdir(simPath):
     item_path = os.path.join(simPath, item)
@@ -54,7 +52,6 @@ for item in os.listdir(simPath):
 if os.path.isdir(os.path.join(simPath, "compact")):
     shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
     
-
 def runSims(x):
   os.system(x)
 
