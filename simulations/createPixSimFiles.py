@@ -95,7 +95,6 @@ for idx, pixel_value in enumerate(pixel_val_list):
         cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50".format(inFile, simPath, fileNum, epicPath)
         print( cmd )
         commands.append( cmd )
-
             
     # start Pool of processes
     pool = multiprocessing.Pool(40) # 8 processes to start
@@ -127,5 +126,3 @@ for idx, pixel_value in enumerate(pixel_val_list):
             file.seek(0)
             file.write(content)
             file.truncate()	
-
-
