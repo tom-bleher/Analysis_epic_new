@@ -54,13 +54,13 @@ for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEv
   print( cmd )
   commands.append( cmd )
 
-
 # start Pool of processes
 pool = multiprocessing.Pool(40) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
 
+# create a backup for this run
 if len(os.listdir(simPath)) != 0:
     os.mkdir(SimBackUpPath)
     print("Created new back up directory in {0}".format(SimBackUpPath))
