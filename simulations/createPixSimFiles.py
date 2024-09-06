@@ -29,7 +29,6 @@ if not outPath:
 commands = []
 
 genPath = "genEvents{0}".format(inPath)
-print(str(genPath))
 simPath = "simEvents{0}".format(outPath)
 epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 pixel_def = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
@@ -65,9 +64,7 @@ def runSims(x):
   os.system(x)
 
 # prompt user to give pixel values
-user_pixel_input = input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value. ")
-
-pixel_val_list = [float(value) for value in user_pixel_input]
+pixel_val_list = list(input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value. "))
 
 # we will run the simulation once for every pixel value configuration in the list
 for idx, pixel_value in enumerate(pixel_val_list):
