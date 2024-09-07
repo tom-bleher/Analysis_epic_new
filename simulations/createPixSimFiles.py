@@ -61,6 +61,7 @@ pixel_val_list = list(input("Enter the desired LumiSpecTracker_pixelSize values 
 # add default value for the code replace 
 pixel_val_list.insert(0, DEF_PXL_VAL)
 
+print(f"------------------------- {pixel_val_list} ------------------------")
 # we will run the simulation once for every pixel value configuration in the list
 for idx, pixel_value in enumerate(pixel_val_list):
 
@@ -112,7 +113,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
             shutil.move(item_path, px_val_dir)
 
         if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(os.path.join(simPath, "{item}"), SimBackUpPath)  
+            shutil.move(os.path.join(simPath, f"{item}"), SimBackUpPath)  
 
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
