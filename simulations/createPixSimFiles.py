@@ -46,13 +46,6 @@ if not os.path.exists(simPath):
 # initialize default pixel value
 DEF_PXL_VAL = 0.1
 
-det_dir = os.environ['DETECTOR_PATH']
-compact_dir = det_dir + '/compact'
-cmd = 'cp -r {0} {1}'.format(compact_dir, simPath)
-
-# cp over epic compact dir for parameter reference 
-os.system('cp -r {0} {1}'.format(compact_dir, simPath) )
-
 def runSims(x):
   os.system(x)
 
@@ -71,6 +64,13 @@ pixel_val_list.insert(0, DEF_PXL_VAL)
 # we will run the simulation once for every pixel value configuration in the list
 for idx in range(0, (len(pixel_val_list)-1)):
 
+    det_dir = os.environ['DETECTOR_PATH']
+    compact_dir = det_dir + '/compact'
+    cmd = 'cp -r {0} {1}'.format(compact_dir, simPath)
+
+    # cp over epic compact dir for parameter reference 
+    os.system('cp -r {0} {1}'.format(compact_dir, simPath) )
+    
     # loop over the copied files and replace the default value with the user input
     with open(pixel_def, "r+") as file:
         content = file.read()
@@ -146,6 +146,7 @@ if len(os.listdir(simPath)) != 0:
         if os.path.isfile(item_path):
             shutil.move(item_path, SimBackUpPath)
 
+        # move pixel files to backup
         if os.path.isdir(item_path) and "px" in item:
             shutil.move(item_path, SimBackUpPath)   
         
