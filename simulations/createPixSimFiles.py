@@ -92,7 +92,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
         print(f" {cmd} --{pixel_val_list[idx+1]} px ")
         commands.append( cmd )
 
-    print(f"========================= NOW RUNNING FOR PIXEL VALUE: {pixel_value} =========================")
+    print(f"========================= NOW RUNNING FOR PIXEL VALUE: {pixel_val_list[idx+1]} =========================")
 
     # start Pool of processes
     pool = multiprocessing.Pool(40) # 8 processes to start
@@ -119,13 +119,15 @@ for idx, pixel_value in enumerate(pixel_val_list):
             shutil.move(item_path, px_val_dir)
 
         if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(os.path.join(simPath, f"{item}"), SimBackUpPath)  
+            px_path = os.path.join(simPath, f"{item}")
+            os.mkdir(px_path)
+            shutil.move(simPath, px_path)  
 
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
         shutil.move(os.path.join(simPath, "compact"), px_val_dir)
         
-    print(f"========================= FINISHED RUNNING FOR PIXEL VALUE: {pixel_value} =========================")
+    print(f"========================= FINISHED RUNNING FOR PIXEL VALUE: {pixel_val_list[idx+1]} =========================")
 
     # we just ran on the last index, now reset xml file
     if idx == len(pixel_val_list) - 2:
