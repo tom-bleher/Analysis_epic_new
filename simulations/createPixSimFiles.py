@@ -58,6 +58,12 @@ def runSims(x):
 # prompt user to give pixel values
 pixel_val_list = input("Enter the desired LumiSpecTracker_pixelSize values seperated by commas. You may press enter to run with the default value. ")
 
+if pixel_val_list:
+    pixel_val_list = [float(val.strip()) for val in pixel_val_list.split(',')]
+else:
+    # if the user presses enter, use a default value
+    pixel_val_list = [1.0] 
+    
 # add default value for the code replace 
 pixel_val_list.insert(0, DEF_PXL_VAL)
 
