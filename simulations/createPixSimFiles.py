@@ -118,9 +118,6 @@ for idx, pixel_value in enumerate(pixel_val_list):
         if os.path.isfile(item_path):
             shutil.move(item_path, px_val_dir)
 
-        if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(simPath, px_val_dir)  
-
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
         shutil.move(os.path.join(simPath, "compact"), px_val_dir)
@@ -149,7 +146,7 @@ if len(os.listdir(simPath)) != 0:
             shutil.move(item_path, SimBackUpPath)
 
         if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(os.path.join(simPath, "{item}"), SimBackUpPath)     
+            shutil.move(px_val_dir, SimBackUpPath)   
         
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
