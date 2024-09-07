@@ -37,6 +37,9 @@ pixel_def = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/defi
 # create the path where the simulation file backup will go
 SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
 
+det_dir = os.environ['DETECTOR_PATH']
+compact_dir = det_dir + '/compact'
+
 # if there is no simEvents then create it
 if not os.path.exists(simPath):
     os.mkdir(os.path.join(os.getcwd(),simPath)) 
@@ -64,8 +67,6 @@ pixel_val_list.insert(0, DEF_PXL_VAL)
 # we will run the simulation once for every pixel value configuration in the list
 for idx in range(0, (len(pixel_val_list)-1)):
 
-    det_dir = os.environ['DETECTOR_PATH']
-    compact_dir = det_dir + '/compact'
     cmd = 'cp -r {0} {1}'.format(compact_dir, simPath)
 
     # cp over epic compact dir for parameter reference 
