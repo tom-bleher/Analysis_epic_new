@@ -145,7 +145,7 @@ if len(os.listdir(simPath)) != 0:
             shutil.move(item_path, SimBackUpPath)
 
         if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(px_val_dir, SimBackUpPath)   
+            shutil.move(item, SimBackUpPath)   
         
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
