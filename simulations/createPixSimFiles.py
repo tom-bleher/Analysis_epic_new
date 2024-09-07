@@ -26,6 +26,7 @@ if len(sys.argv) > 2:
 if not outPath:
   outPath = inPath
 
+# initilize list which will hold commands sent to ddsim later
 commands = []
 
 genPath = "genEvents{0}".format(inPath)
@@ -110,7 +111,7 @@ for idx in range(0, (len(pixel_val_list)-1)):
     # make folders according to pixel values 
     px_val_dir = os.path.join(simPath, f"{pixel_val_list[idx+1]}px")
     os.mkdir(px_val_dir)
-
+    
     # move the simulation files generated with the pixel value to an accordingly named directory
     for item in os.listdir(simPath):
         item_path = os.path.join(simPath, item)
