@@ -101,7 +101,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
     for item in os.listdir(simPath):
         item_path = os.path.join(simPath, item)
         if os.path.isfile(item_path):
-            shutil.move(os.path.join(simPath, file), px_val_dir)
+            shutil.move(item_path, px_val_dir)
     
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
