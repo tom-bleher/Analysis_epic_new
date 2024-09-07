@@ -62,14 +62,13 @@ if pixel_val_list:
     pixel_val_list = [float(val.strip()) for val in pixel_val_list.split(',')]
 else:
     # if the user presses enter, use a default value
-    pixel_val_list = [1.0] 
+    pixel_val_list = [DEF_PXL_VAL] 
     
 # add default value for the code replace 
 pixel_val_list.insert(0, DEF_PXL_VAL)
 
-print(f"------------------------- {pixel_val_list} ------------------------")
 # we will run the simulation once for every pixel value configuration in the list
-for idx, pixel_value in enumerate(pixel_val_list):
+for idx in range(0, (len(pixel_val_list)-1)):
 
     # loop over the copied files and replace the default value with the user input
     with open(pixel_def, "r+") as file:
@@ -109,7 +108,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
     commands.clear()
     
     # make folders according to pixel values 
-    px_val_dir = os.path.join(simPath, f"{pixel_value}px")
+    px_val_dir = os.path.join(simPath, f"{pixel_val_list[idx+1]}px")
     os.mkdir(px_val_dir)
 
     # move the simulation files generated with the pixel value to an accordingly named directory
