@@ -82,7 +82,7 @@ for idx, pixel_value in enumerate(pixel_val_list):
         fileNum = re.search("\d+\.+\d\.", inFile).group()
         #fileNum = re.search("\d+\.", inFile).group()
         cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 10".format(inFile, simPath, fileNum, epicPath)
-        print(f" {cmd} px: {pixel_value} ")
+        print(f" {cmd} {pixel_value} px ")
         commands.append( cmd )
 
     print(f"========================= NOW RUNNING FOR PIXEL VALUE: {pixel_value} =========================")
@@ -106,9 +106,10 @@ for idx, pixel_value in enumerate(pixel_val_list):
 
     # move the simulation files generated with the pixel value to an accordingly named directory
     for item in os.listdir(simPath):
-        item_path = os.path.join(simPath, item)
-        if os.path.isfile(item_path):
-            shutil.move(item_path, px_val_dir)
+        if type(item) != None:
+            item_path = os.path.join(simPath, item)
+            if os.path.isfile(item_path):
+                shutil.move(item_path, px_val_dir)
 
         if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
             shutil.move(os.path.join(simPath, "{item}"), SimBackUpPath)  
@@ -136,13 +137,14 @@ if len(os.listdir(simPath)) != 0:
     print("Created new back up directory in {0}".format(SimBackUpPath))
     
     for item in os.listdir(simPath):
-        item_path = os.path.join(simPath, item)
-        if os.path.isfile(item_path):
-            shutil.move(item_path, SimBackUpPath)
-
-        if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
-            shutil.move(os.path.join(simPath, "{item}"), SimBackUpPath)     
+        if type(item) != None:
+            item_path = os.path.join(simPath, item)
+            if os.path.isfile(item_path):
+                shutil.move(item_path, SimBackUpPath)
     
+            if os.path.isdir(os.path.join(simPath, item)) and "px" in item:
+                shutil.move(os.path.join(simPath, "{item}"), SimBackUpPath)     
+        
     # move according compact folder to according folder
     if os.path.isdir(os.path.join(simPath, "compact")):
         shutil.move(os.path.join(simPath, "compact"), SimBackUpPath)
