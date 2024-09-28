@@ -60,7 +60,8 @@ class HandleEIC(object):
         self.sim_path = f"simEvents{self.out_path}"
 
         # if there is no simEvents then create it
-        os.makedirs(os.path.join(os.getcwd(), self.sim_path), exist_ok=True)
+        simEvents_path = os.makedirs(os.path.join(os.getcwd(), self.sim_path), exist_ok=True)
+        os.chmod(simEvents_path, 0o777)
 
     def setup_json(self) -> list[tuple]:
         """
@@ -100,8 +101,10 @@ class HandleEIC(object):
             dx, dy = pair
             # create respective px folders 
             curr_pix_sim_path = os.path.join(self.sim_path, f"{dx}x{dy}px") 
-            # create directory if it doesn't exist
+            # create directory for px if it doesn't exist
             os.makedirs(curr_pix_sim_path, exist_ok=True) 
+            os.chmod(curr_pix_sim_path, 0o777)
+            
             # copy epic compact to each respective px folder for parameter reference 
             shutil.copytree(self.compact_path, curr_pix_sim_path)
 
@@ -180,7 +183,8 @@ class HandleEIC(object):
 
         # create a backup for this run
         if len(os.listdir(self.sim_path)) > 0:
-            os.makedirs(self.SimBackUpPath, exist_ok=True)
+            tempSimBackUpPath = os.makedirs(self.SimBackUpPath, exist_ok=True)
+            os.chmod(tempSimBackUpPath, 0o777)
             print(f"Created new backup directory in {self.SimBackUpPath}")
 
             # move files and pixel folders to backup
