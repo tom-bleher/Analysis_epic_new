@@ -35,7 +35,7 @@ epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 pixel_def = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
 
 # create the path where the simulation file backup will go
-SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%d%m%Y_%H%M%S"))
+SimBackUpPath = os.path.join(simPath, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
 det_dir = os.environ['DETECTOR_PATH']
 compact_dir = det_dir + '/compact'
@@ -47,7 +47,7 @@ if not os.path.exists(simPath):
 
 #HACK:  get default value automatically
 # initialize default pixel value
-DEF_PXL_VAL = 0.1
+DEF_PXL_VAL = 0.1 # res in mm
 
 def runSims(x):
   os.system(x)
