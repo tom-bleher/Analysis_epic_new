@@ -13,8 +13,6 @@ import re
 import json
 import concurrent.futures
 import subprocess
-from dask.distributed import Client
-from dask import compute, delayed
 
 class HandleEIC(object):
     
@@ -162,17 +160,17 @@ class HandleEIC(object):
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
-        # Create a Dask client
-        client = Client()
-        futures = client.map(self.run_cmd, self.run_queue.values())
-        results = client.gather(futures)
+        # create ProcessPoolExecutor
+        with concurrent.futures.ProcessPoolExecutor(max_workers=self.tot_proc) as executor:
+            # submit all tasks at once to the executor
+            futures = [executor.submit(self.run_cmd, cmd) for cmd in self.run_queue.values()]
 
         # Handle completed tasks
-        for result in results:
-            if result is not None:
-                print('A command failed with an exception:', result)
-
-    client.close()
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()  # exceptions are raised here if runSim raised any exception
+            except Exception as e:
+                print('A command failed with an exception:', str(e))
 
     def run_cmd(self, cmd) -> None:
         """
