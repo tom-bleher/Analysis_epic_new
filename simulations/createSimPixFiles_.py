@@ -110,7 +110,7 @@ class HandleEIC(object):
             os.chmod(curr_pix_sim_path, 0o777)
 
             # copy epic compact to each respective px folder for parameter reference 
-            shutil.copytree(self.compact_path, curr_pix_sim_path)
+            shutil.copytree(self.compact_path, curr_pix_sim_path, dirs_exist_ok=True)
 
             # change definitions xml for each pixel folder 
             self.write_xml(dx, dy, curr_pix_sim_path) 
