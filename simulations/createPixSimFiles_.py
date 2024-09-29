@@ -163,17 +163,16 @@ class HandleEIC(object):
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         # Create a Dask client
-        with Client(processes=True) as client:
-            # Transform `self.run_cmd` calls to `delayed` objects
-            tasks = [delayed(self.run_cmd)(cmd) for cmd in self.run_queue.values()]
-            
-            # Compute all delayed objects in parallel
-            results = compute(*tasks)
+        client = Client()
+        futures = client.map(self.run_cmd, self.run_queue.values())
+        results = client.gather(futures)
 
-        # Handle Errors
+        # Handle completed tasks
         for result in results:
-            if isinstance(result, Exception):
-                print('A command failed with an exception:', str(result))
+            if result is not None:
+                print('A command failed with an exception:', result)
+
+    client.close()
 
     def run_cmd(self, cmd) -> None:
         """
