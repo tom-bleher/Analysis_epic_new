@@ -119,7 +119,7 @@ class HandleEIC(object):
 
             # change definitions xml for each pixel folder 
             self.write_xml(dx, dy, os.path.join(curr_compact_path, 'definitions.xml')) 
-            
+
             # loop over all energy levels and save ddsim commands
             self.setup_queue(curr_pix_sim_path)
 
@@ -190,7 +190,7 @@ class HandleEIC(object):
         Method to make a backup of simulation files.
         """
         # create the path where the simulation file backup will go
-        self.SimBackUpPath = os.join.path(self.sim_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        self.SimBackUpPath = os.path.join(self.sim_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
         # create a backup for this run
         if len(os.listdir(self.sim_path)) > 0:
