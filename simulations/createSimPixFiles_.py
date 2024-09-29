@@ -106,10 +106,12 @@ class HandleEIC(object):
             curr_pix_sim_path = os.path.join(self.sim_path, f"{dx}x{dy}px") 
             # create directory for px if it doesn't exist
             os.makedirs(curr_pix_sim_path, exist_ok=True) 
+            os.makedirs(os.join.path(curr_pix_sim_path, "compact"), exist_ok=True) 
+            os.chmod(os.join.path(curr_pix_sim_path, "compact"), 0o777)
             os.chmod(curr_pix_sim_path, 0o777)
 
             # copy epic compact to each respective px folder for parameter reference 
-            shutil.copytree(self.compact_path, curr_pix_sim_path, dirs_exist_ok=True)
+            shutil.copytree(self.compact_path, os.join.path(curr_pix_sim_path, "compact"), dirs_exist_ok=True)
 
             # change definitions xml for each pixel folder 
             self.write_xml(dx, dy, os.path.join(curr_pix_sim_path, 'definitions.xml')) 
@@ -146,6 +148,7 @@ class HandleEIC(object):
             # each file path maps to its associated command
             self.run_queue[inFile] = cmd
 
+        print(self.run_queue)
         # return dict containing ddsim commands per file
         return self.run_queue
 
