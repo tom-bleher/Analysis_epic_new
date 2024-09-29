@@ -89,7 +89,7 @@ for idx in range(0, (len(pixel_val_list)-1)):
         inFile = genPath + "/results/" + file
         fileNum = re.search("\d+\.+\d\.", inFile).group()
         #fileNum = re.search("\d+\.", inFile).group()
-        cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 10".format(inFile, simPath, fileNum, epicPath)
+        cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 1000".format(inFile, simPath, fileNum, epicPath)
         print(f" {cmd} --{pixel_val_list[idx+1]} px ")
         commands.append( cmd )
 

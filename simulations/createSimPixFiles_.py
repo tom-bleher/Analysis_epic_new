@@ -31,7 +31,7 @@ class HandleEIC(object):
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
         self.tot_proc = 40 # set the number of the processors available
-        self.num_particles = 10
+        self.num_particles = 1000
         self.def_px_dx = 0.1 # res in mm
         self.def_px_dy = 0.1 # res in mm
 
