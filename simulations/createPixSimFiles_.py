@@ -13,7 +13,6 @@ import re
 import json
 import concurrent.futures
 import subprocess
-from pathlib import Path
 
 class HandleEIC(object):
     
@@ -39,33 +38,33 @@ class HandleEIC(object):
         """
         Method for setting paths for input, output, and other resources.
         """
-        self.in_path = Path("/")
-        self.out_path = Path("/")
+        self.in_path = ""
+        self.out_path = ""
         if len(sys.argv) > 1: 
-            self.in_path = Path(sys.argv[1])
+            self.in_path = "/" + sys.argv[1]
         if len(sys.argv) > 2: 
-            self.out_path = Path(sys.argv[2])
-
+            self.out_path = "/" + sys.argv[2]
+        
         # directories genEvents and simEvents needs to exist and manually changed here
-        self.epic_path = Path("/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml")
-        self.base_px_xml_path = Path("/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml")
-        self.px_json_path = Path.cwd() # json is located in the same path as this python file
-        self.gen_path = Path("/data/tomble/Analysis_epic_new/simulations/genEvents/results/")
-        self.energies = sorted([p.name for p in self.gen_path.glob('*') if self.file_type in p.name])
+        self.epic_path = r"/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
+        self.base_px_xml_path = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
+        self.px_json_path = os.getcwd() # json is located in the same path as this python file
+        self.gen_path = r"/data/tomble/Analysis_epic_new/simulations/genEvents/results/"
+        self.energies = [file for file in sorted(os.listdir(self.gen_path)) if self.file_type in file]  
         self.det_path = os.environ['DETECTOR_PATH']
-        self.compact_path = Path(self.det_path)/'compact'
+        self.compact_path = self.det_path + '/compact'
 
         if not self.out_path:
             self.out_path = self.in_path
        
-        self.gen_path = Path("genEvents")/self.in_path
-        self.sim_path = Path("simEvents")/self.out_path
-        self.sim_path_items = [p.name for p in self.sim_path.glob("*")]
+        self.gen_path = f"genEvents{self.in_path}"
+        self.sim_path = f"simEvents{self.out_path}"
+        self.sim_path_items = os.listdir(self.sim_path)
 
         # if there is no simEvents then create it
-        simEvents_path = Path.cwd() / self.sim_path
-        simEvents_path.mkdir(parents=True, exist_ok=True)
-        simEvents_path.chmod(0o777)
+        simEvents_path = os.path.join(os.getcwd(), self.sim_path)
+        os.makedirs(simEvents_path, exist_ok=True)
+        os.chmod(simEvents_path, 0o777)
 
     def setup_json(self) -> list[tuple]:
         """
@@ -73,7 +72,7 @@ class HandleEIC(object):
         If the JSON file doesn't exist or is incorrect, a new one is created with default pixel sizes.
         """
         self.px_dict = {}
-        self.px_json_path = self.px_json_path/'pixel_data.json'
+        self.px_json_path = os.path.join(self.px_json_path, 'pixel_data.json')
         try:
             # Try to read and load the JSON file
             with open(self.px_json_path,'r') as file:
@@ -101,10 +100,9 @@ class HandleEIC(object):
         looping over all energy levels and saving ddsim commands.
         """
         # create respective px folders and their compact folders
-        curr_pix_sim_path = self.sim_path/f"{dx}x{dy}px"
-        curr_compact_path = curr_pix_sim_path/"compact"
+        curr_pix_sim_path = os.path.join(self.sim_path, f"{dx}x{dy}px") 
+        curr_compact_path = os.path.join(curr_pix_sim_path, "compact")
 
-        # create directory for px if it doesn't exist
         # create directory for px if it doesn't exist
         os.makedirs(curr_pix_sim_path, exist_ok=True) 
         os.makedirs(curr_compact_path, exist_ok=True) 
@@ -117,7 +115,7 @@ class HandleEIC(object):
         shutil.copytree(self.compact_path, curr_compact_path, dirs_exist_ok=True)
 
         # change definitions xml for each pixel folder 
-        self.write_xml(dx, dy, curr_compact_path/'definitions.xml') 
+        self.write_xml(dx, dy, os.path.join(curr_compact_path, 'definitions.xml')) 
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue(curr_pix_sim_path)
@@ -188,19 +186,19 @@ class HandleEIC(object):
         Method to make a backup of simulation files.
         """
         # create the path where the simulation file backup will go
-        self.SimBackUpPath = self.sim_path/datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.SimBackUpPath = os.path.join(self.sim_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
         # create a backup for this run
         if len(self.sim_path_items) > 0:
-            self.SimBackUpPath.mkdir(parents=True, exist_ok=True)
-            self.SimBackUpPath.chmod(0o777)
+            os.makedirs(self.SimBackUpPath, exist_ok=True)
+            os.chmod(self.SimBackUpPath, 0o777)
             print(f"Created new backup directory in {self.SimBackUpPath}")
 
             # move files and pixel folders to backup
             for item in self.sim_path_items:
-                item_path = self.sim_path / item
+                item_path = os.path.join(self.sim_path, item)
 
-                if item_path.is_file() or (item_path.is_dir() and "px" in item.name):
+                if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
                     shutil.move(item_path, self.SimBackUpPath)
 
 def main():
