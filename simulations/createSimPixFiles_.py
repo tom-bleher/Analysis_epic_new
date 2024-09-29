@@ -45,10 +45,10 @@ class HandleEIC(object):
             self.out_path = "/" + sys.argv[2]
         
         # directories genEvents and simEvents needs to exist and manually changed here
-        self.epic_path = r"data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
-        self.base_px_xml_path = r"data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
+        self.epic_path = r"/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
+        self.base_px_xml_path = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
         self.px_json_path = os.getcwd() # json is located in the same path as this python file
-        self.hepmc_path = r"data/tomble/Analysis_epic_new/simulations/genEvents/results/"
+        self.hepmc_path = r"/data/tomble/Analysis_epic_new/simulations/genEvents/results/"
         self.energies = [file for file in sorted(os.listdir(self.hepmc_path)) if file.endswith("hepmc") and self.file_type in file]
         self.det_path = os.environ['DETECTOR_PATH']
         self.compact_path = self.det_path + '/compact'
@@ -60,7 +60,8 @@ class HandleEIC(object):
         self.sim_path = f"simEvents{self.out_path}"
 
         # if there is no simEvents then create it
-        simEvents_path = os.makedirs(os.path.join(os.getcwd(), self.sim_path), exist_ok=True)
+        simEvents_path = os.path.join(os.getcwd(), self.sim_path)
+        os.makedirs(simEvents_path, exist_ok=True)
         os.chmod(simEvents_path, 0o777)
 
     def setup_json(self) -> list[tuple]:
@@ -104,7 +105,7 @@ class HandleEIC(object):
             # create directory for px if it doesn't exist
             os.makedirs(curr_pix_sim_path, exist_ok=True) 
             os.chmod(curr_pix_sim_path, 0o777)
-            
+
             # copy epic compact to each respective px folder for parameter reference 
             shutil.copytree(self.compact_path, curr_pix_sim_path)
 
