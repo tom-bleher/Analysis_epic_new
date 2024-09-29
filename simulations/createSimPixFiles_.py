@@ -51,7 +51,7 @@ class HandleEIC(object):
         self.base_px_xml_path = r"/data/tomble/eic/epic/install/share/epic/compact/far_backward/definitions.xml"
         self.px_json_path = os.getcwd() # json is located in the same path as this python file
         self.hepmc_path = r"/data/tomble/Analysis_epic_new/simulations/genEvents/results/"
-        self.energies = [file for file in sorted(os.listdir(self.hepmc_path)) if file.endswith("hepmc") and self.file_type in file]
+        self.energies = [file for file in sorted(os.listdir(self.hepmc_path)) if self.file_type in file]  
         self.det_path = os.environ['DETECTOR_PATH']
         self.compact_path = self.det_path + '/compact'
 
