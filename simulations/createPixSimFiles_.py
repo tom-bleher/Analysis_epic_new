@@ -30,7 +30,6 @@ class HandleEIC(object):
         Method for setting variables that control the processing.
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.tot_proc = os.cpu_count() # set the number of the processors available
         self.num_particles = 5000
         self.def_px_dx = 0.1 # res in mm
         self.def_px_dy = 0.1 # res in mm
@@ -161,7 +160,7 @@ class HandleEIC(object):
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         # create ThreadPoolExecutor/ProcessPoolExecutor
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.tot_proc) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             # submit all tasks at once to the executor
             futures = [executor.submit(self.run_cmd, cmd) for cmd in self.run_queue.values()]
 
