@@ -161,7 +161,7 @@ class HandleEIC(object):
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         # create ThreadPoolExecutor/ProcessPoolExecutor
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.tot_proc) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=self.tot_proc) as executor:
             # submit all tasks at once to the executor
             futures = [executor.submit(self.run_cmd, cmd) for cmd in self.run_queue.values()]
 
