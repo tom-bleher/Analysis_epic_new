@@ -186,8 +186,8 @@ class HandleEIC(object):
 
         # create a backup for this run
         if len(os.listdir(self.sim_path)) > 0:
-            tempSimBackUpPath = os.makedirs(self.SimBackUpPath, exist_ok=True)
-            os.chmod(tempSimBackUpPath, 0o777)
+            os.makedirs(self.SimBackUpPath, exist_ok=True)
+            os.chmod(self.SimBackUpPath, 0o777)
             print(f"Created new backup directory in {self.SimBackUpPath}")
 
             # move files and pixel folders to backup
