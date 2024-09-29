@@ -104,14 +104,14 @@ class HandleEIC(object):
         curr_pix_sim_path = self.sim_path / f"{dx}x{dy}px"
         curr_compact_path = curr_pix_sim_path / "compact"
 
-        # Create directories for 'curr_pix_sim_path' and 'curr_compact_path' if they don't exist
-        curr_pix_sim_path.mkdir(parents=True, exist_ok=True)
-        curr_compact_path.mkdir(parents=True, exist_ok=True)
+        # create directory for px if it doesn't exist
+        curr_pix_sim_path.mkdir(parents=True, exist_ok=True) 
+        curr_compact_path.mkdir(parents=True, exist_ok=True) 
 
-        # Set permissions
+        # set permissions
         curr_compact_path.chmod(0o777)
         curr_pix_sim_path.chmod(0o777)
-
+        
         # copy epic compact to each respective px folder for parameter reference 
         shutil.copytree(self.compact_path, curr_compact_path, dirs_exist_ok=True)
 
