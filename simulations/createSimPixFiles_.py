@@ -106,7 +106,7 @@ class HandleEIC(object):
             curr_pix_sim_path = os.path.join(self.sim_path, f"{dx}x{dy}px") 
             # create directory for px if it doesn't exist
             os.makedirs(curr_pix_sim_path, exist_ok=True) 
-            os.makedirs(os.path.join(curr_pix_sim_path, "compact"), exist_ok=True) 
+            curr_pix_compact_path = os.makedirs(os.path.join(curr_pix_sim_path, "compact"), exist_ok=True) 
             os.chmod(os.path.join(curr_pix_sim_path, "compact"), 0o777)
             os.chmod(curr_pix_sim_path, 0o777)
 
@@ -114,7 +114,7 @@ class HandleEIC(object):
             shutil.copytree(self.compact_path, os.path.join(curr_pix_sim_path, "compact"), dirs_exist_ok=True)
 
             # change definitions xml for each pixel folder 
-            self.write_xml(dx, dy, os.path.join(curr_pix_sim_path, 'definitions.xml')) 
+            self.write_xml(dx, dy, os.path.join(curr_pix_compact_path, 'definitions.xml')) 
             # loop over all energy levels and save ddsim commands
             self.setup_queue(curr_pix_sim_path)
 
