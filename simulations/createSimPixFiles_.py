@@ -113,7 +113,7 @@ class HandleEIC(object):
             shutil.copytree(self.compact_path, curr_pix_sim_path, dirs_exist_ok=True)
 
             # change definitions xml for each pixel folder 
-            self.write_xml(dx, dy, curr_pix_sim_path) 
+            self.write_xml(dx, dy, os.path.join(curr_pix_sim_path, 'definitions.xml')) 
             # loop over all energy levels and save ddsim commands
             self.setup_queue(curr_pix_sim_path)
 
