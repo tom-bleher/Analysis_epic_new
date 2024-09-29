@@ -53,13 +53,13 @@ class HandleEIC(object):
         self.gen_path = Path("/data/tomble/Analysis_epic_new/simulations/genEvents/results/")
         self.energies = sorted([p.name for p in self.gen_path.glob('*') if self.file_type in p.name])
         self.det_path = os.environ['DETECTOR_PATH']
-        self.compact_path = Path(self.det_path) / 'compact'
+        self.compact_path = Path(self.det_path)/'compact'
 
         if not self.out_path:
             self.out_path = self.in_path
        
-        self.gen_path = Path("genEvents") / self.in_path
-        self.sim_path = Path("simEvents") / self.out_path
+        self.gen_path = Path("genEvents")/self.in_path
+        self.sim_path = Path("simEvents")/self.out_path
         self.sim_path_items = [p.name for p in self.sim_path.glob("*")]
 
         # if there is no simEvents then create it
@@ -73,7 +73,7 @@ class HandleEIC(object):
         If the JSON file doesn't exist or is incorrect, a new one is created with default pixel sizes.
         """
         self.px_dict = {}
-        self.px_json_path = self.px_json_path / 'pixel_data.json'
+        self.px_json_path = self.px_json_path/'pixel_data.json'
         try:
             # Try to read and load the JSON file
             with open(self.px_json_path,'r') as file:
@@ -101,9 +101,10 @@ class HandleEIC(object):
         looping over all energy levels and saving ddsim commands.
         """
         # create respective px folders and their compact folders
-        curr_pix_sim_path = self.sim_path / f"{dx}x{dy}px"
-        curr_compact_path = curr_pix_sim_path / "compact"
+        curr_pix_sim_path = self.sim_path/f"{dx}x{dy}px"
+        curr_compact_path = curr_pix_sim_path/"compact"
 
+        # create directory for px if it doesn't exist
         # create directory for px if it doesn't exist
         os.makedirs(curr_pix_sim_path, exist_ok=True) 
         os.makedirs(curr_compact_path, exist_ok=True) 
@@ -111,12 +112,12 @@ class HandleEIC(object):
         # set permissions
         os.chmod(curr_compact_path, 0o777)
         os.chmod(curr_pix_sim_path, 0o777)
-        
+
         # copy epic compact to each respective px folder for parameter reference 
         shutil.copytree(self.compact_path, curr_compact_path, dirs_exist_ok=True)
 
         # change definitions xml for each pixel folder 
-        self.write_xml(dx, dy, curr_compact_path / 'definitions.xml') 
+        self.write_xml(dx, dy, curr_compact_path/'definitions.xml') 
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue(curr_pix_sim_path)
@@ -187,7 +188,7 @@ class HandleEIC(object):
         Method to make a backup of simulation files.
         """
         # create the path where the simulation file backup will go
-        self.SimBackUpPath = self.sim_path / datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.SimBackUpPath = self.sim_path/datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # create a backup for this run
         if len(self.sim_path_items) > 0:
