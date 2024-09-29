@@ -64,7 +64,7 @@ class HandleEIC(object):
         # if there is no simEvents then create it
         simEvents_path = os.path.join(os.getcwd(), self.sim_path)
         os.makedirs(simEvents_path, exist_ok=True)
-        os.chmod(simEvents_path, 0o777)
+        self.set_permission(simEvents_path)
 
     def setup_json(self) -> list[tuple]:
         """
@@ -108,8 +108,8 @@ class HandleEIC(object):
         os.makedirs(curr_compact_path, exist_ok=True) 
 
         # set permissions
-        os.chmod(curr_compact_path, 0o777)
-        os.chmod(curr_pix_sim_path, 0o777)
+        self.set_permission(curr_compact_path)
+        self.set_permission(curr_pix_sim_path)
 
         # copy epic compact to each respective px folder for parameter reference 
         shutil.copytree(self.compact_path, curr_compact_path, dirs_exist_ok=True)
@@ -191,7 +191,7 @@ class HandleEIC(object):
         # create a backup for this run
         if len(self.sim_path_items) > 0:
             os.makedirs(self.SimBackUpPath, exist_ok=True)
-            os.chmod(self.SimBackUpPath, 0o777)
+            self.set_permission(self.SimBackUpPath)
             print(f"Created new backup directory in {self.SimBackUpPath}")
 
             # move files and pixel folders to backup
@@ -200,6 +200,16 @@ class HandleEIC(object):
 
                 if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
                     shutil.move(item_path, self.SimBackUpPath)
+
+    def set_permission(self, path: str, permission: int = 0o777):
+        """
+        Method for setting file/directory permissions.
+
+        Args:
+            path : path to the file or directory.
+            permission : the permissions to be set (in octal), default to 0o777.
+        """
+        os.chmod(path, permission)
 
 def main():
     # create an object of your class
