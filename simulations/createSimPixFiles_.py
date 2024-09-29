@@ -102,19 +102,24 @@ class HandleEIC(object):
         # loop over requested dx,dy values
         for pair in self.px_pairs: 
             dx, dy = pair
-            # create respective px folders 
+            # create respective px folders and their compact folders
             curr_pix_sim_path = os.path.join(self.sim_path, f"{dx}x{dy}px") 
+            curr_compact_path = os.path.join(curr_pix_sim_path, "compact")
+
             # create directory for px if it doesn't exist
             os.makedirs(curr_pix_sim_path, exist_ok=True) 
-            curr_pix_compact_path = os.makedirs(os.path.join(curr_pix_sim_path, "compact"), exist_ok=True) 
-            os.chmod(os.path.join(curr_pix_sim_path, "compact"), 0o777)
+            os.makedirs(curr_compact_path, exist_ok=True) 
+
+            # set permissions
+            os.chmod(curr_compact_path, 0o777)
             os.chmod(curr_pix_sim_path, 0o777)
 
             # copy epic compact to each respective px folder for parameter reference 
-            shutil.copytree(self.compact_path, os.path.join(curr_pix_sim_path, "compact"), dirs_exist_ok=True)
+            shutil.copytree(self.compact_path, curr_compact_path, dirs_exist_ok=True)
 
             # change definitions xml for each pixel folder 
-            self.write_xml(dx, dy, os.path.join(curr_pix_compact_path, 'definitions.xml')) 
+            self.write_xml(dx, dy, os.path.join(curr_compact_path, 'definitions.xml')) 
+            
             # loop over all energy levels and save ddsim commands
             self.setup_queue(curr_pix_sim_path)
 
