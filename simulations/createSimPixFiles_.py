@@ -19,9 +19,12 @@ class HandleEIC(object):
     def __init__(self) -> None:
         self.setup_var()
         self.setup_paths()
-        self.pixelSize_dx, self.pixelSize_dy = self.setup_json()
-        self.setup_file_specifics()
-        self.run_queue = self.setup_queue()
+        self.pixelSize_pairs = self.setup_json()
+            
+        for dx, dy in self.pixelSize_pairs:
+            self.pixelSize_dx, self.pixelSize_dy = dx, dy
+            self.setup_file_specifics()
+            self.run_queue = self.setup_queue()
 
     def setup_var(self) -> None:
         """
@@ -200,8 +203,6 @@ def main():
     eic_object = HandleEIC()
 
     # using this object, we call the other methods
-    eic_object.setup_json()
-    eic_object.setup_file_specifics()
     eic_object.exec_sim()
     eic_object.mk_backup()
 
