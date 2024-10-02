@@ -58,6 +58,9 @@ class HandleEIC(object):
         self.sim_path = f"simEvents{self.out_path}"
         self.sim_path_items = os.listdir(self.sim_path)
 
+        # create the path where the simulation file backup will go
+        self.SimBackUpPath = os.path.join(self.sim_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
+
         # if there is no simEvents then create it
         simEvents_path = os.path.join(os.getcwd(), self.sim_path)
         os.makedirs(simEvents_path, exist_ok=True)
@@ -229,8 +232,6 @@ class HandleEIC(object):
         """
         Method to make a backup of simulation files.
         """
-        # create the path where the simulation file backup will go
-        self.SimBackUpPath = os.path.join(self.sim_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
         # create a backup for this run
         if len(self.sim_path_items) > 0:
