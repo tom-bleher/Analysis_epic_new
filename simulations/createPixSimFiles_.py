@@ -222,7 +222,7 @@ class HandleEIC(object):
         # write readme content to the file
         with open(self.readme_path, 'a') as file:
             file.write(f'file_type: {self.file_type}\n')
-            file.write(f'Number of Particles: {self.num_particles}')
+            file.write(f'Number of Particles: {self.num_particles}\n')
             file.write(f'Pixel Value Pairs: {self.pixel_sizes}\n')
             file.write(f'BH: {self.BH_val}\n')
             file.write(f'Energy Levels : {self.photon_energy_vals}\n')
