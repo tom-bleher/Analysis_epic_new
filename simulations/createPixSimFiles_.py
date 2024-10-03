@@ -122,14 +122,14 @@ class HandleEIC(object):
 
         # create directory for px if it doesn't exist
         os.makedirs(curr_pix_path, exist_ok=True) 
-        os.makedirs(curr_epic_path, exist_ok=True) 
+        # os.makedirs(curr_epic_path, exist_ok=True) 
 
         # set permissions
         self.set_permission(curr_pix_path)
-        self.set_permission(curr_epic_path)
+        #self.set_permission(curr_epic_path)
 
         # copy epic compact to each respective px folder for parameter reference 
-        shutil.copytree(self.base_epic_path, curr_epic_path, dirs_exist_ok=True)
+        shutil.copytree(self.base_epic_path, curr_pix_path, dirs_exist_ok=True)
 
         # rewrite {DETECTOR_PATH} and /compact/ for current                                 
         self.rewrite_xml_tree(curr_epic_path, curr_pix_path)
