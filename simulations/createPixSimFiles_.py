@@ -39,7 +39,7 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.run_path = os.getcwd()
-        self.base_epic_path = f"/data/tomble/eic/epic"
+        self.base_epic_path = os.environ['DETECTOR_PATH'] # /data/tomble/eic/epic/install/share/epic
         self.main_xml_path = f"{self.base_epic_path}/install/share/epic/epic_ip6_extended.xml"
         self.createGenFiles_path = f"{self.run_path}/createGenFiles.py" # get BH value for generated hepmc files (zero or one)
         self.energies = [file for file in sorted(os.listdir(f"{self.run_path}/genEvents/results/")) if self.file_type in file]  
@@ -122,14 +122,14 @@ class HandleEIC(object):
 
         # create directory for px if it doesn't exist
         os.makedirs(curr_pix_path, exist_ok=True) 
-        # os.makedirs(curr_epic_path, exist_ok=True) 
+        os.makedirs(curr_epic_path, exist_ok=True) 
 
         # set permissions
         self.set_permission(curr_pix_path)
-        #self.set_permission(curr_epic_path)
+        self.set_permission(curr_epic_path)
 
         # copy epic compact to each respective px folder for parameter reference 
-        shutil.copytree(self.base_epic_path, curr_pix_path, dirs_exist_ok=True)
+        shutil.copytree(self.base_epic_path, curr_epic_path, dirs_exist_ok=True)
 
         # rewrite {DETECTOR_PATH} and /compact/ for current                                 
         self.rewrite_xml_tree(curr_epic_path, curr_px_dx, curr_px_dy)
