@@ -66,28 +66,6 @@ class HandleEIC(object):
         os.makedirs(simEvents_path, exist_ok=True)
         self.set_permission(simEvents_path)
 
-    def setup_readme(self) -> None:
-        
-        # define path for readme file 
-        self.readme_path = os.path.join(self.SimBackUpPath, "README.txt")
-        
-        # call the function to read the BH value from the function
-        self.BH_val = self.get_BH_val()
-
-        # get energy levels from files names of genEvents
-        self.photon_energy_vals = [
-            '.'.join(file.split('_')[1].split('.', 2)[:2]) 
-            for file in self.energies
-        ]
-
-        # write readme content to the file
-        with open(self.readme_path, 'w') as file:
-            file.write(f'file_type: {self.file_type}\n')
-            file.write(f'Number of Particles: {self.num_particles}')
-            file.write(f'Pixel Value Pairs: {self.pixelSize_pairs}\n')
-            file.write(f'BH: {self.BH_val}\n')
-            file.write(f'Energies: {self.photon_energy_vals}\n')
-
     def get_BH_val(self):
 
         # open the path storing the createGenFiles.py file
@@ -149,9 +127,6 @@ class HandleEIC(object):
         # set permissions
         self.set_permission(curr_pix_path)
         self.set_permission(curr_epic_path)
-
-        # call fucntion to writing the readme file containing the information
-        self.setup_readme()
 
         # copy epic compact to each respective px folder for parameter reference 
         shutil.copytree(self.base_epic_path, curr_epic_path, dirs_exist_ok=True)
@@ -228,6 +203,28 @@ class HandleEIC(object):
         if process.returncode != 0:        
             raise RuntimeError(f'Failed command {cmd}, Error code {process.returncode}\n{stderr.decode()}')
         
+    def setup_readme(self) -> None:
+        
+        # define path for readme file 
+        self.readme_path = os.path.join(self.SimBackUpPath, "README.txt")
+        
+        # call the function to read the BH value from the function
+        self.BH_val = self.get_BH_val()
+
+        # get energy levels from files names of genEvents
+        self.photon_energy_vals = [
+            '.'.join(file.split('_')[1].split('.', 2)[:2]) 
+            for file in self.energies
+        ]
+
+        # write readme content to the file
+        with open(self.readme_path, 'a') as file:
+            file.write(f'file_type: {self.file_type}\n')
+            file.write(f'Number of Particles: {self.num_particles}')
+            file.write(f'Pixel Value Pairs: {self.pixelSize_pairs}\n')
+            file.write(f'BH: {self.BH_val}\n')
+            file.write(f'Energies: {self.photon_energy_vals}\n')
+
     def mk_backup(self) -> None:
         """
         Method to make a backup of simulation files.
@@ -245,6 +242,10 @@ class HandleEIC(object):
 
                 if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
                     shutil.move(item_path, self.SimBackUpPath)
+
+        # call fucntion to writing the readme file containing the information
+        self.setup_readme()
+
 
     def set_permission(self, path: str, permission: int = 0o777):
         """
