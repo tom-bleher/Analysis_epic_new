@@ -132,7 +132,7 @@ class HandleEIC(object):
         shutil.copytree(self.base_epic_path, curr_pix_path, dirs_exist_ok=True)
 
         # rewrite {DETECTOR_PATH} and /compact/ for current                                 
-        self.rewrite_xml_tree(curr_epic_path, curr_pix_path)
+        self.rewrite_xml_tree(curr_epic_path, curr_px_dx, curr_px_dy)
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue(curr_epic_ip6_path, curr_pix_path)
