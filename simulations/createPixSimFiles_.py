@@ -167,17 +167,16 @@ class HandleEIC(object):
         """
         Method for setting up the queue of commands, each for executing ddsim.
         """
-        self.run_queue = {} # init dict to hold commands per file
+        self.run_queue = set() # init set to hold commands
         for file in self.energy_levels : 
             inFile = self.genEvents_path  + "/results/" + file 
             fileNum = re.search("\d+\.+\d\.", inFile).group() 
             cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_pix_path}/output_{fileNum}edm4hep.root --compactFile {curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
-            self.run_queue[inFile] = cmd
+            self.run.queue.add(cmd)
 
         # return dict containing ddsim commands per file
-        print(self.run_queue)
         return self.run_queue
 
     def exec_sim(self, run_queue) -> None:
@@ -187,7 +186,7 @@ class HandleEIC(object):
         # create ThreadPoolExecutor/ProcessPoolExecutor
         with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             # submit all tasks at once to the executor
-            futures = [executor.submit(self.run_cmd, cmd) for cmd in run_queue.values()]
+            futures = [executor.submit(self.run_cmd, cmd) for cmd in run_queue]
 
         # Handle completed tasks
         for future in concurrent.futures.as_completed(futures):
