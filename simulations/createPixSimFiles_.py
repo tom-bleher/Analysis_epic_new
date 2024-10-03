@@ -240,7 +240,7 @@ class HandleEIC(object):
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
-        path_to_search_pixel_dirs = os.path.dirname(self.simEvents_path)
+        path_to_search_pixel_dirs = os.path.dirname(self.execution_path)
 
         # move pixel folders to backup
         for item in os.listdir(path_to_search_pixel_dirs):
