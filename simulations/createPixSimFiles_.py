@@ -30,7 +30,7 @@ class HandleEIC(object):
         Method for setting variables that control the processing.
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 5000
+        self.num_particles = 10
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
 
@@ -174,6 +174,7 @@ class HandleEIC(object):
             self.run_queue[inFile] = cmd
 
         # return dict containing ddsim commands per file
+        print(self.run_queue)
         return self.run_queue
 
     def exec_sim(self) -> None:
