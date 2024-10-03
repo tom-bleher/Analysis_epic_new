@@ -135,7 +135,10 @@ class HandleEIC(object):
         self.rewrite_xml_tree(curr_epic_path, curr_px_dx, curr_px_dy)
 
         # loop over all energy levels and save ddsim commands
-        self.setup_queue(curr_epic_ip6_path, curr_pix_path)
+        curr_run_queue = self.setup_queue(curr_epic_ip6_path, curr_pix_path)
+
+       # execute those simulations
+        self.exec_sim(curr_run_queue)
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
 
@@ -177,22 +180,21 @@ class HandleEIC(object):
         print(self.run_queue)
         return self.run_queue
 
-    def exec_sim(self) -> None:
+    def exec_sim(self, run_queue) -> None:
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         # create ThreadPoolExecutor/ProcessPoolExecutor
         with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             # submit all tasks at once to the executor
-            futures = [executor.submit(self.run_cmd, cmd) for cmd in self.run_queue.values()]
+            futures = [executor.submit(self.run_cmd, cmd) for cmd in run_queue.values()]
 
         # Handle completed tasks
         for future in concurrent.futures.as_completed(futures):
             try:
-                future.result()  # exceptions are raised here if runSim raised any exception
+                future.result()  # exceptions are raised here if a simulation raised any exception
             except Exception as e:
-                print('A command failed with an exception:', str(e))
-
+                print('A simulation failed with an exception:', str(e))
 
     def run_cmd(self, cmd) -> None:
         """
@@ -272,11 +274,8 @@ class HandleEIC(object):
         os.chmod(path, permission)
 
 def main():
-    # create an object of your class
+    
     eic_object = HandleEIC()
-
-    # using this object, we call the other methods
-    eic_object.exec_sim()
     eic_object.mk_backup()
 
 if __name__ == "__main__":
