@@ -233,7 +233,6 @@ class HandleEIC(object):
         """
 
         # create a backup for this run
-        #if len(self.simEvents_items) > 0:
         os.makedirs(self.backup_path , exist_ok=True)
         self.set_permission(self.backup_path )
         print(f"Created new backup directory in {self.backup_path }")
@@ -241,16 +240,17 @@ class HandleEIC(object):
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
-        # move files and pixel folders to backup
-        for item in self.simEvents_items:
-            item_path = os.path.join(self.simEvents_path , item)
-            # identify folders/files using regex
-            if os.path.isfile(item_path) or (os.path.isdir(item_path) and px_folder_pattern.match(item)):
+        path_to_search_pixel_dirs = os.path.dirname(self.simEvents_path)
+
+        # move pixel folders to backup
+        for item in os.listdir(path_to_search_pixel_dirs):
+            item_path = os.path.join(path_to_search_pixel_dirs, item)
+            # identify folders using regex
+            if os.path.isdir(item_path) and px_folder_pattern.match(item):
                 shutil.move(item_path, self.backup_path )
-        
+
         # call function to write the readme file containing the information
         self.setup_readme()
-
 
     def set_permission(self, path: str, permission: int = 0o777):
         """
