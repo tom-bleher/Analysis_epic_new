@@ -150,14 +150,15 @@ class HandleEIC(object):
                     tree = ET.parse(filepath)
                     root = tree.getroot()
                     for elem in root.iter():
-                        if elem.text:
+                        if "constant" in elem.tag and 'name' in elem.keys():
+                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                                elem.attrib['value'] = f"{curr_px_dx}*mm"
+                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                                elem.attrib['value'] = f"{curr_px_dy}*mm"
+                        elif elem.text:
                             if "{DETECTOR_PATH}" in elem.text:
                                 elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
-                            elif "<constant name='LumiSpecTracker_pixelSize_dx' value='" in elem.text:
-                                elem.text = re.sub(r"<constant name='LumiSpecTracker_pixelSize_dx' value='.*?'>", f"<constant name='LumiSpecTracker_pixelSize_dx' value='{curr_px_dx}*mm'>", elem.text)
-                            elif "<constant name='LumiSpecTracker_pixelSize_dy' value='" in elem.text:
-                                elem.text = re.sub(r"<constant name='LumiSpecTracker_pixelSize_dy' value='.*?'>", f"<constant name='LumiSpecTracker_pixelSize_dy' value='{curr_px_dy}*mm'>", elem.text)
-                        tree.write(filepath)
+                    tree.write(filepath)
 
     def setup_queue(self, curr_epic_ip6_path, curr_pix_path: str) -> dict:
         """
@@ -239,12 +240,11 @@ class HandleEIC(object):
             # move files and pixel folders to backup
             for item in self.simEvents_items:
                 item_path = os.path.join(self.simEvents_path , item)
-
                 if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
                     shutil.move(item_path, self.backup_path )
 
-        # call fucntion to writing the readme file containing the information
-        self.setup_readme()
+            # call function to write the readme file containing the information
+            self.setup_readme()
 
 
     def set_permission(self, path: str, permission: int = 0o777):
