@@ -233,19 +233,19 @@ class HandleEIC(object):
         """
 
         # create a backup for this run
-        if len(self.simEvents_items) > 0:
-            os.makedirs(self.backup_path , exist_ok=True)
-            self.set_permission(self.backup_path )
-            print(f"Created new backup directory in {self.backup_path }")
+        #if len(self.simEvents_items) > 0:
+        os.makedirs(self.backup_path , exist_ok=True)
+        self.set_permission(self.backup_path )
+        print(f"Created new backup directory in {self.backup_path }")
 
-            # move files and pixel folders to backup
-            for item in self.simEvents_items:
-                item_path = os.path.join(self.simEvents_path , item)
-                if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
-                    shutil.move(item_path, self.backup_path )
+        # move files and pixel folders to backup
+        for item in self.simEvents_items:
+            item_path = os.path.join(self.simEvents_path , item)
+            if os.path.isfile(item_path) or (os.path.isdir(item_path) and "px" in item):
+                shutil.move(item_path, self.backup_path )
 
-            # call function to write the readme file containing the information
-            self.setup_readme()
+        # call function to write the readme file containing the information
+        self.setup_readme()
 
 
     def set_permission(self, path: str, permission: int = 0o777):
