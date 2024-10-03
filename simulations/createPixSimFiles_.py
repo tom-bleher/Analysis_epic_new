@@ -174,7 +174,7 @@ class HandleEIC(object):
             cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_pix_path}/output_{fileNum}edm4hep.root --compactFile {curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
-            self.run.queue.add(cmd)
+            self.run_queue.add(cmd)
 
         # return dict containing ddsim commands per file
         return self.run_queue
