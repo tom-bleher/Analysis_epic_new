@@ -13,6 +13,7 @@ import json
 import concurrent.futures
 import subprocess
 import xml.etree.ElementTree as ET
+import multiprocessing
 
 class HandleEIC(object):
     
@@ -221,12 +222,11 @@ class HandleEIC(object):
                 cmd = future_to_cmd[future]
                 run_queue.remove(cmd)
 
-
     def exec_simv4(self, run_queue) -> int:
         """
-        Method for executing all simulations in parallel using ThreadPoolExecutor.
+        Method for executing all simulations in parallel using ProcessPoolExecutor.
         """
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
             count = 0
             for future in concurrent.futures.as_completed(futures):
