@@ -211,6 +211,37 @@ class HandleEIC(object):
                 res: str = future.result()
         return count
 
+    def exec_simv3(self, run_queue) -> None:
+        """
+        Method for executing all simulations in parallel using ThreadPoolExecutor.
+        """
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in self.run_queue}
+            for future in concurrent.futures.as_completed(future_to_cmd):
+                cmd = future_to_cmd[future]
+                run_queue.remove(cmd)
+
+
+    def exec_simv4(self, run_queue) -> int:
+        """
+        Method for executing all simulations in parallel using ThreadPoolExecutor.
+        """
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            count = 0
+            for future in concurrent.futures.as_completed(futures):
+                cmd = futures[future]
+                count += 1
+                try:
+                    result = future.result()
+                    print(f'Command: {cmd} ended with {result}')
+                except Exception as exc:
+                    print(f'Command {cmd} generated an exception: {exc}')
+                else:
+                    print(f'Command {cmd} finished successfully')
+            print(f'Total tasks in the queue: {count}')
+            return count
+
     def run_cmd(self, cmd) -> None:
         """
         Method to run a command (ddsim execution) using subprocess.
