@@ -168,8 +168,8 @@ class HandleEIC(object):
             tree.write(filepath)
     '''
 
-    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
-
+    def rewrite_xml_tree_lxml(self, curr_epic_path, curr_px_dx, curr_px_dy):
+        
         # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
         # and for every compact path we replace with our new compact path 
 
@@ -178,19 +178,19 @@ class HandleEIC(object):
             for filename in files:
                 filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml"):
-                    parser = etree.XMLParser()
+                    parser = etree.XMLParser(remove_blank_text=True)
                     tree = etree.parse(filepath, parser)
                     root = tree.getroot()
                     for elem in root.iter():
-                        if "constant" in elem.tag and 'name' in elem.keys():
-                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
-                                elem.attrib['value'] = f"{curr_px_dx}*mm"
-                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
-                                elem.attrib['value'] = f"{curr_px_dy}*mm"
+                        if "constant" in etree.QName(elem).localname:
+                            if elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dx":
+                                elem.set('value', f"{curr_px_dx}*mm")
+                            elif elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dy":
+                                elem.set('value', f"{curr_px_dy}*mm")
                         elif elem.text:
                             if "{DETECTOR_PATH}" in elem.text:
-                                elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
-                    tree.write(filepath)
+                                elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
+                    tree.write(filepath, pretty_print=True)
 
     def setup_queue(self) -> dict:
         """
