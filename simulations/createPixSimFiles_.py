@@ -130,7 +130,7 @@ class HandleEIC(object):
         shutil.copytree(self.base_epic_path, self.curr_epic_path, dirs_exist_ok=True)
 
         # rewrite {DETECTOR_PATH} for current                                 
-        self.rewrite_xml_tree()
+        self.rewrite_xml_tree(self.curr_epic_path, curr_dx, curr_dy)
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue()
@@ -138,17 +138,17 @@ class HandleEIC(object):
        # execute those simulations
         await self.exec_sim()
 
-    def rewrite_xml_tree(self) -> None:
+    def rewrite_xml_tree(self, curr_epic_path, curr_dx, curr_dy) -> None:
         """
         Iterates over all XML files located in the directory specified by curr_epic_path
         to rewrite them in parallel utilizing multiprocessing.
         """
 
-        xml_files = [subdir + os.sep + filename for subdir, dirs, files in os.walk(self.curr_epic_path) for filename in files]
+        xml_files = [subdir + os.sep + filename for subdir, dirs, files in os.walk(curr_epic_path) for filename in files]
         
         with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             # these tasks will be executed in parallel
-            executor.map(self.rewrite_one_xml, xml_files, [self.curr_epic_path]*len(xml_files), [self.curr_dx]*len(xml_files), [self.curr_dy]*len(xml_files))
+            executor.map(self.rewrite_one_xml, xml_files, [curr_epic_path]*len(xml_files), [curr_dx]*len(xml_files), [curr_dy]*len(xml_files))
 
     def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
         """
