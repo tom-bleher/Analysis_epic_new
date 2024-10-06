@@ -11,9 +11,8 @@ import sys
 import re
 import json
 import concurrent.futures
-import subprocess
-from lxml import etree
 import asyncio
+import xml.etree.ElementTree as ET
 
 class HandleEIC(object):
     
@@ -133,7 +132,6 @@ class HandleEIC(object):
        # execute those simulations
         await self.exec_sim()
 
-    '''
     def rewrite_xml_tree(self, curr_epic_path, curr_dx, curr_dy) -> None:
         """
         Iterates over all XML files located in the directory specified by curr_epic_path
@@ -153,8 +151,7 @@ class HandleEIC(object):
         """
 
         if filepath.endswith(".xml"):
-            parser = etree.XMLParser()
-            tree = etree.parse(filepath, parser)
+            tree = ET.parse(filepath)
             root = tree.getroot()
             for elem in root.iter():
                 if "constant" in elem.tag and 'name' in elem.keys():
@@ -164,12 +161,12 @@ class HandleEIC(object):
                         elem.attrib['value'] = f"{curr_px_dy}*mm"
                 elif elem.text:
                     if "{DETECTOR_PATH}" in elem.text:
-                        elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
+                        elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
             tree.write(filepath)
+            
     '''
-
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
-        
+
         # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
         # and for every compact path we replace with our new compact path 
 
@@ -178,19 +175,19 @@ class HandleEIC(object):
             for filename in files:
                 filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml"):
-                    parser = etree.XMLParser(remove_blank_text=True)
-                    tree = etree.parse(filepath, parser)
+                    tree = ET.parse(filepath)
                     root = tree.getroot()
                     for elem in root.iter():
-                        if "constant" in elem.tag:
-                            if elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dx":
-                                elem.set('value', f"{curr_px_dx}*mm")
-                            elif elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dy":
-                                elem.set('value', f"{curr_px_dy}*mm")
+                        if "constant" in elem.tag and 'name' in elem.keys():
+                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                                elem.attrib['value'] = f"{curr_px_dx}*mm"
+                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                                elem.attrib['value'] = f"{curr_px_dy}*mm"
                         elif elem.text:
                             if "{DETECTOR_PATH}" in elem.text:
                                 elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
-                    tree.write(filepath, pretty_print=True)
+                    tree.write(filepath)
+    '''
 
     def setup_queue(self) -> dict:
         """
