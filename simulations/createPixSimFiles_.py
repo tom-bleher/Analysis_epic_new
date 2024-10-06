@@ -12,9 +12,9 @@ import re
 import json
 import concurrent.futures
 import subprocess
-import xml.etree.ElementTree as ET
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor
+from lxml import etree
+import asyncio
+import aiofiles
 
 class HandleEIC(object):
     
@@ -48,16 +48,15 @@ class HandleEIC(object):
         self.in_path = ""
         self.out_path = ""
         if len(sys.argv) > 1: 
-            self.in_path = "/" + sys.argv[1]
+            self.in_path = f"/{sys.argv[1]}"
         if len(sys.argv) > 2: 
-            self.out_path = "/" + sys.argv[2]
+            self.out_path = f"/{sys.argv[2]}"
 
         if not self.out_path:
             self.out_path = self.in_path
 
         self.genEvents_path  = os.makedirs(os.path.join(os.getcwd(), f"genEvents{self.in_path}"), exist_ok=True)
         self.simEvents_path  = os.makedirs(os.path.join(os.getcwd(), f"simEvents{self.out_path}"), exist_ok=True)
-        self.simEvents_items = os.listdir(self.simEvents_path)
 
         # create the path where the simulation file backup will go
         self.backup_path  = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -157,7 +156,8 @@ class HandleEIC(object):
         """
 
         if filepath.endswith(".xml"):
-            tree = ET.parse(filepath)
+            parser = etree.XMLParser(remove_blank_text=True)
+            tree = etree.parse(filepath, parser)
             root = tree.getroot()
             for elem in root.iter():
                 if "constant" in elem.tag and 'name' in elem.keys():
@@ -170,45 +170,44 @@ class HandleEIC(object):
                         elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
             tree.write(filepath)
 
+
     def setup_queue(self) -> dict:
         """
         Method for setting up the queue of commands, each for executing ddsim.
         """
         self.run_queue = set() # init set to hold commands
         for file in self.energy_levels : 
-            self.inFile = self.genEvents_path  + "/results/" + file 
+            self.inFile = f"{self.genEvents_path}/results/{file}"
             self.file_num = re.search("\d+\.+\d\.", self.inFile).group() 
             cmd = f"ddsim --inputFiles {self.inFile} --outputFile {self.curr_pix_path}/output_{self.file_num}edm4hep.root --compactFile {self.curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
             self.run_queue.add(cmd)
 
-    def exec_sim(self) -> None:
+    async def exec_sim(self) -> None:
         """
-        Method for executing all simulations in parallel using ThreadPoolExecutor.
+        Method for executing all simulations in parallel using asyncio.
         """
-        completed_commands = set()
-        with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor: # adjust max_workers depending on your system
-            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in list(self.run_queue)}
-            for future in concurrent.futures.as_completed(future_to_cmd):
-                cmd = future_to_cmd[future]
-                completed_commands.add(cmd)  # add executed command to completed_commands
-                try:
-                    future.result()  # to ensure that any Exceptions raised are caught here
-                except Exception as e:
-                    print(f"Command {cmd} failed with error {e}")
+        # these tasks will be executed in parallel
+        await asyncio.gather(*(self.run_cmd(cmd) for cmd in self.run_queue))
 
-    def run_cmd(self, cmd) -> None:
+    async def run_cmd(self, cmd) -> None:
         """
-        Method to run a command (ddsim execution) using subprocess.
+        Method to run a command (ddsim execution) using asyncio subprocess.
         """
         print(f"Running command: {cmd}")  # debug print
 
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        process = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
         print(f"Standard output: {stdout.decode()}")
         print(f"Standard error: {stderr.decode()}")
-
+        
         if process.returncode != 0: 
             print(f'Failed command {cmd}, Error code {process.returncode}\n{stderr.decode()}')
 
@@ -242,18 +241,15 @@ class HandleEIC(object):
 
         # create a backup for this run
         os.makedirs(self.backup_path , exist_ok=True)
-        self.set_path_perms(self.backup_path )
+        self.set_path_perms(self.backup_path)
         print(f"Created new backup directory in {self.backup_path }")
 
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
-        # make sure the path to search is simEvents path, not its parent
-        path_to_search_pixel_dirs = self.simEvents_path
-
         # move pixel folders to backup
-        for item in os.listdir(path_to_search_pixel_dirs):
-            item_path = os.path.join(path_to_search_pixel_dirs, item)
+        for item in os.listdir(self.simEvents_path):
+            item_path = os.path.join(self.simEvents_path, item)
             # identify folders using regex
             if os.path.isdir(item_path) and px_folder_pattern.match(item):
                 shutil.move(item_path, self.backup_path )
@@ -273,4 +269,5 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
+    asyncio.run(eic_object.exec_sim())
     eic_object.mk_sim_backup()
