@@ -10,7 +10,6 @@ from datetime import datetime
 import sys
 import re
 import json
-import concurrent.futures
 import asyncio
 import xml.etree.ElementTree as ET
 
@@ -132,39 +131,6 @@ class HandleEIC(object):
        # execute those simulations
         await self.exec_sim()
 
-    def rewrite_xml_tree(self, curr_epic_path, curr_dx, curr_dy) -> None:
-        """
-        Iterates over all XML files located in the directory specified by curr_epic_path
-        to rewrite them in parallel utilizing multiprocessing.
-        """
-
-        xml_files = [subdir + os.sep + filename for subdir, dirs, files in os.walk(curr_epic_path) for filename in files]
-        
-        with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            # these tasks will be executed in parallel
-            executor.map(self.rewrite_one_xml, xml_files, [curr_epic_path]*len(xml_files), [curr_dx]*len(xml_files), [curr_dy]*len(xml_files))
-
-    def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
-        """
-        Parses the specified XML file located at filepath and rewrites
-        its contents, particularly the DETECTOR_PATH, and pixel dx and dy resolutions.
-        """
-
-        if filepath.endswith(".xml"):
-            tree = ET.parse(filepath)
-            root = tree.getroot()
-            for elem in root.iter():
-                if "constant" in elem.tag and 'name' in elem.keys():
-                    if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
-                        elem.attrib['value'] = f"{curr_px_dx}*mm"
-                    elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
-                        elem.attrib['value'] = f"{curr_px_dy}*mm"
-                elif elem.text:
-                    if "{DETECTOR_PATH}" in elem.text:
-                        elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
-            tree.write(filepath)
-            
-    '''
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
 
         # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
@@ -187,7 +153,6 @@ class HandleEIC(object):
                             if "{DETECTOR_PATH}" in elem.text:
                                 elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
                     tree.write(filepath)
-    '''
 
     def setup_queue(self) -> dict:
         """
