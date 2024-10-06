@@ -14,7 +14,6 @@ import concurrent.futures
 import subprocess
 from lxml import etree
 import asyncio
-import xml.etree.ElementTree as ET
 
 class HandleEIC(object):
     
@@ -179,7 +178,8 @@ class HandleEIC(object):
             for filename in files:
                 filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml"):
-                    tree = ET.parse(filepath)
+                    parser = etree.XMLParser()
+                    tree = etree.parse(filepath, parser)
                     root = tree.getroot()
                     for elem in root.iter():
                         if "constant" in elem.tag and 'name' in elem.keys():
@@ -189,9 +189,8 @@ class HandleEIC(object):
                                 elem.attrib['value'] = f"{curr_px_dy}*mm"
                         elif elem.text:
                             if "{DETECTOR_PATH}" in elem.text:
-                                elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
+                                elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
                     tree.write(filepath)
-
 
     def setup_queue(self) -> dict:
         """
