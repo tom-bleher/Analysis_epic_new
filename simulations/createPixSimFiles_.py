@@ -39,6 +39,7 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
+        os.chmod(self.execution_path, 0o777)
         self.base_epic_path = os.environ['DETECTOR_PATH'] # /data/tomble/eic/epic/install/share/epic
         self.createGenFiles_path = f"{self.execution_path}/createGenFiles.py" # get BH value for generated hepmc files (zero or one)
         self.energy_levels  = [file for file in sorted(os.listdir(f"{self.execution_path}/genEvents/results/")) if self.file_type in file]  
@@ -61,8 +62,6 @@ class HandleEIC(object):
 
         # create the path where the simulation file backup will go
         self.backup_path  = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
-        self.set_path_perms(self.simEvents_path)
-        self.set_path_perms(self.genEvents_path)
 
     def get_BH_val(self):
 
@@ -122,10 +121,6 @@ class HandleEIC(object):
         os.makedirs(self.curr_pix_path, exist_ok=True) 
         os.makedirs(self.curr_epic_path, exist_ok=True) 
 
-        # set permissions
-        self.set_path_perms(self.curr_pix_path)
-        self.set_path_perms(self.curr_epic_path)
-
         # copy epic compact to each respective px folder for parameter reference 
         shutil.copytree(self.base_epic_path, self.curr_epic_path, dirs_exist_ok=True)
 
@@ -179,7 +174,8 @@ class HandleEIC(object):
         self.run_queue = set() # init set to hold commands
         for file in self.energy_levels : 
             self.inFile = f"{self.genEvents_path}/results/{file}"
-            self.file_num = re.search("\d+\.+\d\.", self.inFile).group() 
+            #self.file_num = re.search("\d+\.+\d\.", self.inFile).group() 
+            self.file_num = ".".join(self.inFile.split('.')[0:2])
             cmd = f"ddsim --inputFiles {self.inFile} --outputFile {self.curr_pix_path}/output_{self.file_num}edm4hep.root --compactFile {self.curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
@@ -196,7 +192,7 @@ class HandleEIC(object):
         """
         Method to run a command (ddsim execution) using asyncio subprocess.
         """
-        print(f"Running command: {cmd}")  # debug print
+        print(cmd) # debug print
 
         process = await asyncio.create_subprocess_shell(
             cmd,
@@ -233,7 +229,6 @@ class HandleEIC(object):
             file.write(f'Pixel Value Pairs: {self.pixel_sizes}\n')
             file.write(f'BH: {self.BH_val}\n')
             file.write(f'Energy Levels : {self.photon_energy_vals}\n')
-        self.set_path_perms(self.readme_path)
 
     def mk_sim_backup(self) -> None:
         """
@@ -242,7 +237,6 @@ class HandleEIC(object):
 
         # create a backup for this run
         os.makedirs(self.backup_path , exist_ok=True)
-        self.set_path_perms(self.backup_path)
         print(f"Created new backup directory in {self.backup_path }")
 
         # regex pattern to match pixel folders
@@ -257,16 +251,6 @@ class HandleEIC(object):
 
         # call function to write the readme file containing the information
         self.setup_readme()
-
-    def set_path_perms(self, path: str, permission: int = 0o777):
-        """
-        Method for setting file/directory permissions.
-
-        Args:
-            path : path to the file or directory.
-            permission : the permissions to be set (in octal), default to 0o777.
-        """
-        os.chmod(path, permission)
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
