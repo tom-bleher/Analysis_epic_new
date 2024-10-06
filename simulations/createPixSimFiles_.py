@@ -254,7 +254,10 @@ class HandleEIC(object):
         for dirpath, dirnames, filenames in os.walk(path):
             os.chmod(dirpath, 0o777)
             for filename in filenames:
-                os.chmod(os.path.join(dirpath, filename), 0o777)
+                if os.path.isfile(filename):
+                    os.chmod(os.path.join(dirpath, filename), 0o777)
+                else:
+                    pass 
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
