@@ -168,7 +168,7 @@ class HandleEIC(object):
             tree.write(filepath)
     '''
 
-    def rewrite_xml_tree_lxml(self, curr_epic_path, curr_px_dx, curr_px_dy):
+    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         
         # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
         # and for every compact path we replace with our new compact path 
