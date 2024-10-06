@@ -40,7 +40,6 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
-        os.chmod(self.execution_path, 0o777)
         self.base_epic_path = os.environ['DETECTOR_PATH'] # /data/tomble/eic/epic/install/share/epic
         self.createGenFiles_path = f"{self.execution_path}/createGenFiles.py" # get BH value for generated hepmc files (zero or one)
         self.energy_levels  = [file for file in sorted(os.listdir(f"{self.execution_path}/genEvents/results/")) if self.file_type in file]  
@@ -59,7 +58,6 @@ class HandleEIC(object):
         self.simEvents_path  = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
         os.makedirs(self.genEvents_path, exist_ok=True)
         os.makedirs(self.simEvents_path, exist_ok=True)
-
 
         # create the path where the simulation file backup will go
         self.backup_path  = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -130,6 +128,7 @@ class HandleEIC(object):
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue()
+        self.chmod_recursive(self.execution_path)
 
        # execute those simulations
         await self.exec_sim()
@@ -146,7 +145,6 @@ class HandleEIC(object):
             # these tasks will be executed in parallel
             executor.map(self.rewrite_one_xml, xml_files, [curr_epic_path]*len(xml_files), [curr_dx]*len(xml_files), [curr_dy]*len(xml_files))
 
-    '''
     def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
         """
         Parses the specified XML file located at filepath and rewrites
@@ -156,27 +154,6 @@ class HandleEIC(object):
         if filepath.endswith(".xml"):
             parser = etree.XMLParser()
             tree = etree.parse(filepath, parser)
-            root = tree.getroot()
-            for elem in root.iter():
-                if "constant" in elem.tag and 'name' in elem.keys():
-                    if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
-                        elem.attrib['value'] = f"{curr_px_dx}*mm"
-                    elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
-                        elem.attrib['value'] = f"{curr_px_dy}*mm"
-                elif elem.text:
-                    if "{DETECTOR_PATH}" in elem.text:
-                        elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
-            tree.write(filepath)
-    '''
-
-    def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
-        """
-        Parses the specified XML file located at filepath and rewrites
-        its contents, particularly the DETECTOR_PATH, and pixel dx and dy resolutions.
-        """
-
-        if filepath.endswith(".xml"):
-            tree = ET.parse(filepath)
             root = tree.getroot()
             for elem in root.iter():
                 if "constant" in elem.tag and 'name' in elem.keys():
@@ -272,6 +249,12 @@ class HandleEIC(object):
 
         # call function to write the readme file containing the information
         self.setup_readme()
+
+    def chmod_recursive(self, path):
+        for dirpath, dirnames, filenames in os.walk(path):
+            os.chmod(dirpath, 0o777)
+            for filename in filenames:
+                os.chmod(os.path.join(dirpath, filename), 0o777)
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
