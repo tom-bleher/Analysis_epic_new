@@ -182,7 +182,7 @@ class HandleEIC(object):
                     tree = etree.parse(filepath, parser)
                     root = tree.getroot()
                     for elem in root.iter():
-                        if "constant" in etree.QName(elem).localname:
+                        if "constant" in elem.tag:
                             if elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dx":
                                 elem.set('value', f"{curr_px_dx}*mm")
                             elif elem.get('name', default=None) == "LumiSpecTracker_pixelSize_dy":
