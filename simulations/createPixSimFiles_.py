@@ -23,7 +23,7 @@ class HandleEIC(object):
         self.pixel_sizes = self.setup_json()
 
         # store the coroutines in a list
-        self.tasks = [self.prepare_files() for dx, dy in self.pixel_sizes]
+        self.tasks = [self.prepare_files(dx, dy) for dx, dy in self.pixel_sizes]
 
     def init_var(self) -> None:
         """
@@ -108,13 +108,13 @@ class HandleEIC(object):
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
 
-    async def prepare_files(self) -> None: 
+    async def prepare_files(self, curr_dx, curr_dy) -> None: 
         """
         Method for setting up file specifics such as creating respective pixel folders, changing definitions xml and 
         looping over all energy levels and saving ddsim commands.
         """
         # create respective px folders and their compact folders
-        self.curr_pix_path = os.path.join(self.simEvents_path , f"{self.curr_dx}x{self.curr_dy}px") 
+        self.curr_pix_path = os.path.join(self.simEvents_path , f"{curr_dx}x{curr_dy}px") 
         self.curr_epic_path = os.path.join(self.curr_pix_path, "epic")
         self.curr_epic_ip6_path = os.path.join(self.curr_epic_path, "epic_ip6_extended.xml")
 
