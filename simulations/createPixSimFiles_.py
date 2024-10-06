@@ -152,7 +152,7 @@ class HandleEIC(object):
         """
 
         if filepath.endswith(".xml"):
-            parser = etree.XMLParser(remove_blank_text=True)
+            parser = etree.XMLParser()
             tree = etree.parse(filepath, parser)
             root = tree.getroot()
             for elem in root.iter():
@@ -165,7 +165,6 @@ class HandleEIC(object):
                     if "{DETECTOR_PATH}" in elem.text:
                         elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
             tree.write(filepath)
-
 
     def setup_queue(self) -> dict:
         """
