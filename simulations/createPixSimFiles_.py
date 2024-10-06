@@ -22,9 +22,8 @@ class HandleEIC(object):
         self.init_path()
         self.pixel_sizes = self.setup_json()
 
-        for dx, dy in self.pixel_sizes:
-            self.curr_dx, self.curr_dy = dx, dy
-            self.prepare_files()
+        # store the coroutines in a list
+        self.tasks = [self.prepare_files() for dx, dy in self.pixel_sizes]
 
     def init_var(self) -> None:
         """
@@ -271,5 +270,12 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
-    asyncio.run(eic_object.exec_sim())
+    loop = asyncio.get_event_loop()
+
+    # now gather the tasks and execute them
+    loop.run_until_complete(asyncio.gather(*eic_object.tasks))
+
+    # now you can proceed to executing simulations
+    loop.run_until_complete(eic_object.exec_sim())
+
     eic_object.mk_sim_backup()
