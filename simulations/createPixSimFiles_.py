@@ -40,6 +40,7 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
+        os.chmod(self.execution_path, 0o777)
         self.base_epic_path = os.environ['DETECTOR_PATH'] # /data/tomble/eic/epic/install/share/epic
         self.createGenFiles_path = f"{self.execution_path}/createGenFiles.py" # get BH value for generated hepmc files (zero or one)
         self.energy_levels  = [file for file in sorted(os.listdir(f"{self.execution_path}/genEvents/results/")) if self.file_type in file]  
@@ -58,6 +59,7 @@ class HandleEIC(object):
         self.simEvents_path  = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
         os.makedirs(self.genEvents_path, exist_ok=True)
         os.makedirs(self.simEvents_path, exist_ok=True)
+
 
         # create the path where the simulation file backup will go
         self.backup_path  = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -128,11 +130,11 @@ class HandleEIC(object):
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue()
-        self.chmod_recursive(self.execution_path)
 
        # execute those simulations
         await self.exec_sim()
 
+    '''
     def rewrite_xml_tree(self, curr_epic_path, curr_dx, curr_dy) -> None:
         """
         Iterates over all XML files located in the directory specified by curr_epic_path
@@ -165,6 +167,31 @@ class HandleEIC(object):
                     if "{DETECTOR_PATH}" in elem.text:
                         elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
             tree.write(filepath)
+    '''
+
+    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
+
+        # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
+        # and for every compact path we replace with our new compact path 
+
+        # iterate over all XML files in the copied epic directory
+        for subdir, dirs, files in os.walk(curr_epic_path):
+            for filename in files:
+                filepath = subdir + os.sep + filename
+                if filepath.endswith(".xml"):
+                    tree = ET.parse(filepath)
+                    root = tree.getroot()
+                    for elem in root.iter():
+                        if "constant" in elem.tag and 'name' in elem.keys():
+                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                                elem.attrib['value'] = f"{curr_px_dx}*mm"
+                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                                elem.attrib['value'] = f"{curr_px_dy}*mm"
+                        elif elem.text:
+                            if "{DETECTOR_PATH}" in elem.text:
+                                elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")
+                    tree.write(filepath)
+
 
     def setup_queue(self) -> dict:
         """
@@ -249,15 +276,6 @@ class HandleEIC(object):
 
         # call function to write the readme file containing the information
         self.setup_readme()
-
-    def chmod_recursive(self, path):
-        for dirpath, dirnames, filenames in os.walk(path):
-            os.chmod(dirpath, 0o777)
-            for filename in filenames:
-                if os.path.isfile(filename):
-                    os.chmod(os.path.join(dirpath, filename), 0o777)
-                else:
-                    pass 
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
