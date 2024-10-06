@@ -14,7 +14,6 @@ import concurrent.futures
 import subprocess
 from lxml import etree
 import asyncio
-import aiofiles
 
 class HandleEIC(object):
     
@@ -55,8 +54,11 @@ class HandleEIC(object):
         if not self.out_path:
             self.out_path = self.in_path
 
-        self.genEvents_path  = os.makedirs(os.path.join(os.getcwd(), f"genEvents{self.in_path}"), exist_ok=True)
-        self.simEvents_path  = os.makedirs(os.path.join(os.getcwd(), f"simEvents{self.out_path}"), exist_ok=True)
+        self.genEvents_path  = os.path.join(os.getcwd(), f"genEvents{self.in_path}")
+        self.simEvents_path  = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
+        os.makedirs(self.genEvents_path, exist_ok=True)
+        os.makedirs(self.simEvents_path, exist_ok=True)
+
 
         # create the path where the simulation file backup will go
         self.backup_path  = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
