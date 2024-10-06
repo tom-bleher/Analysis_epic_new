@@ -14,6 +14,7 @@ import concurrent.futures
 import subprocess
 from lxml import etree
 import asyncio
+import xml.etree.ElementTree as ET
 
 class HandleEIC(object):
     
@@ -145,6 +146,7 @@ class HandleEIC(object):
             # these tasks will be executed in parallel
             executor.map(self.rewrite_one_xml, xml_files, [curr_epic_path]*len(xml_files), [curr_dx]*len(xml_files), [curr_dy]*len(xml_files))
 
+    '''
     def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
         """
         Parses the specified XML file located at filepath and rewrites
@@ -154,6 +156,27 @@ class HandleEIC(object):
         if filepath.endswith(".xml"):
             parser = etree.XMLParser()
             tree = etree.parse(filepath, parser)
+            root = tree.getroot()
+            for elem in root.iter():
+                if "constant" in elem.tag and 'name' in elem.keys():
+                    if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                        elem.attrib['value'] = f"{curr_px_dx}*mm"
+                    elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                        elem.attrib['value'] = f"{curr_px_dy}*mm"
+                elif elem.text:
+                    if "{DETECTOR_PATH}" in elem.text:
+                        elem.text = elem.text.replace("{DETECTOR_PATH}", f"{curr_epic_path}")                  
+            tree.write(filepath)
+    '''
+
+    def rewrite_one_xml(self, filepath, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
+        """
+        Parses the specified XML file located at filepath and rewrites
+        its contents, particularly the DETECTOR_PATH, and pixel dx and dy resolutions.
+        """
+
+        if filepath.endswith(".xml"):
+            tree = ET.parse(filepath)
             root = tree.getroot()
             for elem in root.iter():
                 if "constant" in elem.tag and 'name' in elem.keys():
