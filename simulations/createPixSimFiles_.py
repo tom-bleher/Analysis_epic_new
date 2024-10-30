@@ -159,9 +159,10 @@ class HandleEIC(object):
         Method for setting up the queue of commands, each for executing ddsim.
         """
         self.run_queue = set() # init set to hold commands
-        for file in self.energy_levels : 
+        for file in self.energy_levels:
             self.inFile = f"{self.genEvents_path}/results/{file}"
-            self.file_num = re.search("\d+\.+\d\.", self.inFile).group() 
+            match = re.search("\d+\.+\d\.", self.inFile)
+            self.file_num = match.group() if match else file.split("_")[1].split(".")[0]
             cmd = f"ddsim --inputFiles {self.inFile} --outputFile {self.curr_pix_path}/output_{self.file_num}edm4hep.root --compactFile {self.curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
