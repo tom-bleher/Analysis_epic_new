@@ -41,7 +41,6 @@ for file in sorted(os.listdir(simPath),):
   inFile = simPath + "/" + file
   if ".root" not in inFile:
     continue
-  fileNum = re.search("\d+\.+\d\.", inFile).group()
   match = re.search("\d+\.+\d\.", inFile)
   fileNum = match.group() if match else "20"
   #fileNum = re.search("\d+\.", file).group()
