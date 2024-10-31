@@ -5,9 +5,8 @@ import math
 from pathlib import Path
 import multiprocessing
 
-
-inDir = ""
-outDir = ""
+inDir = "20241031_013730/2.0x0.1px"
+outDir = "results"
 if len(sys.argv) > 1: 
   inDir = sys.argv[1]
 if len(sys.argv) > 2: 
