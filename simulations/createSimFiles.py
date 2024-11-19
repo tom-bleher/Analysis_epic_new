@@ -48,7 +48,9 @@ for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEv
   if fileType not in file:
     continue
   inFile = genPath + "/results/" + file
-  fileNum = re.search("\d+\.+\d\.", inFile).group()
+  #fileNum = re.search("\d+\.+\d\.", inFile).group() <- old
+  match = re.search("\d+\.+\d\.", self.inFile)
+  fileNum = match.group() if match else file.split("_")[1].split(".")[0]
   #fileNum = re.search("\d+\.", inFile).group()
   cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
