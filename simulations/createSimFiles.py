@@ -50,7 +50,7 @@ for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEv
     continue
   inFile = genPath + "/results/" + file
   #fileNum = re.search("\d+\.+\d\.", inFile).group() <- old
-  match = re.search("\d+\.+\d\.", self.inFile)
+  match = re.search("\d+\.+\d\.", inFile)
   fileNum = match.group() if match else file.split("_")[1].split(".")[0]
   #fileNum = re.search("\d+\.", inFile).group()
   cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50000".format(inFile, simPath, fileNum, epicPath)
