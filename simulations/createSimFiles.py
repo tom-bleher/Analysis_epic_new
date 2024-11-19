@@ -19,7 +19,8 @@ if not outPath:
 
 genPath = "genEvents{0}".format(inPath)
 simPath = "simEvents{0}".format(outPath)
-epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
+epicPath = "/data/tomble/eic/epic/build/epic_ip6_extended.xml"
+#epicPath = "/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
 
 if not os.path.exists(simPath):
     print("Out dir doesn't exist.  Create a dir called " + simPath)
@@ -52,13 +53,13 @@ for file in sorted(os.listdir(r"/data/tomble/Analysis_epic_new/simulations/genEv
   match = re.search("\d+\.+\d\.", self.inFile)
   fileNum = match.group() if match else file.split("_")[1].split(".")[0]
   #fileNum = re.search("\d+\.", inFile).group()
-  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50".format(inFile, simPath, fileNum, epicPath)
+  cmd = "ddsim --inputFiles {0} --outputFile {1}/output_{2}edm4hep.root --compactFile {3} -N 50000".format(inFile, simPath, fileNum, epicPath)
   print( cmd )
   commands.append( cmd )
 
 
 # start Pool of processes
-pool = multiprocessing.Pool(40) # 8 processes to start
+pool = multiprocessing.Pool(64) # 64 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
