@@ -27,7 +27,7 @@ class HandleEIC(object):
         Method for setting variables that control the processing.
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 50000
+        self.num_particles = 10
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
 
@@ -128,7 +128,7 @@ class HandleEIC(object):
         self.setup_queue()
 
         # execute those simulations
-        self.exec_sim()
+        self.exec_sim(self.run_queue)
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
 
