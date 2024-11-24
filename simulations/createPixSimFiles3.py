@@ -171,7 +171,7 @@ class HandleEIC(object):
         self.run_queue = set() # init set to hold commands
         for file in self.energy_levels : 
             inFile = os.path.join(self.genEvents_path,"/results/",file)
-            match = re.search("\d+\.+\d\.", self.inFile)
+            match = re.search("\d+\.+\d\.", inFile)
             fileNum = match.group() if match else file.split("_")[1].split(".")[0]
             cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_pix_path}/output_{fileNum}edm4hep.root --compactFile {curr_epic_ip6_path} -N {self.num_particles}"
             
