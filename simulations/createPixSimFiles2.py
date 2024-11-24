@@ -30,7 +30,7 @@ class HandleEIC(object):
         Method for setting variables that control the processing.
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 10
+        self.num_particles = 1000
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
 
@@ -41,8 +41,8 @@ class HandleEIC(object):
         self.execution_path = os.getcwd()
         os.chmod(self.execution_path, 0o777)
         self.base_epic_path = os.environ['DETECTOR_PATH'] # i.e /data/tomble/eic/epic/install/share/epic
-        self.createGenFiles_path = f"{self.execution_path}/createGenFiles.py" # get BH value for generated hepmc files (zero or one)
-        self.energy_levels  = [file for file in sorted(os.listdir(f"{self.execution_path}/genEvents/results/")) if self.file_type in file]  
+        self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
+        self.energy_levels  = [file for file in sorted(os.listdir(os.path.join(self.execution_path, "genEvents/results/"))) if self.file_type in file]  
 
         self.in_path = ""
         self.out_path = ""
@@ -107,7 +107,7 @@ class HandleEIC(object):
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
 
-    def prepare_files(self, curr_dx, curr_dy) -> None: 
+    def prepare_files(self, curr_px_dx, curr_px_dy) -> None: 
         """
         Method for setting up file specifics such as creating respective pixel folders, changing definitions xml and 
         looping over all energy levels and saving ddsim commands.
@@ -134,9 +134,17 @@ class HandleEIC(object):
         self.exec_sim(self.run_queue)
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
+        """
+        Method for rewriting desired pixel values for all XML files of the Epic 
+        detector. For every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path 
+        for the current compact pixel path, and for every compact path 
+        we replace with our new compact path 
 
-        # for every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path for the current compact pixel path 
-        # and for every compact path we replace with our new compact path 
+        Args:
+            curr_epic_path
+            curr_px_dx
+            curr_px_dy
+        """
 
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
@@ -162,7 +170,7 @@ class HandleEIC(object):
         """
         self.run_queue = set() # init set to hold commands
         for file in self.energy_levels:
-            self.inFile = f"{self.genEvents_path}/results/{file}"
+            self.inFile = os.path.join(self.genEvents_path,"/results/",file)
             match = re.search("\d+\.+\d\.", self.inFile)
             self.file_num = match.group() if match else file.split("_")[1].split(".")[0]
             cmd = f"ddsim --inputFiles {self.inFile} --outputFile {self.curr_pix_path}/output_{self.file_num}edm4hep.root --compactFile {self.curr_epic_ip6_path} -N {self.num_particles}"
@@ -189,6 +197,18 @@ class HandleEIC(object):
                     print(f'Command {cmd} finished successfully')
             print(f'Total tasks in the queue: {count}')
             return count
+
+    '''
+    def exec_simv3(self, run_queue) -> None:
+        """
+        Method for executing all simulations in parallel using ThreadPoolExecutor.
+        """
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in self.run_queue}
+            for future in concurrent.futures.as_completed(future_to_cmd):
+                cmd = future_to_cmd[future]
+                run_queue.remove(cmd)
+    '''
 
     def run_cmd(self, cmd) -> None:
         """
