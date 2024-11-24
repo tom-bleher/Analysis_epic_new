@@ -57,6 +57,7 @@ class HandleEIC(object):
             self.out_path = self.in_path
 
         self.genEvents_path  = f"genEvents{self.in_path}"
+        print(f"-----------------------self.genEvents_path-------------------------")
         self.simEvents_path  = f"simEvents{self.out_path}"
 
         # if there is no simEvents then create it
