@@ -43,6 +43,7 @@ class HandleEIC(object):
         self.base_epic_path = os.environ['DETECTOR_PATH'] # /data/tomble/eic/epic/install/share/epic
         self.main_xml_path = f"{self.base_epic_path}/install/share/epic/epic_ip6_extended.xml"
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
+        print(os.listdir("/data/tomble/Analysis_epic_new/simulations/genEvents/results"))
         self.energy_levels  = [file for file in sorted(os.listdir("/data/tomble/Analysis_epic_new/simulations/genEvents/results")) if self.file_type in file]  
 
         self.in_path = ""
