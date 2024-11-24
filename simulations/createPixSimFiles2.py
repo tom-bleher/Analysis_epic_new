@@ -252,5 +252,4 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
-    loop = asyncio.get_event_loop()
     eic_object.mk_sim_backup()
