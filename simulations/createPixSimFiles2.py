@@ -104,7 +104,7 @@ class HandleEIC(object):
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
 
-    async def prepare_files(self, curr_dx, curr_dy) -> None: 
+    def prepare_files(self, curr_dx, curr_dy) -> None: 
         """
         Method for setting up file specifics such as creating respective pixel folders, changing definitions xml and 
         looping over all energy levels and saving ddsim commands.
