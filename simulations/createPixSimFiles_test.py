@@ -217,8 +217,9 @@ class HandleEIC(object):
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
+        run_queue = np.copy(self.run_queue)
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in self.run_queue}
+            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
             for future in concurrent.futures.as_completed(future_to_cmd):
                 cmd = future_to_cmd[future]
                 run_queue.remove(cmd)
