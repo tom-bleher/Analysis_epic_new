@@ -134,7 +134,7 @@ class HandleEIC(object):
         self.setup_queue()
 
         # execute those simulations
-        self.exec_sim()
+        self.exec_simv1()
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
