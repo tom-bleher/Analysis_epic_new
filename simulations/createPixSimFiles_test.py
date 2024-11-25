@@ -116,7 +116,7 @@ class HandleEIC(object):
 
         """
         # create respective px folders and their compact folders
-        self.curr_pix_path = os.path.join(self.simEvents_path , f"{curr_dx}x{curr_dy}px") 
+        self.curr_pix_path = os.path.join(self.simEvents_path , f"{curr_px_dx}x{curr_px_dy}px") 
         self.curr_epic_path = os.path.join(self.curr_pix_path, "epic")
         self.curr_epic_ip6_path = os.path.join(self.curr_epic_path, "epic_ip6_extended.xml")
 
@@ -128,7 +128,7 @@ class HandleEIC(object):
         shutil.copytree(self.base_epic_path, self.curr_epic_path, dirs_exist_ok=True)
 
         # rewrite {DETECTOR_PATH} for current                                 
-        self.rewrite_xml_tree(self.curr_epic_path, curr_dx, curr_dy)
+        self.rewrite_xml_tree(self.curr_epic_path, curr_px_dx, curr_px_dy)
 
         # loop over all energy levels and save ddsim commands
         self.setup_queue()
