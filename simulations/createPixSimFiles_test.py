@@ -14,7 +14,6 @@ import concurrent.futures
 import subprocess
 import xml.etree.ElementTree as ET
 
-
 class HandleEIC(object):
     
     def __init__(self) -> None:
@@ -30,7 +29,7 @@ class HandleEIC(object):
         Method for setting variables that control the processing.
         """
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 50000
+        self.num_particles = 1000
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
 
@@ -110,31 +109,32 @@ class HandleEIC(object):
         """
         Method for setting up file specifics such as creating respective pixel folders, changing definitions xml and 
         looping over all energy levels and saving ddsim commands.
+
+        Args:
+            curr_px_dx
+            curr_px_dy
+
         """
         # create respective px folders and their compact folders
-        curr_pix_path = os.path.join(self.simEvents_path , f"{curr_px_dx}x{curr_px_dy}px") 
-        curr_epic_path = os.path.join(curr_pix_path, "epic")
-        curr_epic_ip6_path = os.path.join(curr_epic_path, "epic_ip6_extended.xml")
+        self.curr_pix_path = os.path.join(self.simEvents_path , f"{curr_dx}x{curr_dy}px") 
+        self.curr_epic_path = os.path.join(self.curr_pix_path, "epic")
+        self.curr_epic_ip6_path = os.path.join(self.curr_epic_path, "epic_ip6_extended.xml")
 
         # create directory for px if it doesn't exist
-        os.makedirs(curr_pix_path, exist_ok=True) 
-        os.makedirs(curr_epic_path, exist_ok=True) 
-
-        # set permissions
-        self.set_permission(curr_pix_path)
-        self.set_permission(curr_epic_path)
+        os.makedirs(self.curr_pix_path, exist_ok=True) 
+        os.makedirs(self.curr_epic_path, exist_ok=True) 
 
         # copy epic compact to each respective px folder for parameter reference 
-        shutil.copytree(self.base_epic_path, curr_epic_path, dirs_exist_ok=True)
+        shutil.copytree(self.base_epic_path, self.curr_epic_path, dirs_exist_ok=True)
 
-        # rewrite {DETECTOR_PATH} and /compact/ for current                                 
-        self.rewrite_xml_tree(curr_epic_path, curr_px_dx, curr_px_dy)
+        # rewrite {DETECTOR_PATH} for current                                 
+        self.rewrite_xml_tree(self.curr_epic_path, curr_dx, curr_dy)
 
         # loop over all energy levels and save ddsim commands
-        curr_run_queue = self.setup_queue(curr_epic_ip6_path, curr_pix_path)
+        self.setup_queue()
 
         # execute those simulations
-        self.exec_simv1(curr_run_queue)
+        self.exec_sim()
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
