@@ -180,8 +180,6 @@ class HandleEIC(object):
             
             # each file path maps to its associated command
             self.run_queue.add(cmd)
-        
-        print(f"============================{self.run_queue}==============================")
 
     def exec_simv1(self) -> None:
         """
@@ -286,7 +284,7 @@ class HandleEIC(object):
             file.write(f'BH: {self.BH_val}\n')
             file.write(f'Energy Levels : {self.photon_energy_vals}\n')
 
-    def mk_sim_backup(self) -> None:
+    def mk_backup(self) -> None:
         """
         Method to make a backup of simulation files.
         """
