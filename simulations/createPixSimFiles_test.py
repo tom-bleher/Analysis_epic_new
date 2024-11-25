@@ -181,7 +181,7 @@ class HandleEIC(object):
             # each file path maps to its associated command
             self.run_queue.add(cmd)
 
-    def exec_simv1(self, run_queue) -> None:
+    def exec_simv1(self) -> None:
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
@@ -189,7 +189,7 @@ class HandleEIC(object):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # submit all tasks at once to the executor
             #futures = [executor.submit(self.run_cmd, cmd) for cmd in run_queue]
-            res = executor.map(self.run_cmd, run_queue)
+            res = executor.map(self.run_cmd, self.run_queue)
 
         return len(list(res))
         # Handle completed tasks
@@ -199,21 +199,21 @@ class HandleEIC(object):
             #except Exception as e:
                 #print('A simulation failed with an exception:', str(e))
 
-    def exec_simv2(self, run_queue) -> None:
+    def exec_simv2(self) -> None:
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         # create ThreadPoolExecutor/ProcessPoolExecutor
         with concurrent.futures.ThreadPoolExecutor() as executor:
             to_do: list[concurrent.futures.Future] = []
-            for cmd in run_queue:
+            for cmd in self.run_queue:
                 future = executor.submit(self.run_cmd, cmd)
                 to_do.append(future)
             for count, future in enumerate(concurrent.futures.as_completed(to_do), 1):
                 res: str = future.result()
         return count
 
-    def exec_simv3(self, run_queue) -> None:
+    def exec_simv3(self) -> None:
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
@@ -223,13 +223,12 @@ class HandleEIC(object):
                 cmd = future_to_cmd[future]
                 run_queue.remove(cmd)
 
-
-    def exec_simv4(self, run_queue) -> int:
+    def exec_simv4(self) -> int:
         """
         Method for executing all simulations in parallel using ThreadPoolExecutor.
         """
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in self.run_queue}
             count = 0
             for future in concurrent.futures.as_completed(futures):
                 cmd = futures[future]
