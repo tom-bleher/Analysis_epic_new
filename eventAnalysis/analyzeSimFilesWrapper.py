@@ -9,9 +9,10 @@ def modify_path(file_path, old_path, new_path):
 
     # Replace the old path with the new one
     content = content.replace(old_path, new_path)
-
     with open(file_path, 'w') as file:
         file.write(content)
+    
+    os.makedir(new_path)
 
 # Run the Python file
 def run_python_file(file_path):
