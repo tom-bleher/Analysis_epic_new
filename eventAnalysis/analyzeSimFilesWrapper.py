@@ -13,6 +13,7 @@ def modify_path(file_path, old_path, new_path):
 
     # Create the corresponding output directory
     output_folder = os.path.join(os.getcwd(), os.path.join(*new_path.split('/')[-2:]).replace("/", "_"))
+    print(f"===================================={output_folder}")
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     return output_folder
