@@ -33,9 +33,7 @@ def main(path_name, prev_path):
 
 # List of simulation outputs
 sim_out_paths = [
-    "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/0.1x0.1px",
     "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/2.0x0.1px",
-    "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_015234/0.1x0.1px",
     "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_015234/2.0x0.1px"
 ]
 
