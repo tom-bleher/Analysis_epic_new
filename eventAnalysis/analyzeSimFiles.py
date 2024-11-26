@@ -5,8 +5,8 @@ import math
 from pathlib import Path
 import multiprocessing
 
-inDir = "20241031_013730/2.0x0.1px"
-outDir = "results"
+inDir = "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/0.1x0.1px"
+outDir = os.path.join(*path.split('/')[-2:])
 if len(sys.argv) > 1: 
   inDir = sys.argv[1]
 if len(sys.argv) > 2: 
