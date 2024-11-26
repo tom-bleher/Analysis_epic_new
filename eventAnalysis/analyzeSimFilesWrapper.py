@@ -12,8 +12,7 @@ def modify_path(file_path, old_path, new_path):
     with open(file_path, 'w') as file:
         file.write(content)
     
-    
-    os.makedir(os.path.join(os.getcwd(),os.path.join(*new_path.split('/')[-2:])))
+    os.mkdir(os.path.join(os.getcwd(),os.path.join(*new_path.split('/')[-2:]).replace("/", "_")))
 
 # Run the Python file
 def run_python_file(file_path):

@@ -6,7 +6,7 @@ from pathlib import Path
 import multiprocessing
 
 inDir = "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/0.1x0.1px"
-outDir = os.path.join(*inDir.split('/')[-2:])
+outDir = os.path.join(*inDir.split('/')[-2:]).replace("/", "_")
 if len(sys.argv) > 1: 
   inDir = sys.argv[1]
 if len(sys.argv) > 2: 
