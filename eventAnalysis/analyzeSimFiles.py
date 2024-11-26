@@ -6,9 +6,9 @@ from pathlib import Path
 import multiprocessing
 
 inDir = "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/0.1x0.1px"
-outDir = os.path.join(*inDir.split('/')[-2:]).replace("/", "_")
+outDir = os.path.join(os.getcwd(), os.path.join(*inDir.split('/')[-2:]).replace("/", "_"))
 if len(sys.argv) > 1: 
-  inDir = sys.argv[1]
+  inDir = sys.argv[1]   
 if len(sys.argv) > 2: 
   outDir = sys.argv[2]
 
@@ -24,8 +24,8 @@ simPath = "../simulations/simEvents/" + inDir
 outputPath = outDir
 
 if not os.path.exists(outputPath):
-    print("Out dir doesn't exist.  Create a dir called " + outputPath)
-    exit()
+    os.makedirs(outputPath)
+    print(f"Created directory: {outputPath}")
 
 # needs dir genEvents to exist
 if len(os.listdir(outputPath)) != 0:
@@ -55,9 +55,8 @@ for file in sorted(os.listdir(simPath),):
   print(cmd)
   commands.append( cmd )
 
-
 # start Pool of processes
-pool = multiprocessing.Pool(8) # 8 processes to start
+pool = multiprocessing.Pool(64) # 8 processes to start
 
 # run processes (synchronous, it is a blocking command)
 pool.map( runSims, commands )
