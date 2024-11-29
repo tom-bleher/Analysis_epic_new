@@ -181,7 +181,7 @@ class HandleEIC(object):
         """
         Method for setting up the queue of commands, each for executing ddsim.
         """
-        self.ddsim_run_queue = set() # init set to hold ddsim commands
+        self.ddsim_run_queue = list() # init set to hold ddsim commands
         for file in self.energy_levels:
             self.inFile = os.path.join(self.genEvents_path,"results/",file)
             match = re.search("\d+\.+\d\.", self.inFile)
@@ -189,7 +189,7 @@ class HandleEIC(object):
             cmd = f"ddsim --inputFiles {self.inFile} --outputFile {self.curr_pix_path}/output_{self.file_num}edm4hep.root --compactFile {self.curr_epic_ip6_path} -N {self.num_particles}"
             
             # each file path maps to its associated command
-            self.ddsim_run_queue.add(cmd)
+            self.ddsim_run_queue.append(cmd)
 
     def exec_cmds(self, run_queue) -> None:
         """
@@ -295,10 +295,11 @@ class HandleEIC(object):
         """
         Method to run EIC recon on created simulation files
         """
-        self.recon_run_queue = set() # init set to hold ddsim commands
+        self.recon_file_paths = list()
+        self.recon_run_queue = list() # init set to hold ddsim commands
         # in the backup path, loop over pixel folders
         for px_folder in os.listdir(self.backup_path):
-            if os.path.isdir(full_path) and self.px_folder_pattern.match(px_folder):
+            if os.path.isdir(os.path.join(self.backup_path, px_folder)) and self.px_folder_pattern.match(px_folder):
                 file_path = os.path.join(self.backup_path, px_folder)
                 for file in os.listdir(file_path):
                     if not self.inFile.endswith(".root"):
@@ -307,19 +308,20 @@ class HandleEIC(object):
                     self.file_num = match.group() if match else file.split('_')[1][:2]
                     self.inFile = os.path.join(file_path, file)
                     cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={f'{file_path}/eicrecon_{fileNum}.root'} {self.in_file}"
-
+                    
                     # each file path maps to its associated command
-                    self.recon_run_queue.add(cmd)
+                    self.recon_run_queue.append(cmd)
+                    self.recon_file_paths.append(self.inFile)
 
     def verify_recon_out(self):
         """
         This methods checks for any failed recon output
         """
-        self.failed_recon_run_queue = set()
-        for file in sorted(os.listdir(outputPath)):
-            filesize = int(os.popen("stat -c %s {0}/{1}".format(outputPath,file)).read())
+        self.failed_recon_run_queue = list()
+        for file in self.recon_file_paths:
+            filesize = int(os.popen(f"stat -c %s {self.recon_file_paths}/{file}").read())
             if filesize < 1000: # less than 1000 kB is a failed job
-                self.failed_recon_run_queue = set()
+                self.failed_recon_run_queue = list()
 
     def save_comb_recon(self, root_files):
         """
