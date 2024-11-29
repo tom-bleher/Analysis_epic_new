@@ -31,8 +31,8 @@ class HandleEIC(object):
         """
         Method to source detector and recon
         """
-        subprocess.run(f"source {str(os.getcwd()).split("/")[0]}/tomble/Analysis_epic_new/EICrecon/bin/eicrecon-this.sh", shell=True, executable='/bin/bash')            
-        subprocess.run("source /opt/detector/epic-main/bin/thisepic.sh", shell=True, executable='/bin/bash')
+        os.system(f"source {str(os.getcwd()).split('/')[0]}/tomble/Analysis_epic_new/EICrecon/bin/eicrecon-this.sh")
+        os.system("source /opt/detector/epic-main/bin/thisepic.sh")
 
     def init_var(self) -> None:
         """
@@ -284,11 +284,11 @@ class HandleEIC(object):
         
         # if still fails, run individually
         self.verify_recon_out()
-            if len(self.failed_recon_run_queue) > 0:
-                for file in self.failed_recon_run_queue:
-                    if file in cmd:
-                        os.system(cmd)
-        
+        if len(self.failed_recon_run_queue) > 0:
+            for file in self.failed_recon_run_queue:
+                if file in cmd:
+                    os.system(cmd)
+
         self.save_comb_recon()
 
     def setup_recon_queue(self) -> None:
@@ -306,7 +306,7 @@ class HandleEIC(object):
                     match = re.search("\d+\.+\d\.", self.inFile)
                     self.file_num = match.group() if match else file.split('_')[1][:2]
                     self.inFile = os.path.join(file_path, file)
-                    cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={f"{file_path}/eicrecon_{fileNum}.root"} {self.in_file}"
+                    cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={f'{file_path}/eicrecon_{fileNum}.root'} {self.in_file}"
 
                     # each file path maps to its associated command
                     self.recon_run_queue.add(cmd)
