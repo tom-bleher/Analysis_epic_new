@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 import multiprocessing
 
-inDir = "/data/tomble/Analysis_epic_new/simulations/simEvents/20241126_000552/0.1x0.1px"
+inDir = "/extra/tomble/Analysis_epic_new/simulations/simEvents"
 outDir = os.path.join(os.getcwd(), os.path.join(*inDir.split('/')[-2:]).replace("/", "_"))
 if len(sys.argv) > 1: 
   inDir = sys.argv[1]   
@@ -20,7 +20,7 @@ if not inDir:
   exit()
 
 # directories genEvents and simEvents needs to exist
-simPath = "../simulations/simEvents/" + inDir
+simPath = inDir
 outputPath = outDir
 
 if not os.path.exists(outputPath):
