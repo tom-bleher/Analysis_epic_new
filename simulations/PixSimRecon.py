@@ -289,7 +289,7 @@ class HandleEIC(object):
                 if file in cmd:
                     os.system(cmd)
 
-        self.save_comb_recon()
+        self.save_comb_recon(self.recon_file_paths)
 
     def setup_recon_queue(self) -> None:
         """
@@ -323,14 +323,11 @@ class HandleEIC(object):
             if filesize < 1000: # less than 1000 kB is a failed job
                 self.failed_recon_run_queue = list()
 
-    def save_comb_recon(self, root_files):
+    def save_comb_recon(self):
         """
         This method merges all the different roots files
         """
-        filesString = ""
-        for file in root_files:
-            filesString = os.path.join(filesString, " ", "/", file)
-        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {filesString}")
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {" ".join(self.recon_file_paths)}")
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
