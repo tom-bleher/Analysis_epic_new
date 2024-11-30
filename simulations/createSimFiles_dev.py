@@ -41,7 +41,7 @@ class HandleEIC(object):
             curr_epic_path = self.copy_epic(curr_pix_path)
 
             for parent_dir in [curr_compact_path, curr_epic_path]:
-                self.ensure_directory_writable(parent_dir)
+                # rewrite XML to hold current pixel values                          
                 self.rewrite_xml_tree(parent_dir, curr_px_dx, curr_px_dy)
 
             # since we copied the epic folder we can get the relavent ip6 file
@@ -119,31 +119,12 @@ class HandleEIC(object):
     def copy_compact(self, curr_pix_path) -> str:
         # copy compact to respective px folder for parameter reference 
         os.system(f'cp -r {os.path.join(self.det_dir, "compact")} {curr_pix_path}')
-        return str(os.path.join(curr_pix_path, "compact"))
+        return os.path.join(curr_pix_path, "compact")
 
     def copy_epic(self, curr_pix_path):
         # copy epic to respective px folder for parameter reference 
         os.system(f'cp -r {os.path.join(self.det_dir, "..")} {curr_pix_path}')    
-        return str(os.path.join(curr_pix_path, "epic"))
-
-    def ensure_writable(self, path):
-        """
-        Ensures that the given path (file or directory) is writable.
-        """
-        try:
-            os.chmod(path, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
-        except Exception as e:
-            print(f"Failed to set write permissions for {path}: {e}")
-
-    def ensure_directory_writable(self, directory):
-        """
-        Recursively ensures all files and subdirectories are writable.
-        """
-        for root, dirs, files in os.walk(directory):
-            for d in dirs:
-                self.ensure_writable(os.path.join(root, d))
-            for f in files:
-                self.ensure_writable(os.path.join(root, f))
+        return os.path.join(curr_pix_path, "epic")
 
     def rewrite_xml_tree(self, parent_dir, curr_px_dx, curr_px_dy):
         """
@@ -258,6 +239,5 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
-    eic_object.init()
     eic_object.main()
     eic_object.mk_sim_backup()
