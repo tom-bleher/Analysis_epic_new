@@ -60,7 +60,6 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
-        os.chmod(self.execution_path, 0o777)
         self.det_dir = "/data/tomble/eic/epic" # /share/epic? // os.environ['DETECTOR_PATH']
         self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
 
@@ -232,5 +231,6 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
+    os.chmod(self.execution_path, 0o777)
     eic_object.main()
     eic_object.mk_sim_backup()
