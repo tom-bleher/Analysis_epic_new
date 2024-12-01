@@ -28,29 +28,28 @@ class HandleEIC(object):
 
     def main(self) -> None:
 
-        ddsim_queue = list()
+        ddsim_queue = []
 
         # loop over pixel sizes
         for curr_px_dx, curr_px_dy in self.pixel_sizes:
+            
             # create respective px folder
-            curr_pix_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px") 
-            os.makedirs(curr_pix_path, exist_ok=True) 
+            curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px") 
+            os.makedirs(curr_px_path, exist_ok=True) 
 
-            # copy epic and compact folders
-            curr_compact_path = self.copy_compact(curr_pix_path)
-            curr_epic_path = self.copy_epic(curr_pix_path)
+            # copy epic and compact folders (os.path.join(curr_px_path, "epic"))
+            curr_px_epic_path = self.copy_epic(curr_px_path)
 
-            for parent_dir in [curr_compact_path, curr_epic_path]:
-                # rewrite XML to hold current pixel values                          
-                self.rewrite_xml_tree(parent_dir, curr_px_dx, curr_px_dy)
+            # rewrite XML to hold current pixel values for all occurrences in epic detector                          
+            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
 
             # since we copied the epic folder we can get the relavent ip6 file
-            curr_epic_ip6 = os.path.join(curr_pix_path, "epic", "epic_ip6_extended.xml")
-
+            curr_px_epic_ip6 = curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml"
+    
             # for given pixel, loop over energies
             for energy in self.energy_levels:
                 # loop over all energy levels and save ddsim commands
-                ddsim_cmd = self.get_ddsim_cmd(curr_pix_path, curr_epic_ip6, energy)
+                ddsim_cmd = self.get_ddsim_cmd(curr_px_path, curr_px_epic_ip6, energy)
                 ddsim_queue.append(ddsim_cmd)
 
         # multiprocess the gathered commands 
@@ -62,13 +61,11 @@ class HandleEIC(object):
         """
         self.execution_path = os.getcwd()
         os.chmod(self.execution_path, 0o777)
-
-        self.epicPath ="/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
-        /epic/install/share/epic/epic_ip6_extended.xml
-        self.det_dir = os.environ['DETECTOR_PATH']
+        self.det_dir = "/data/tomble/eic/epic" # /share/epic? // os.environ['DETECTOR_PATH']
+        self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
 
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
-        self.energy_levels = list(file for file in (os.listdir(os.path.join(self.execution_path, "genEvents/results"))) if self.file_type in file)
+        self.energy_levels = [file for file in (os.listdir(os.path.join(self.execution_path, "genEvents/results"))) if self.file_type in file]
 
         self.in_path = ""
         self.out_path = ""
@@ -117,15 +114,10 @@ class HandleEIC(object):
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
 
-    def copy_compact(self, curr_pix_path) -> str:
-        # copy compact to respective px folder for parameter reference 
-        os.system(f'cp -r {os.path.join(self.det_dir, "compact")} {curr_pix_path}')
-        return os.path.join(curr_pix_path, "compact")
-
-    def copy_epic(self, curr_pix_path):
+    def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
-        os.system(f'cp -r {os.path.join(self.det_dir, "..")} {curr_pix_path}')    
-        return os.path.join(curr_pix_path, "epic")
+        os.system(f'cp -r {os.path.join(self.det_dir, "..")} {curr_px_path}')    
+        return os.path.join(curr_px_path, "epic")
 
     def rewrite_xml_tree(self, parent_dir, curr_px_dx, curr_px_dy):
         """
@@ -154,14 +146,14 @@ class HandleEIC(object):
                                 elem.attrib['value'] = f"{curr_px_dy}*mm"
                     tree.write(filepath)
 
-    def get_ddsim_cmd(self, curr_pix_path, curr_epic_ip6_path, energy) -> list:
+    def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
         """
         Method for setting up the queue of commands, each for executing ddsim.
         """
         inFile = os.path.join(self.genEvents_path, "results", energy)
         match = re.search("\d+\.+\d\.", inFile)
         file_num = match.group() if match else energy.split("_")[1].split(".")[0]
-        cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_pix_path}/output_{file_num}edm4hep.root --compactFile {curr_epic_ip6_path} -N {self.num_particles}"
+        cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_px_path}/output_{file_num}edm4hep.root --compactFile {curr_px_epic_ip6_path} -N {self.num_particles}"
         return cmd
 
     def run_cmd(self, cmd: str) -> None:
