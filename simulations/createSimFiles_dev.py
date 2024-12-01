@@ -13,6 +13,7 @@ import json
 import xml.etree.ElementTree as ET
 import subprocess
 import multiprocessing
+import stat
 
 class HandleEIC(object):
     
@@ -132,6 +133,7 @@ class HandleEIC(object):
         """
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(parent_dir):
+            os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
             for filename in files:
                 filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml"):
