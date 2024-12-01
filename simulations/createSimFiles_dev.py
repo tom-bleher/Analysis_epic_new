@@ -63,7 +63,8 @@ class HandleEIC(object):
         self.execution_path = os.getcwd()
         os.chmod(self.execution_path, 0o777)
 
-        self.epicPath ="/data/tomble/eic/epic/build/epic_ip6_extended.xml"
+        self.epicPath ="/data/tomble/eic/epic/install/share/epic/epic_ip6_extended.xml"
+        /epic/install/share/epic/epic_ip6_extended.xml
         self.det_dir = os.environ['DETECTOR_PATH']
 
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
