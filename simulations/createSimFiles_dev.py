@@ -159,7 +159,7 @@ class HandleEIC(object):
         """
         inFile = os.path.join(self.genEvents_path, "results", energy)
         match = re.search("\d+\.+\d\.", inFile)
-        file_num = match.group() if match else file.split("_")[1].split(".")[0]
+        file_num = match.group() if match else energy.split("_")[1].split(".")[0]
         cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_pix_path}/output_{file_num}edm4hep.root --compactFile {curr_epic_ip6_path} -N {self.num_particles}"
         return cmd
 
