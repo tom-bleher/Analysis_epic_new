@@ -231,6 +231,6 @@ class HandleEIC(object):
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
-    os.chmod(self.execution_path, 0o777)
+    os.chmod(eic_object.execution_path, 0o777)
     eic_object.main()
     eic_object.mk_sim_backup()
