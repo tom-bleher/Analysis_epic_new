@@ -23,7 +23,12 @@ import subprocess
 import multiprocessing
 import stat
 
-def rewrite_xml_tree(parent_dir, curr_px_dx, curr_px_dy):
+def copy_epic():
+    # copy epic to respective px folder for parameter reference 
+    os.system('cp -r "/data/tomble/eic/epic_sim" data/tomble/Analysis_epic_new/')    
+    return os.path.join("data/tomble/Analysis_epic_new/", "epic_sim")
+
+def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
     """
     Method for rewriting desired pixel values for all XML files of the Epic 
     detector. For every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path 
@@ -31,13 +36,13 @@ def rewrite_xml_tree(parent_dir, curr_px_dx, curr_px_dy):
     we replace with our new compact path 
 
     Args:
-        parent_dir
+        curr_epic_path
         curr_px_dx
         curr_px_dy
     """
+
     # iterate over all XML files in the copied epic directory
-    for subdir, dirs, files in os.walk(parent_dir):
-        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    for subdir, dirs, files in os.walk(curr_epic_path):
         for filename in files:
             filepath = subdir + os.sep + filename
             if filepath.endswith(".xml"):
@@ -49,10 +54,10 @@ def rewrite_xml_tree(parent_dir, curr_px_dx, curr_px_dy):
                             elem.attrib['value'] = f"{curr_px_dx}*mm"
                         elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                             elem.attrib['value'] = f"{curr_px_dy}*mm"
-            
-                    if elem.text and "${DETECTOR_PATH}" in elem.text:
-                        elem.text = elem.text.replace("${DETECTOR_PATH}", curr_epic_path)
-                        
+                    elif elem.text:
+                        if "${DETECTOR_PATH}" in elem.text:
+                            elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
                 tree.write(filepath)
 
-rewrite_xml_tree("/data/tomble/Analysis_epic_new/simulations/simEvents/20241206_212905/2.0x0.1px/epic_sim", "3.0", "0.5")
+path = copy_epic()
+rewrite_xml_tree(path, "3.0", "0.5")
