@@ -28,7 +28,7 @@ class HandleEIC(object):
     def __init__(self) -> None:
 
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 10
+        self.num_particles = 5
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
 
@@ -125,48 +125,38 @@ class HandleEIC(object):
     def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
-        return os.path.join(curr_px_path, "epic")
+        return os.path.join(curr_px_path, "epic_sim")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
-        Rewrite the pixel values and replace ${DETECTOR_PATH} in all XML files 
-        for the Epic detector.
+        Method for rewriting desired pixel values for all XML files of the Epic 
+        detector. For every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path 
+        for the current compact pixel path, and for every compact path 
+        we replace with our new compact path 
 
         Args:
-            curr_epic_path (str): Root directory containing XML files.
-            curr_px_dx (float): New pixel size dx in mm.
-            curr_px_dy (float): New pixel size dy in mm.
+            curr_epic_path
+            curr_px_dx
+            curr_px_dy
         """
+
+        # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
             for filename in files:
-                filepath = os.path.join(subdir, filename)
+                filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml"):
-                    try:
-                        # Ensure the file is readable and writable
-                        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
-                        
-                        # Parse the XML file
-                        tree = ET.parse(filepath)
-                        root = tree.getroot()
-                        
-                        # Modify the XML
-                        for elem in root.iter():
-                            # Modify pixel size constants
-                            if "constant" in elem.tag and 'name' in elem.attrib:
-                                if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
-                                    elem.attrib['value'] = f"{curr_px_dx}*mm"
-                                elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
-                                    elem.attrib['value'] = f"{curr_px_dy}*mm"
-                            
-                            # Replace ${DETECTOR_PATH}
-                            if elem.text and "${DETECTOR_PATH}" in elem.text:
-                                elem.text = elem.text.replace("${DETECTOR_PATH}", curr_epic_path.rstrip("/"))
-                        
-                        # Save changes back to the file
-                        tree.write(filepath)
-                    
-                    except Exception as e:
-                        print(f"Error processing file {filepath}: {e}")
+                    tree = ET.parse(filepath)
+                    root = tree.getroot()
+                    for elem in root.iter():
+                        if "constant" in elem.tag and 'name' in elem.keys():
+                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                                elem.attrib['value'] = f"{curr_px_dx}*mm"
+                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                                elem.attrib['value'] = f"{curr_px_dy}*mm"
+                        if elem.text:
+                            if "${DETECTOR_PATH}" in elem.text:
+                                elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
+                    tree.write(filepath)
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
         """
