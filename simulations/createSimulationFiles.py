@@ -127,18 +127,17 @@ class HandleEIC(object):
         os.system(f'cp -r {os.path.join(self.det_dir, "..")} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
-    def rewrite_xml_tree(self, curr_px_dx, curr_px_dy, curr_epic_path):
+    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
         Rewrite the pixel values and replace ${DETECTOR_PATH} in all XML files 
         for the Epic detector.
 
         Args:
-            parent_dir (str): Root directory containing XML files.
+            curr_epic_path (str): Root directory containing XML files.
             curr_px_dx (float): New pixel size dx in mm.
             curr_px_dy (float): New pixel size dy in mm.
-            curr_epic_path (str): Path to replace ${DETECTOR_PATH}.
         """
-        for subdir, dirs, files in os.walk(parent_dir):
+        for subdir, dirs, files in os.walk(curr_epic_path):
             for filename in files:
                 filepath = os.path.join(subdir, filename)
                 if filepath.endswith(".xml"):
