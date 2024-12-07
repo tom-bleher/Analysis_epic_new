@@ -1,12 +1,3 @@
-
-
-
-# copy detector for every pixel value 
-
-
-# change every dx,dy, and $DETECTOR_PATH to 
-
-# -*- coding: utf-8 -*-
 """
 Created on Fri Sep  6 15:33:11 2024
 
@@ -22,6 +13,7 @@ import xml.etree.ElementTree as ET
 import subprocess
 import multiprocessing
 import stat
+import pprint
 
 class HandleEIC(object):
     
@@ -55,10 +47,12 @@ class HandleEIC(object):
             # since we copied the epic folder we can get the relavent ip6 file
             curr_px_epic_ip6 = curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml"
 
+            print(f"-------------------curr_px_epic_path: {curr_px_epic_path}--------------------")
+
             # source current detector 
             self.source_px_epic(curr_px_epic_path + "/install/bin/thisepic.sh")
 
-            print(f"-------------------{os.environ['DETECTOR_PATH']}--------------------")
+            print(f"-------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
