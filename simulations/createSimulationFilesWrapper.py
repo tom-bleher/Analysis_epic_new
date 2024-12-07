@@ -4,11 +4,6 @@ import os
 import json
 import xml.etree.ElementTree as ET  
 
-fileType = "beamEffectsElectrons"
-det_dir = "/data/tomble/eic/epic" 
-epicPath = det_dir + "/install/share/epic/epic_ip6_extended.xml"
-run_file = 'createSimFiles2.py' 
-
 # read JSON and store in list
 def setup_json() -> list[tuple]:
     """
@@ -73,8 +68,76 @@ def run_python_file(file_path):
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running {file_path}:\n{e.stderr}")
 
+def mk_sim_backup() -> None:
+    """
+    Method to make a backup of simulation files.
+    """
+    # create a backup for this run
+    os.makedirs(backup_path , exist_ok=True)
+    print(f"Created new backup directory in {backup_path }")
+
+    # regex pattern to match pixel folders
+    px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
+
+    # move pixel folders to backup
+    for item in os.listdir(simEvents_path):
+        item_path = os.path.join(simEvents_path, item)
+        # identify folders using regex
+        if os.path.isdir(item_path) and px_folder_pattern.match(item):
+            shutil.move(item_path, backup_path)
+
+    # call function to write the readme file containing the information
+    #setup_readme()
+
+def setup_readme(backup_path, ) -> None:
+    
+    # define path for readme file 
+    readme_path = os.path.join(backup_path, "README.txt")
+
+    # call the function to read the BH value from the function
+    BH_val = get_BH_val()
+
+    # get energy levels from files names of genEvents
+    photon_energy_vals = [
+        '.'.join(file.split('_')[1].split('.', 2)[:2]) 
+        for file in energy_levels 
+    ]
+
+    # write readme content to the file
+    with open(readme_path, 'a') as file:
+        file.write(f'file_type: {file_type}\n')
+        file.write(f'Number of Particles: {num_particles}\n')
+        file.write(f'Pixel Value Pairs: {pixel_sizes}\n')
+        file.write(f'BH: {BH_val}\n')
+        file.write(f'Energy Levels : {photon_energy_vals}\n')
+
+def get_BH_val(createGenFiles_path):
+
+    # open the path storing the createGenFiles.py file
+    with open(createGenFiles_path, 'r') as file:
+        content = file.read()
+        
+    # use a regex to find the line where BH is defined
+    match = re.search(r'BH\s*=\s*(.+)', content)
+    
+    # if we found BH in the file, we return the value
+    if match:
+        value = match.group(1).strip()
+        return value
+    else:
+        raise ValueError("Could not find a value for 'BH' in the content of the file.")
+
+run_file = 'createSimFiles2.py' 
+
 for curr_px_dx, curr_px_dy in setup_json():
-    rewrite_xml_tree(det_dir, curr_px_dx, curr_px_dy)  # Update XML with current pixel values
+    print(f"Now running {curr_px_dx}x{curr_px_dy}")
+    
+    # create respective px folder
+    curr_px_path = os.path.join(os.getcwd()+"/simEvents/", f"{curr_px_dx}x{curr_px_dy}px") 
+    os.makedirs(curr_px_path, exist_ok=True)
+    
+    rewrite_xml_tree(det_dir, curr_px_dx, curr_px_dy)  # Update XML with current pixel 
+    
     print(f"Running simulation for dx={curr_px_dx}, dy={curr_px_dy}...")
     run_python_file(run_file)  # Waits until the script finishes
     print(f"Simulation complete for dx={curr_px_dx}, dy={curr_px_dy}.")
