@@ -53,7 +53,7 @@ class HandleEIC(object):
             # Clear the queue for the next iteration
             ddsim_queue.clear()
 
-            if i == num_pixel_sizes - 1:
+            if i == self.num_pixel_sizes - 1:
                 self.mk_sim_backup()
 
     def init_path(self) -> None:
@@ -155,7 +155,7 @@ class HandleEIC(object):
         """
         Run a command in the shell and ensure it blocks until completion.
         """
-        subprocess.run(cmd, shell=True, check=True)
+        subprocess.run(cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def exec_sim(self, run_queue) -> None:
         """
