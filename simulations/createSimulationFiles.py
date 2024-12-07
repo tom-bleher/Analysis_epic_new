@@ -69,7 +69,7 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
-        self.det_dir = "/data/tomble/eic/epic_sim"
+        self.det_dir = "/data/tomble/eic/epic"
         self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
 
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
@@ -125,7 +125,7 @@ class HandleEIC(object):
     def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
-        return os.path.join(curr_px_path, "epic_sim")
+        return os.path.join(curr_px_path, "epic")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
