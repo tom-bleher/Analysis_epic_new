@@ -174,13 +174,13 @@ class HandleEIC(object):
         print(f"Created new backup directory in {self.backup_path }")
 
         # regex pattern to match pixel folders
-        px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
+        self.px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
         # move pixel folders to backup
         for item in os.listdir(self.simEvents_path):
             item_path = os.path.join(self.simEvents_path, item)
             # identify folders using regex
-            if os.path.isdir(item_path) and px_folder_pattern.match(item):
+            if os.path.isdir(item_path) and self.px_folder_pattern.match(item):
                 shutil.move(item_path, self.backup_path )
 
         # call function to write the readme file containing the information
@@ -230,12 +230,12 @@ class HandleEIC(object):
         """
 
         self.setup_recon_queue()
-        self.exec_cmds(self.recon_run_queue)
+        self.exec_sim(self.recon_run_queue)
         self.verify_recon_out()
 
         # try to multiprocess the failed recons
         if len(self.failed_recon_run_queue) > 0:
-            self.exec_cmds(self.failed_recon_run_queue)
+            self.exec_sim(self.failed_recon_run_queue)
         
         # if still fails, run individually
         self.verify_recon_out()
@@ -284,7 +284,7 @@ class HandleEIC(object):
         """
         This method merges all the different roots files
         """
-        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {" ".join(self.recon_file_paths)}")
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(self.recon_file_paths)}")
 
 if __name__ == "__main__":
     eic_object = HandleEIC()
