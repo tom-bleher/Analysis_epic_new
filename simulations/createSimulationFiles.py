@@ -144,7 +144,7 @@ class HandleEIC(object):
         for subdir, dirs, files in os.walk(curr_epic_path):
             for filename in files:
                 filepath = subdir + os.sep + filename
-                if filepath.endswith(".xml"):
+                if filepath.endswith(".xml") and os.access(filepath, os.W_OK):
                     tree = ET.parse(filepath)
                     root = tree.getroot()
                     for elem in root.iter():
