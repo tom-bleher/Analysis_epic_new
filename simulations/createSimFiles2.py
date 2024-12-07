@@ -3,11 +3,6 @@ import sys
 import re
 import multiprocessing
 
-paths() # setup paths
-commands = gather_cmds() # gather commands
-run() # run simulation
-mk_sim_backup() # make backup
-
 def runSims(x):
   os.system(x)
 
@@ -109,3 +104,7 @@ def get_BH_val(createGenFiles_path):
     else:
         raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
+paths() # setup paths
+commands = gather_cmds() # gather commands
+run() # run simulation
+mk_sim_backup() # make backup
