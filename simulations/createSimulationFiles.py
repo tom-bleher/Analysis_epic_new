@@ -12,8 +12,7 @@ import json
 import xml.etree.ElementTree as ET
 import subprocess
 import multiprocessing
-import stat
-import pprint
+import os, json
 
 class HandleEIC(object):
     
@@ -130,25 +129,11 @@ class HandleEIC(object):
         """
         Sources the given shell script and updates the Python process environment.
         """
-        # Run the shell script with sourcing and capture the environment
-        command = f"source {current_px_epic_sh_path} && env"
-        
-        # Use subprocess.run instead to directly set the environment for the Python process
-        proc = subprocess.run(
-            command, shell=True, text=True, capture_output=True, executable="/bin/bash"
-        )
-
-        if proc.returncode != 0:
-            raise RuntimeError(f"Error sourcing script: {proc.stderr.strip()}")
-
-        # Update the Python environment from the output
-        for line in proc.stdout.splitlines():
-            key, _, value = line.partition("=")
-            if key and value:  # Avoid empty or malformed lines
-                os.environ[key] = value
-
-        # Debug print to check if the environment variable is updated
-        print(f"Updated DETECTOR_PATH: {os.environ.get('DETECTOR_PATH')}")
+        source = f'source {str(current_px_epic_sh_path)}'
+        dump = '/usr/bin/python -c "import os, json;print json.dumps(dict(os.environ))"'
+        pipe = subprocess.Popen(['/bin/bash', '-c', '%s && %s' %(source,dump)], stdout=subprocess.PIPE)
+        env = json.loads(pipe.stdout.read())
+        os.environ = env
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
