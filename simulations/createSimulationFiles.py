@@ -37,7 +37,7 @@ class HandleEIC(object):
             os.makedirs(curr_px_path, exist_ok=True) 
 
             # copy epic and compact folders (os.path.join(curr_px_path, "epic"))
-            curr_px_epic_path = self.copy_epic(curr_px_path)
+            curr_px_epic_path = str(self.copy_epic(curr_px_path))
 
             # rewrite XML to hold current pixel values for all occurrences in epic detector                          
             self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
@@ -50,7 +50,7 @@ class HandleEIC(object):
             # source current detector 
             self.source_px_epic(curr_px_epic_path + "/install/bin/thisepic.sh")
 
-            print(f"---------------------------------------------------------------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
+            print(f"----------------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
@@ -124,19 +124,14 @@ class HandleEIC(object):
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
-    def source_px_epic(self, current_px_epic_sh_path):
+    def source_px_epic(self, file_to_source_path, include_unexported_variables=False):
         """
         Sources the given shell script and updates the Python process environment.
         """
-        if os.path.isfile(current_px_epic_sh_path):
-            command = f'env -i bash -c "source {current_px_epic_sh_path} && env"'  # Change 'sh' to 'bash'
-            for line in subprocess.getoutput(command).split("\n"):
-                # Only process lines that contain an '='
-                if "=" in line:
-                    key, value = line.split("=", 1)  # split only on the first '='
-                    os.environ[key] = value
-                else:
-                    print(f"Skipping invalid line: {line}")
+        source = '%ssource %s' % ("set -a && " if include_unexported_variables else "", file_to_source_path)
+        dump = '/usr/bin/python -c "import os, json; print json.dumps(dict(os.environ))"'
+        pipe = subprocess.Popen(['/bin/bash', '-c', '%s && %s' % (source, dump)], stdout=subprocess.PIPE)
+        print(json.loads(pipe.stdout.read()))
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
