@@ -16,7 +16,8 @@ import multiprocessing
 class HandleEIC(object):
     
     def __init__(self) -> None:
-
+        
+        self.run_recon = True
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
         self.num_particles = 5
         self.default_dx = 0.1 # res in mm
@@ -37,7 +38,7 @@ class HandleEIC(object):
             os.makedirs(curr_px_path, exist_ok=True) 
 
             # rewrite XML to hold current pixel values for all occurrences in epic detector                          
-            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
+            self.rewrite_xml_tree(curr_px_dx, curr_px_dy)
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
@@ -47,6 +48,12 @@ class HandleEIC(object):
 
         # multiprocess the gathered commands 
         self.exec_sim(ddsim_queue)
+        self.mk_sim_backup()
+
+        # run recon on output
+        if self.run_recon:
+            print("Running eicrecon")
+            self.handle_recon()
 
     def init_path(self) -> None:
         """
@@ -217,8 +224,69 @@ class HandleEIC(object):
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
+    def handle_recon(self):
+        """
+        Method to run recon-related functions
+        """
+
+        self.setup_recon_queue()
+        self.exec_cmds(self.recon_run_queue)
+        self.verify_recon_out()
+
+        # try to multiprocess the failed recons
+        if len(self.failed_recon_run_queue) > 0:
+            self.exec_cmds(self.failed_recon_run_queue)
+        
+        # if still fails, run individually
+        self.verify_recon_out()
+        if len(self.failed_recon_run_queue) > 0:
+            for file in self.failed_recon_run_queue:
+                if file in cmd:
+                    os.system(cmd)
+
+        # save the combined root file
+        self.save_comb_recon(self.recon_file_paths)
+
+    def setup_recon_queue(self) -> None:
+        """
+        Method to run EIC recon on created simulation files
+        """
+        self.recon_file_paths = []
+        self.recon_run_queue = []
+
+        # in the backup path, loop over pixel folders
+        for px_folder in os.listdir(self.backup_path):
+            if os.path.isdir(os.path.join(self.backup_path, px_folder)) and self.px_folder_pattern.match(px_folder):
+                file_path = os.path.join(self.backup_path, px_folder)
+                for file in os.listdir(file_path):
+                    if not self.inFile.endswith(".root"):
+                        continue
+                    match = re.search("\d+\.+\d\.", self.inFile)
+                    self.file_num = match.group() if match else file.split('_')[1][:2]
+                    self.inFile = os.path.join(file_path, file)
+                    cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={f'{file_path}/eicrecon_{fileNum}.root'} {self.in_file}"
+                    
+                    # each file path maps to its associated command
+                    self.recon_run_queue.append(cmd)
+                    self.recon_file_paths.append(self.inFile)
+
+    def verify_recon_out(self):
+        """
+        This methods checks for any failed recon output
+        """
+        self.failed_recon_run_queue = []
+        for file in self.recon_file_paths:
+            filesize = int(os.popen(f"stat -c %s {self.recon_file_paths}/{file}").read())
+            if filesize < 1000: # less than 1000 kB is a failed job
+                self.failed_recon_run_queue = []
+
+    def save_comb_recon(self):
+        """
+        This method merges all the different roots files
+        """
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {" ".join(self.recon_file_paths)}")
+
 if __name__ == "__main__":
     eic_object = HandleEIC()
     os.chmod(eic_object.execution_path, 0o777)
     eic_object.main()
-    eic_object.mk_sim_backup()
