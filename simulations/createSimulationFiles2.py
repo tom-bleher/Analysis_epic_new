@@ -162,7 +162,7 @@ class HandleEIC(object):
                 print(f"Command failed: {cmd}\nError: {result.stderr}")
         
         num_workers = os.cpu_count()
-        with Pool(num_workers) as pool:
+        with multiprocessing.Pool(num_workers) as pool:
             pool.map(run_command, run_queue)
             pool.close()
             pool.join()
