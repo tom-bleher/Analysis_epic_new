@@ -129,10 +129,14 @@ class HandleEIC(object):
         Sources the given shell script and updates the Python process environment.
         """
         if os.path.isfile(current_px_epic_sh_path):
-            command = 'env -i sh -c f"source {current_px_epic_sh_path} && env"'
+            command = f'env -i sh -c "source {current_px_epic_sh_path} && env"'
             for line in subprocess.getoutput(command).split("\n"):
-                key, value = line.split("=")
-                os.environ[key]= value
+                # Only process lines that contain an '='
+                if "=" in line:
+                    key, value = line.split("=", 1)  # split only on the first '='
+                    os.environ[key] = value
+                else:
+                    print(f"Skipping invalid line: {line}")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
