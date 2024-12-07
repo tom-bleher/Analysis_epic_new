@@ -58,4 +58,3 @@ num_particles = 1000
 gen_path, sim_path = paths() # setup paths
 commands = gather_cmds(file_type, gen_path, sim_path, epicPath, num_particles) # gather commands
 run() # run simulation
-mk_sim_backup() # make backup
