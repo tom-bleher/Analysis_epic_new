@@ -47,14 +47,14 @@ class HandleEIC(object):
                 ddsim_cmd = self.get_ddsim_cmd(curr_px_path, energy)
                 ddsim_queue.append(ddsim_cmd)
 
+        # multiprocess the gathered commands 
+        self.exec_sim(ddsim_queue)
+        self.mk_sim_backup()
+
         # run recon on output
         if self.run_recon:
             print("Running eicrecon")
             self.handle_recon()
-
-        # multiprocess the gathered commands 
-        self.exec_sim(ddsim_queue)
-        self.mk_sim_backup()
 
     def init_path(self) -> None:
         """
@@ -151,24 +151,23 @@ class HandleEIC(object):
         cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_px_path}/output_{file_num}edm4hep.root --compactFile {self.epicPath} -N {self.num_particles}"
         return cmd
 
-    def exec_sim(self, run_queue):
+    def run_cmd(self, cmd: str) -> None:
+        """
+        Run a command in the shell
+        """
+        #subprocess.run(cmd, shell=True, capture_output=True, text=True) TRY POPOPEN HERE
+        os.system(cmd)
+
+    def exec_sim(self, run_queue) -> None:
         """
         Execute all simulations in parallel using multiprocessing
         """
         num_workers = os.cpu_count()
         with multiprocessing.Pool(num_workers) as pool:
-            pool.map(self.run_command, run_queue)
+            pool.map(self.run_cmd, run_queue)
             pool.close()
             pool.join()
-
-    def run_command(self, cmd):
-        """
-        Run a command using subprocess.
-        """
-        result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
-        if result.returncode != 0:
-            print(f"Command failed: {cmd}\nError: {result.stderr}")
-
+            
     def mk_sim_backup(self) -> None:
         """
         Method to make a backup of simulation files.
