@@ -52,7 +52,7 @@ class HandleEIC(object):
             # source current detector 
             self.source_px_epic(curr_px_epic_path + "/install/bin/thisepic.sh")
 
-            print(f"-------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
+            #print(f"-------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
@@ -127,6 +127,9 @@ class HandleEIC(object):
         return os.path.join(curr_px_path, "epic")
 
     def source_px_epic(self, current_px_epic_sh_path):
+        """
+        Sources the given shell script and updates the Python process environment
+        """
         # Run the shell script and capture its output
         command = f"bash -c 'source {current_px_epic_sh_path} && env'"
         proc = subprocess.Popen(
@@ -138,12 +141,14 @@ class HandleEIC(object):
         if proc.returncode != 0:
             raise RuntimeError(f"Error sourcing script: {stderr.strip()}")
 
+        # Parse the environment variables and update os.environ
         for line in stdout.splitlines():
             key, _, value = line.partition("=")
             if key and value:  # Avoid empty lines or malformed entries
                 os.environ[key] = value
 
-        pprint.pprint(dict(os.environ))  # Print updated environment
+        # Debug: Print the updated DETECTOR_PATH for confirmation
+        print(f"Updated DETECTOR_PATH: {os.environ.get('DETECTOR_PATH')}")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
