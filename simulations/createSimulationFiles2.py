@@ -17,7 +17,7 @@ class HandleEIC(object):
     
     def __init__(self) -> None:
         
-        self.run_recon = True
+        self.run_recon = False
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
         self.num_particles = 5
         self.default_dx = 0.1 # res in mm
@@ -29,6 +29,7 @@ class HandleEIC(object):
     def main(self) -> None:
 
         ddsim_queue = []
+        recon_queue = []
 
         # loop over pixel sizes
         for curr_px_dx, curr_px_dy in self.pixel_sizes:
@@ -46,21 +47,21 @@ class HandleEIC(object):
                 ddsim_cmd = self.get_ddsim_cmd(curr_px_path, energy)
                 ddsim_queue.append(ddsim_cmd)
 
-        # multiprocess the gathered commands 
-        self.exec_sim(ddsim_queue)
-        self.mk_sim_backup()
-
         # run recon on output
         if self.run_recon:
             print("Running eicrecon")
             self.handle_recon()
+
+        # multiprocess the gathered commands 
+        self.exec_sim(ddsim_queue)
+        self.mk_sim_backup()
 
     def init_path(self) -> None:
         """
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
-        self.det_dir = "/data/tomble/eic/epic" #/install/share/epic?
+        self.det_dir = "/data/tomble/eic/epic" #/data/tomble/eic/epic/install/share/epic
         self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
 
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
@@ -150,20 +151,21 @@ class HandleEIC(object):
         cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_px_path}/output_{file_num}edm4hep.root --compactFile {self.epicPath} -N {self.num_particles}"
         return cmd
 
-    def run_cmd(self, cmd: str) -> None:
-        """
-        Run a command in the shell
-        """
-        #subprocess.run(cmd, shell=True, capture_output=True, text=True) TRY POPOPEN HERE
-        os.system(cmd)
-
-    def exec_sim(self, run_queue) -> None:
+    def exec_sim(self, run_queue):
         """
         Execute all simulations in parallel using multiprocessing
         """
+        def run_command(cmd):
+            # Use subprocess.run to ensure blocking execution of each command
+            result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+            if result.returncode != 0:
+                print(f"Command failed: {cmd}\nError: {result.stderr}")
+        
         num_workers = os.cpu_count()
-        with multiprocessing.Pool(num_workers) as pool:
-            pool.map(self.run_cmd, run_queue)
+        with Pool(num_workers) as pool:
+            pool.map(run_command, run_queue)
+            pool.close()
+            pool.join()
 
     def mk_sim_backup(self) -> None:
         """
@@ -245,7 +247,7 @@ class HandleEIC(object):
                     os.system(cmd)
 
         # save the combined root file
-        self.save_comb_recon(self.recon_file_paths)
+        self.save_comb_recon()
 
     def setup_recon_queue(self) -> None:
         """
