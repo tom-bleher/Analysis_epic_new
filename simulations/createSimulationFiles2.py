@@ -27,12 +27,11 @@ class HandleEIC(object):
         self.pixel_sizes = self.setup_json()
 
     def main(self) -> None:
-
         ddsim_queue = []
-        recon_queue = []
 
         # loop over pixel sizes
         for curr_px_dx, curr_px_dy in self.pixel_sizes:
+            print(f"RUNNING {curr_px_dx}x{curr_px_dy}")
             
             # create respective px folder
             curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px") 
@@ -47,14 +46,12 @@ class HandleEIC(object):
                 ddsim_cmd = self.get_ddsim_cmd(curr_px_path, energy)
                 ddsim_queue.append(ddsim_cmd)
 
-        # multiprocess the gathered commands 
-        self.exec_sim(ddsim_queue)
-        self.mk_sim_backup()
+            # multiprocess the gathered commands and wait for completion
+            self.exec_sim(ddsim_queue)
+            self.mk_sim_backup()
 
-        # run recon on output
-        if self.run_recon:
-            print("Running eicrecon")
-            self.handle_recon()
+            # Clear the queue for the next iteration
+            ddsim_queue.clear()
 
     def init_path(self) -> None:
         """
@@ -153,17 +150,15 @@ class HandleEIC(object):
 
     def run_cmd(self, cmd: str) -> None:
         """
-        Run a command in the shell
+        Run a command in the shell and ensure it blocks until completion.
         """
-        #subprocess.run(cmd, shell=True, capture_output=True, text=True) TRY POPOPEN HERE
-        os.system(cmd)
+        subprocess.run(cmd, shell=True, check=True)
 
     def exec_sim(self, run_queue) -> None:
         """
-        Execute all simulations in parallel using multiprocessing
+        Execute all simulations in parallel and block until all are finished.
         """
-        num_workers = os.cpu_count()
-        with multiprocessing.Pool(num_workers) as pool:
+        with multiprocessing.Pool(os.cpu_count()) as pool:
             pool.map(self.run_cmd, run_queue)
             pool.close()
             pool.join()
