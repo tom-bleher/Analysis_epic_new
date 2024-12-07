@@ -39,7 +39,7 @@ def gather_cmds(file_type, genPath, simPath, epicPath, num_particles) -> None:
     commands = []
     # create command strings
     for file in sorted(os.listdir(gen_path)):
-        if fileType not in file:
+        if file_type not in file:
             continue
         inFile = genPath + "/results/" + file
         match = re.search("\d+\.+\d\.", inFile)
