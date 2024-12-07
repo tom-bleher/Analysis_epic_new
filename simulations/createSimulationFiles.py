@@ -50,7 +50,7 @@ class HandleEIC(object):
             # source current detector 
             self.source_px_epic(curr_px_epic_path + "/install/bin/thisepic.sh")
 
-            #print(f"-------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
+            print(f"---------------------------------------------------------------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
