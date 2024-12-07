@@ -128,26 +128,26 @@ class HandleEIC(object):
 
     def source_px_epic(self, current_px_epic_sh_path):
         """
-        Sources the given shell script and updates the Python process environment
+        Sources the given shell script and updates the Python process environment.
         """
-        # Run the shell script and capture its output
-        command = f"bash -c 'source {current_px_epic_sh_path} && env'"
-        proc = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
-        )
+        # Run the shell script with sourcing and capture the environment
+        command = f"source {current_px_epic_sh_path} && env"
         
-        # Read and parse the output of `env`
-        stdout, stderr = proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError(f"Error sourcing script: {stderr.strip()}")
+        # Use subprocess.run instead to directly set the environment for the Python process
+        proc = subprocess.run(
+            command, shell=True, text=True, capture_output=True, executable="/bin/bash"
+        )
 
-        # Parse the environment variables and update os.environ
-        for line in stdout.splitlines():
+        if proc.returncode != 0:
+            raise RuntimeError(f"Error sourcing script: {proc.stderr.strip()}")
+
+        # Update the Python environment from the output
+        for line in proc.stdout.splitlines():
             key, _, value = line.partition("=")
-            if key and value:  # Avoid empty lines or malformed entries
+            if key and value:  # Avoid empty or malformed lines
                 os.environ[key] = value
 
-        # Debug: Print the updated DETECTOR_PATH for confirmation
+        # Debug print to check if the environment variable is updated
         print(f"Updated DETECTOR_PATH: {os.environ.get('DETECTOR_PATH')}")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
