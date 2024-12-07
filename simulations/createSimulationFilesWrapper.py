@@ -128,6 +128,7 @@ def get_BH_val(createGenFiles_path):
         raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
 run_file = 'createSimFiles2.py' 
+det_dir = "/data/tomble/eic/epic" 
 
 for curr_px_dx, curr_px_dy in setup_json():
     print(f"Now running {curr_px_dx}x{curr_px_dy}")
