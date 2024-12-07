@@ -129,7 +129,7 @@ class HandleEIC(object):
         Sources the given shell script and updates the Python process environment.
         """
         if os.path.isfile(current_px_epic_sh_path):
-            command = f'env -i sh -c "source {current_px_epic_sh_path} && env"'
+            command = f'env -i bash -c "source {current_px_epic_sh_path} && env"'  # Change 'sh' to 'bash'
             for line in subprocess.getoutput(command).split("\n"):
                 # Only process lines that contain an '='
                 if "=" in line:
