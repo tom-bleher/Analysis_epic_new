@@ -1,5 +1,8 @@
 import subprocess
 import time
+import os 
+import json
+import xml.etree.ElementTree as ET  
 
 fileType = "beamEffectsElectrons"
 det_dir = "/data/tomble/eic/epic" 
