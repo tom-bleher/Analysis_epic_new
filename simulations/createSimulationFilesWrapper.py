@@ -6,12 +6,6 @@ det_dir = "/data/tomble/eic/epic"
 epicPath = det_dir + "/install/share/epic/epic_ip6_extended.xml"
 run_file = 'createSimFiles2.py' 
 
-for curr_px_dx, curr_px_dy in setup_json():
-    rewrite_xml_tree(det_dir, curr_px_dx, curr_px_dy)  # Update XML with current pixel values
-    print(f"Running simulation for dx={curr_px_dx}, dy={curr_px_dy}...")
-    run_python_file(run_file)  # Waits until the script finishes
-    print(f"Simulation complete for dx={curr_px_dx}, dy={curr_px_dy}.")
-
 # read JSON and store in list
 def setup_json() -> list[tuple]:
     """
@@ -76,3 +70,8 @@ def run_python_file(file_path):
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running {file_path}:\n{e.stderr}")
 
+for curr_px_dx, curr_px_dy in setup_json():
+    rewrite_xml_tree(det_dir, curr_px_dx, curr_px_dy)  # Update XML with current pixel values
+    print(f"Running simulation for dx={curr_px_dx}, dy={curr_px_dy}...")
+    run_python_file(run_file)  # Waits until the script finishes
+    print(f"Simulation complete for dx={curr_px_dx}, dy={curr_px_dy}.")
