@@ -15,8 +15,9 @@ import multiprocessing
 
 class HandleEIC(object):
     
-    def __init__(self, pixel_sizes_passed=None) -> None:
-        
+    def __init__(self, backup=False, pixel_sizes_passed=None) -> None:
+        self.pixel_sizes_passed = pixel_sizes_passed
+        self.backup = backup
         self.run_recon = False
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
         self.num_particles = 5
@@ -24,14 +25,12 @@ class HandleEIC(object):
         self.default_dy = 0.1 # res in mm
 
         self.init_path()
-        self.pixel_sizes = self.setup_json()
-        self.num_pixel_sizes = len(self.pixel_sizes)
 
     def main(self) -> None:
         ddsim_queue = []
 
         # loop over pixel sizes
-        for i, (curr_px_dx, curr_px_dy) in enumerate(self.pixel_sizes_passed):
+        for (curr_px_dx, curr_px_dy) in (self.pixel_sizes_passed):
             print(f"Now running {curr_px_dx}x{curr_px_dy}")
             
             # create respective px folder
@@ -53,7 +52,7 @@ class HandleEIC(object):
             # Clear the queue for the next iteration
             ddsim_queue.clear()
 
-            if i == self.num_pixel_sizes - 1:
+            if self.backup:
                 self.mk_sim_backup()
 
     def init_path(self) -> None:
@@ -155,7 +154,7 @@ class HandleEIC(object):
         """
         Run a command in the shell and ensure it blocks until completion.
         """
-        subprocess.run(cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(cmd, shell=True, check=True)#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def exec_sim(self, run_queue) -> None:
         """
