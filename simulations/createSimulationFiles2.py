@@ -31,7 +31,7 @@ class HandleEIC(object):
         ddsim_queue = []
 
         # loop over pixel sizes
-        for curr_px_dx, curr_px_dy in self.pixel_sizes:
+        for i, (curr_px_dx, curr_px_dy) in enumerate(self.pixel_sizes):
             print(f"Now running {curr_px_dx}x{curr_px_dy}")
             
             # create respective px folder
@@ -52,7 +52,7 @@ class HandleEIC(object):
 
             # Clear the queue for the next iteration
             ddsim_queue.clear()
-            
+
             if i == num_pixel_sizes - 1:
                 self.mk_sim_backup()
 
