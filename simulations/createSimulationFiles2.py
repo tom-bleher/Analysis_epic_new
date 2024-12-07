@@ -25,6 +25,7 @@ class HandleEIC(object):
 
         self.init_path()
         self.pixel_sizes = self.setup_json()
+        self.num_pixel_sizes = len(self.pixel_sizes)
 
     def main(self) -> None:
         ddsim_queue = []
@@ -48,10 +49,12 @@ class HandleEIC(object):
 
             # multiprocess the gathered commands and wait for completion
             self.exec_sim(ddsim_queue)
-            self.mk_sim_backup()
 
             # Clear the queue for the next iteration
             ddsim_queue.clear()
+            
+            if i == num_pixel_sizes - 1:
+                self.mk_sim_backup()
 
     def init_path(self) -> None:
         """
