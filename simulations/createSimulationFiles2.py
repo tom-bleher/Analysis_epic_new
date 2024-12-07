@@ -53,7 +53,7 @@ class HandleEIC(object):
         Method for setting paths for input, output, and other resources.
         """
         self.execution_path = os.getcwd()
-        self.det_dir = "/data/tomble/eic/epic"
+        self.det_dir = "/data/tomble/eic/epic" #/install/share/epic?
         self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
 
         self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
@@ -106,7 +106,7 @@ class HandleEIC(object):
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
 
-    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
+    def rewrite_xml_tree(self, curr_px_dx, curr_px_dy):
         """
         Method for rewriting desired pixel values for all XML files of the Epic 
         detector. For every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path 
@@ -114,13 +114,12 @@ class HandleEIC(object):
         we replace with our new compact path 
 
         Args:
-            curr_epic_path
             curr_px_dx
             curr_px_dy
         """
 
         # iterate over all XML files in the copied epic directory
-        for subdir, dirs, files in os.walk(curr_epic_path):
+        for subdir, dirs, files in os.walk(self.det_dir):
             for filename in files:
                 filepath = subdir + os.sep + filename
                 if filepath.endswith(".xml") and os.access(filepath, os.W_OK):
