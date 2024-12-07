@@ -153,9 +153,13 @@ class HandleEIC(object):
                                 elem.attrib['value'] = f"{curr_px_dx}*mm"
                             elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                                 elem.attrib['value'] = f"{curr_px_dy}*mm"
-                        if elem.text:
-                            if "${DETECTOR_PATH}" in elem.text:
-                                elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
+                        # Replace DETECTOR_PATH in element text
+                        if elem.text and "${DETECTOR_PATH}" in elem.text:
+                            elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
+                        # Replace DETECTOR_PATH in attributes
+                        for attrib_key, attrib_value in elem.attrib.items():
+                            if "${DETECTOR_PATH}" in attrib_value:
+                                elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
                     tree.write(filepath)
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
