@@ -45,13 +45,6 @@ class HandleEIC(object):
             # since we copied the epic folder we can get the relavent ip6 file
             curr_px_epic_ip6 = curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml"
 
-            print(f"-------------------curr_px_epic_path: {curr_px_epic_path}--------------------")
-
-            # source current detector 
-            self.source_px_epic(curr_px_epic_path + "/install/bin/thisepic.sh")
-
-            print(f"----------------------------os.environ['DETECTOR_PATH']: {os.environ['DETECTOR_PATH']}--------------------")
-
             # for given pixel, loop over energies
             for energy in self.energy_levels:
                 # loop over all energy levels and save ddsim commands
@@ -124,15 +117,6 @@ class HandleEIC(object):
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
-    def source_px_epic(self, file_to_source_path, include_unexported_variables=False):
-        """
-        Sources the given shell script and updates the Python process environment.
-        """
-        source = '%ssource %s' % ("set -a && " if include_unexported_variables else "", file_to_source_path)
-        dump = '/usr/bin/python3 -c "import os, json; print json.dumps(dict(os.environ))"'
-        pipe = subprocess.Popen(['/bin/bash', '-c', '%s && %s' % (source, dump)], stdout=subprocess.PIPE)
-        #print(json.loads(pipe.stdout.read()))
-
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
         Method for rewriting desired pixel values for all XML files of the Epic 
@@ -159,7 +143,7 @@ class HandleEIC(object):
                                 elem.attrib['value'] = f"{curr_px_dx}*mm"
                             elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                                 elem.attrib['value'] = f"{curr_px_dy}*mm"
-                        """
+
                         # Replace DETECTOR_PATH in element text
                         if elem.text and "${DETECTOR_PATH}" in elem.text:
                             elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
@@ -167,7 +151,15 @@ class HandleEIC(object):
                         for attrib_key, attrib_value in elem.attrib.items():
                             if "${DETECTOR_PATH}" in attrib_value:
                                 elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
-                        """
+
+                        # Replace self.det_dir in element text
+                        if elem.text and self.det_dir in elem.text:
+                            elem.text = elem.text.replace(self.det_dir, f"{curr_epic_path}")
+                        # Replace self.det_dir in attributes
+                        for attrib_key, attrib_value in elem.attrib.items():
+                            if self.det_dir in attrib_value:
+                                elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")           
+
                     tree.write(filepath)
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
