@@ -19,7 +19,7 @@ def main():
         print(f"Running simulation for pixel size: {dx}x{dy}")
         
         # Create an instance of HandleEIC with the current pixel size
-        eic = HandleEIC(pixel_sizes=[(dx, dy)])
+        eic = HandleEIC(pixel_sizes_passed=[(dx, dy)])
         
         # Run the simulation for the current pixel size
         eic.main()

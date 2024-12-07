@@ -15,7 +15,7 @@ import multiprocessing
 
 class HandleEIC(object):
     
-    def __init__(self, pixel_sizes=None) -> None:
+    def __init__(self, pixel_sizes_passed=None) -> None:
         
         self.run_recon = False
         self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
@@ -31,7 +31,7 @@ class HandleEIC(object):
         ddsim_queue = []
 
         # loop over pixel sizes
-        for i, (curr_px_dx, curr_px_dy) in enumerate(self.pixel_sizes):
+        for i, (curr_px_dx, curr_px_dy) in enumerate(self.pixel_sizes_passed):
             print(f"Now running {curr_px_dx}x{curr_px_dy}")
             
             # create respective px folder
