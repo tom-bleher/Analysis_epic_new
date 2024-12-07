@@ -129,9 +129,9 @@ class HandleEIC(object):
         Sources the given shell script and updates the Python process environment.
         """
         source = '%ssource %s' % ("set -a && " if include_unexported_variables else "", file_to_source_path)
-        dump = '/usr/bin/python -c "import os, json; print json.dumps(dict(os.environ))"'
+        dump = '/usr/bin/python3 -c "import os, json; print json.dumps(dict(os.environ))"'
         pipe = subprocess.Popen(['/bin/bash', '-c', '%s && %s' % (source, dump)], stdout=subprocess.PIPE)
-        print(json.loads(pipe.stdout.read()))
+        #print(json.loads(pipe.stdout.read()))
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
