@@ -115,14 +115,9 @@ class HandleEIC(object):
         return self.px_pairs
 
     def copy_epic(self, curr_px_path):
-        """Copies the detector directory to the pixel folder."""
-        copied_det_path = os.path.join(curr_px_path, "epic")
-        shutil.copytree(self.det_dir, copied_det_path, dirs_exist_ok=True)
-        if os.path.exists(copied_det_path):
-            print(f"Successfully copied detector to: {copied_det_path}")
-        else:
-            raise Exception(f"Failed to copy detector to: {copied_det_path}")
-        return copied_det_path
+        # copy epic to respective px folder for parameter reference 
+        os.system(f'cp -r {self.det_dir} {curr_px_path}')    
+        return os.path.join(curr_px_path, "epic")
 
     def rewrite_epicPath(self, copied_det_path):
         # in the sourced detector, go to the ip6 file and change the $DETECTOR_PATH to the copy
