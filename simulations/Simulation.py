@@ -25,6 +25,7 @@ class HandleEIC(object):
         self.pixel_sizes = self.setup_json()
 
     def main(self) -> None:
+        # initilize queue for commands to simulate
         ddsim_queue = []
 
         # loop over pixel sizes
@@ -36,13 +37,13 @@ class HandleEIC(object):
             os.makedirs(curr_px_path, exist_ok=True) 
 
             # make a copy for the parameter change
-            copied_det_path = copy_epic(curr_px_path)
+            copied_det_path = self.copy_epic(curr_px_path)
 
             # rewrite XML to hold current pixel values for all occurrences in epic detector                          
             self.rewrite_copied_det(copied_det_path, curr_px_dx, curr_px_dy)
 
             # rewrite ip6 to point to copied detector in its ip6
-            self.rewrite_epicPath(curr_epic_path)
+            self.rewrite_epicPath(copied_det_path)
 
             # for given pixel, loop over energies
             for energy in self.energy_levels:
@@ -56,8 +57,7 @@ class HandleEIC(object):
             # Clear the queue for the next iteration
             ddsim_queue.clear()
 
-            if self.backup:
-                self.mk_sim_backup()
+        self.mk_sim_backup()
 
     def init_path(self) -> None:
         """
@@ -122,7 +122,7 @@ class HandleEIC(object):
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
-    def rewrite_epicPath(self, curr_epic_path):
+    def rewrite_epicPath(self, copied_det_path):
         # in the sourced detector, go to the ip6 file and change the $DETECTOR_PATH to the copy
         if os.path.isfile(self.epicPath) and os.access(self.epicPath, os.W_OK):
             try:
@@ -134,12 +134,12 @@ class HandleEIC(object):
                 for elem in root.iter():
                     # Replace DETECTOR_PATH in element text
                     if elem.text and "${DETECTOR_PATH}" in elem.text:
-                        elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
+                        elem.text = elem.text.replace("${DETECTOR_PATH}", f"{copied_det_path}")
                     
                     # Replace DETECTOR_PATH in attributes
                     for attrib_key, attrib_value in elem.attrib.items():
                         if "${DETECTOR_PATH}" in attrib_value:
-                            elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
+                            elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{copied_det_path}")
 
                 # Write the modified XML back to the file
                 tree.write(self.epicPath)
