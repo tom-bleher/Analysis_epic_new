@@ -116,7 +116,7 @@ class HandleEIC(object):
             print(f"No valid JSON found. Created JSON file at {self.px_json_path}. Edit the pairs in the JSON to specify your desired values.")
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
-        
+
     """
     def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
@@ -125,9 +125,15 @@ class HandleEIC(object):
     """
 
     def copy_epic(self, curr_px_path):
-        # copy epic to respective px folder for parameter reference
-        os.system(f'rsync -av --exclude=".git" {self.det_dir}/ {curr_px_path}/epic/')
-        return os.path.join(curr_px_path, "epic")
+        def ignore_git(directory, files):
+            return {".git"} if ".git" in files else set()
+
+        target_path = os.path.join(curr_px_path, "epic")
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        shutil.copytree(self.det_dir, target_path, dirs_exist_ok=True, ignore=ignore_git)
+        return target_path
 
     def rewrite_epicPath(self, copied_det_path):
         # in the sourced detector, go to the ip6 file and change the $DETECTOR_PATH to the copy
