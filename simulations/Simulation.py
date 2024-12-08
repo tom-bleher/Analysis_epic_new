@@ -116,10 +116,17 @@ class HandleEIC(object):
             print(f"No valid JSON found. Created JSON file at {self.px_json_path}. Edit the pairs in the JSON to specify your desired values.")
             self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
         return self.px_pairs
-
+        
+    """
     def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
+        return os.path.join(curr_px_path, "epic")
+    """
+
+    def copy_epic(self, curr_px_path):
+        # copy epic to respective px folder for parameter reference
+        os.system(f'rsync -av --exclude=".git" {self.det_dir}/ {curr_px_path}/epic/')
         return os.path.join(curr_px_path, "epic")
 
     def rewrite_epicPath(self, copied_det_path):
