@@ -204,25 +204,19 @@ class HandleEIC(object):
         return cmd
 
     def run_cmd(self, cmd_px: tuple) -> None:
-        """
-        Run a command in the shell after sourcing the environment for a specific pixel configuration.
-        
-        Args:
-            cmd_px (tuple): A tuple containing the command string and the path to the shell script to source.
-        """
         cmd, px_src_path = cmd_px
-        
-        # Source the shell script and get the environment variables
-        env_vars = self.source_shell_script(px_src_path)
-        
-        # Run the command with the sourced environment
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True, env=env_vars)
-            print(f"Command executed successfully: {cmd}")
+            # Get environment variables
+            env_vars = self.source_shell_script(px_src_path)
+            # Log the command for debugging
+            print(f"Executing command: {cmd}")
+            # Run command
+            result = subprocess.run(cmd, shell=True, env=env_vars, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print(f"Output: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing command: {cmd}")
-            print(f"Error output: {e.stderr}")
+            if result.returncode != 0:
+                print(f"Error: {result.stderr}")
+        except Exception as e:
+            print(f"Failed to execute command: {cmd}. Error: {e}")
 
     def exec_sim(self) -> None:
         """
