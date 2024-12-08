@@ -20,6 +20,7 @@ class HandleEIC(object):
         self.energy_levels = [] 
         self.default_dx = 1.0 
         self.default_dy = 1.0
+        self.sim_dict = {}
 
     def setup_sim(self) -> None:
         # we loop over every requested pixel value to 
@@ -299,11 +300,13 @@ if __name__ == "__main__":
     eic_object = HandleEIC()
     eic_object.init_path_var()
     pixel_sizes = eic_object.setup_json()
+    eic_object.pixel_sizes = pixel_sizes  
     os.chmod(eic_object.execution_path, 0o777)
     
     # Call setup_sim() to initialize sim_dict
     eic_object.setup_sim()
-
+    print("Simulation dictionary:", eic_object.sim_dict)  # Debugging line
+    
     # setup simulation
     eic_object.exec_sim()
 
