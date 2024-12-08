@@ -53,18 +53,21 @@ class HandleEIC(object):
 
         px_key = f"{curr_px_dx}_{curr_px_dy}"
         curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px")
-        os.makedirs(curr_px_path, exist_ok=True) 
+        os.makedirs(curr_px_path, exist_ok=True)
 
         curr_px_epic_path = os.path.join(curr_px_path, "epic")
 
+        # Create initial entry for px_key
         sim_dict[px_key] = {
             "px_epic_path": curr_px_epic_path,
             "px_compact_path": curr_px_epic_path + "/install/share/epic/compact",
             "px_ip6_path": curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml",
             "px_src_path": f"{curr_px_epic_path}/install/bin/thisepic.sh",
             "px_out_path": curr_px_path,
-            "px_ddsim_cmds": [self.get_ddsim_cmd(curr_px_path, sim_dict[px_key]["px_ip6_path"], energy) for energy in self.energy_levels]
         }
+
+        # Now that px_ip6_path exists, populate px_ddsim_cmds
+        sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_px_path, sim_dict[px_key]["px_ip6_path"], energy)for energy in self.energy_levels]
 
         return sim_dict
 
