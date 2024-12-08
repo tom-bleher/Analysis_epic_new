@@ -148,7 +148,12 @@ class HandleEIC(object):
         
         try:
             # Run the command and capture the output (environment variables)
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True, check=True)
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            
+            # Check if there are any errors
+            if result.stderr:
+                print(f"Error sourcing script: {result.stderr}")
+            
             # Parse the environment variables from the command output
             env_vars = dict(
                 line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
