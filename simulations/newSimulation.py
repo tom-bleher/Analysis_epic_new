@@ -204,14 +204,18 @@ class HandleEIC(object):
         return cmd
 
     def run_cmd(self, cmd_px: tuple) -> None:
+        """
+        Run a command in a subprocess after sourcing the environment from the shell script.
+        """
         cmd, px_src_path = cmd_px
         try:
-            # Get environment variables
+            # Get environment variables by sourcing the shell script
             env_vars = self.source_shell_script(px_src_path)
             # Log the command for debugging
             print(f"Executing command: {cmd}")
-            # Run command
-            result = subprocess.run(cmd, shell=True, env=env_vars, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Run the command with the sourced environment
+            result = subprocess.run(cmd, shell=True, env={**os.environ, **env_vars}, 
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print(f"Output: {result.stdout}")
             if result.returncode != 0:
                 print(f"Error: {result.stderr}")
