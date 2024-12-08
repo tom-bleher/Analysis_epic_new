@@ -14,50 +14,67 @@ import subprocess
 import multiprocessing
 
 class HandleEIC(object):
-    
-    def __init__(self) -> None:
 
-        self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 5
-        self.default_dx = 0.1 # res in mm
-        self.default_dy = 0.1 # res in mm
+    def __init__(self):
+        self.pixel_sizes = []
+        self.energy_levels = [] 
+        self.default_dx = 1.0 
+        self.default_dy = 1.0
 
-        self.init_path()
-        self.pixel_sizes = self.setup_json()
-
-    def main(self) -> None:
-
-        ddsim_queue = []
-
-        # loop over pixel sizes
+    def setup_sim(self) -> None:
+        # we loop over every requested pixel value to 
+        # gather the simulation-needed information
         for curr_px_dx, curr_px_dy in self.pixel_sizes:
             
-            # create respective px folder
+            # create respective px folder which will hold output and more
             curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px") 
             os.makedirs(curr_px_path, exist_ok=True) 
 
             # copy epic and compact folders (os.path.join(curr_px_path, "epic"))
-            curr_px_epic_path = str(self.copy_epic(curr_px_path))
+            curr_px_epic_path = self.copy_epic(curr_px_path)
 
             # rewrite XML to hold current pixel values for all occurrences in epic detector                          
-            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
+            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)    
 
-            # since we copied the epic folder we can get the relavent ip6 file
-            curr_px_epic_ip6 = curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml"
+            # gather dictionary per pixel with information needed for run
+            self.sim_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path)
 
-            # for given pixel, loop over energies
-            for energy in self.energy_levels:
-                # loop over all energy levels and save ddsim commands
-                ddsim_cmd = self.get_ddsim_cmd(curr_px_path, curr_px_epic_ip6, energy)
-                ddsim_queue.append(ddsim_cmd)
+    def create_sim_dict(self, curr_px_path, curr_px_epic_path) -> dict:
+        """
+        Create simulation dictionary holding 
+        "dx_dy"
+            "epic"
+            "compact"
+            "ip6"
+            "src_file"
+        """
+        sim_dict = {}
 
-        # multiprocess the gathered commands 
-        self.exec_sim(ddsim_queue)
+        px_key = f"{curr_dx}_{curr_dy}"
+        curr_px_path = os.path.join(self.simEvents_path, f"{curr_dx}x{curr_dy}px")
+        os.makedirs(curr_px_path, exist_ok=True) 
 
-    def init_path(self) -> None:
+        curr_px_epic_path = os.path.join(curr_px_path, "epic")
+
+        sim_dict[px_key] = {
+            "px_epic_path": curr_px_epic_path,
+            "px_compact_path": curr_px_epic_path + "/install/share/epic/compact",
+            "px_ip6_path": curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml",
+            "px_src_path": f"{curr_px_epic_path}/install/bin/thisepic.sh",
+            "px_out_path": curr_px_path,
+            "px_ddsim_cmds": [self.get_ddsim_cmd(curr_px_path, curr_px_epic_ip6, energy) for energy in self.energy_levels]
+        }
+
+        return sim_dict
+
+    def init_path_var(self) -> None:
         """
         Method for setting paths for input, output, and other resources.
         """
+
+        self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
+        self.num_particles = 5
+
         self.execution_path = os.getcwd()
         self.det_dir = "/data/tomble/eic/epic"
         self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
@@ -75,8 +92,8 @@ class HandleEIC(object):
         if not self.out_path:
             self.out_path = self.in_path
 
-        self.genEvents_path  = os.path.join(os.getcwd(), f"genEvents{self.in_path}")
-        self.simEvents_path  = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
+        self.genEvents_path = os.path.join(os.getcwd(), f"genEvents{self.in_path}")
+        self.simEvents_path = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
 
         os.makedirs(self.genEvents_path, exist_ok=True)
         os.makedirs(self.simEvents_path, exist_ok=True)
@@ -132,7 +149,7 @@ class HandleEIC(object):
         
         try:
             # Run the command and capture the output
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True, check=True)
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True, check=True, env=updated_env)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to source script: {script_path}. Error: {e}")
         
@@ -178,16 +195,7 @@ class HandleEIC(object):
                         # Replace DETECTOR_PATH in attributes
                         for attrib_key, attrib_value in elem.attrib.items():
                             if "${DETECTOR_PATH}" in attrib_value:
-                                elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
-
-                        # Replace self.det_dir in element text
-                        if elem.text and self.det_dir in elem.text:
-                            elem.text = elem.text.replace(self.det_dir, f"{curr_epic_path}")
-                        # Replace self.det_dir in attributes
-                        for attrib_key, attrib_value in elem.attrib.items():
-                            if self.det_dir in attrib_value:
-                                elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")           
-
+                                elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")  
                     tree.write(filepath)
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
@@ -200,18 +208,35 @@ class HandleEIC(object):
         cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_px_path}/output_{file_num}edm4hep.root --compactFile {curr_px_epic_ip6_path} -N {self.num_particles}"
         return cmd
 
-    def run_cmd(self, cmd: str) -> None:
+    def run_cmd(self, cmd_px: tuple) -> None:
         """
-        Run a command in the shell
+        Run a command in the shell after sourcing the environment for a specific pixel configuration.
+        
+        Args:
+            cmd_px (tuple): A tuple containing the command string and the path to the shell script to source.
         """
-        #subprocess.run(cmd, shell=True, capture_output=True, text=True) TRY POPOPEN HERE
-        os.system(cmd)
+        cmd, px_src_path = cmd_px
+        
+        # Source the shell script
+        self.source_shell_script(px_src_path)
+        
+        # Run the command
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            print(f"Command executed successfully: {cmd}")
+            print(f"Output: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command: {cmd}")
+            print(f"Error output: {e.stderr}")
 
-    def exec_sim(self, run_queue) -> None:
+    def exec_sim(self) -> None:
         """
-        Execute all simulations in parallel using multiprocessing
+        Execute all simulations in parallel using multiprocessing.
         """
-        num_workers = os.cpu_count()
+        # Create a list of (command, px_src_path) tuples for each pixel configuration
+        run_queue = [(cmd, self.sim_dict[px_key]["px_src_path"]) for px_key in self.sim_dict for cmd in self.sim_dict[px_key]["px_ddsim_cmds"]]
+        
+        num_workers = os.cpu_count()  # Number of processes
         with multiprocessing.Pool(num_workers) as pool:
             pool.map(self.run_cmd, run_queue)
 
@@ -275,7 +300,16 @@ class HandleEIC(object):
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
 if __name__ == "__main__":
+    # initilize program 
     eic_object = HandleEIC()
     os.chmod(eic_object.execution_path, 0o777)
-    eic_object.main()
+
+    # initilize simulation
+    eic_object.init_path_var()
+    pixel_sizes = eic_object.setup_json()
+    
+    # setup simulation
+    eic_object.exec_sim()
+
+    # create backup for simulation
     eic_object.mk_sim_backup()
