@@ -62,7 +62,7 @@ class HandleEIC(object):
             "px_ip6_path": curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml",
             "px_src_path": f"{curr_px_epic_path}/install/bin/thisepic.sh",
             "px_out_path": curr_px_path,
-            "px_ddsim_cmds": [self.get_ddsim_cmd(curr_px_path, curr_px_epic_ip6, energy) for energy in self.energy_levels]
+            "px_ddsim_cmds": [self.get_ddsim_cmd(curr_px_path, sim_dict[px_key]["px_ip6_path"], energy) for energy in self.energy_levels]
         }
 
         return sim_dict
@@ -134,33 +134,26 @@ class HandleEIC(object):
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
-    def source_shell_script(script_path):
+    def source_shell_script(self, script_path: str) -> dict:
         """
-        Sources a shell script and updates the current Python process environment variables.
-
-        Args:
-            script_path (str): The full path to the shell script to source.
+        Sources a shell script and updates the environment for each subprocess.
         """
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")
         
         # Command to source the script and output environment variables
-        command = f"bash -c 'source {script_path}'"
+        command = f"bash -c 'source {script_path} && env'"
         
         try:
-            # Run the command and capture the output
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True, check=True, env=updated_env)
+            # Run the command and capture the output (environment variables)
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True, check=True)
+            # Parse the environment variables from the command output
+            env_vars = dict(
+                line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
+            )
+            return env_vars
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to source script: {script_path}. Error: {e}")
-        
-        # Parse the environment variables from the command output
-        env_vars = dict(
-            line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
-        )
-        
-        # Update the Python environment
-        os.environ.update(env_vars)
-        print(f"Environment updated with variables from {script_path}")
 
     def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
         """
@@ -217,28 +210,38 @@ class HandleEIC(object):
         """
         cmd, px_src_path = cmd_px
         
-        # Source the shell script
-        self.source_shell_script(px_src_path)
+        # Source the shell script and get the environment variables
+        env_vars = self.source_shell_script(px_src_path)
         
-        # Run the command
+        # Run the command with the sourced environment
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True, env=env_vars)
             print(f"Command executed successfully: {cmd}")
             print(f"Output: {result.stdout}")
         except subprocess.CalledProcessError as e:
             print(f"Error executing command: {cmd}")
             print(f"Error output: {e.stderr}")
 
-    def exec_sim(self) -> None:
+    def run_cmd(self, cmd_px: tuple) -> None:
         """
-        Execute all simulations in parallel using multiprocessing.
-        """
-        # Create a list of (command, px_src_path) tuples for each pixel configuration
-        run_queue = [(cmd, self.sim_dict[px_key]["px_src_path"]) for px_key in self.sim_dict for cmd in self.sim_dict[px_key]["px_ddsim_cmds"]]
+        Run a command in the shell after sourcing the environment for a specific pixel configuration.
         
-        num_workers = os.cpu_count()  # Number of processes
-        with multiprocessing.Pool(num_workers) as pool:
-            pool.map(self.run_cmd, run_queue)
+        Args:
+            cmd_px (tuple): A tuple containing the command string and the path to the shell script to source.
+        """
+        cmd, px_src_path = cmd_px
+        
+        # Source the shell script and get the environment variables
+        env_vars = self.source_shell_script(px_src_path)
+        
+        # Run the command with the sourced environment
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True, env=env_vars)
+            print(f"Command executed successfully: {cmd}")
+            print(f"Output: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command: {cmd}")
+            print(f"Error output: {e.stderr}")
 
     def mk_sim_backup(self) -> None:
         """
@@ -298,14 +301,17 @@ class HandleEIC(object):
             return value
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
-
+            
 if __name__ == "__main__":
-    # initilize program 
+    # initialize program
     eic_object = HandleEIC()
     eic_object.init_path_var()
     pixel_sizes = eic_object.setup_json()
     os.chmod(eic_object.execution_path, 0o777)
     
+    # Call setup_sim() to initialize sim_dict
+    eic_object.setup_sim()
+
     # setup simulation
     eic_object.exec_sim()
 
