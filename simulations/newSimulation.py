@@ -302,11 +302,9 @@ class HandleEIC(object):
 if __name__ == "__main__":
     # initilize program 
     eic_object = HandleEIC()
-    os.chmod(eic_object.execution_path, 0o777)
-
-    # initilize simulation
     eic_object.init_path_var()
     pixel_sizes = eic_object.setup_json()
+    os.chmod(eic_object.execution_path, 0o777)
     
     # setup simulation
     eic_object.exec_sim()
