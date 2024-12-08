@@ -222,26 +222,18 @@ class HandleEIC(object):
             print(f"Error executing command: {cmd}")
             print(f"Error output: {e.stderr}")
 
-    def run_cmd(self, cmd_px: tuple) -> None:
+    def exec_sim(self) -> None:
         """
-        Run a command in the shell after sourcing the environment for a specific pixel configuration.
-        
-        Args:
-            cmd_px (tuple): A tuple containing the command string and the path to the shell script to source.
+        Execute all simulations in parallel using multiprocessing.
         """
-        cmd, px_src_path = cmd_px
+        # Create a list of (command, px_src_path) tuples for each pixel configuration
+        run_queue = [(cmd, self.sim_dict[px_key]["px_src_path"]) 
+                    for px_key in self.sim_dict 
+                    for cmd in self.sim_dict[px_key]["px_ddsim_cmds"]]
         
-        # Source the shell script and get the environment variables
-        env_vars = self.source_shell_script(px_src_path)
-        
-        # Run the command with the sourced environment
-        try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True, env=env_vars)
-            print(f"Command executed successfully: {cmd}")
-            print(f"Output: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing command: {cmd}")
-            print(f"Error output: {e.stderr}")
+        num_workers = os.cpu_count()  # Number of processes
+        with multiprocessing.Pool(num_workers) as pool:
+            pool.map(self.run_cmd, run_queue)
 
     def mk_sim_backup(self) -> None:
         """
