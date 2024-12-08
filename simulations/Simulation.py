@@ -21,8 +21,8 @@ class HandleEIC(object):
         self.num_particles = 5
         self.default_dx = 0.1 # res in mm
         self.default_dy = 0.1 # res in mm
-        self.pixel_sizes = setup_json()
         self.init_path()
+        self.pixel_sizes = self.setup_json()
 
     def main(self) -> None:
         ddsim_queue = []
