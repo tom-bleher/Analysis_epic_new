@@ -38,9 +38,9 @@ class HandleEIC(object):
             self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)    
 
             # gather dictionary per pixel with information needed for run
-            self.sim_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path)
+            self.sim_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy)
 
-    def create_sim_dict(self, curr_px_path, curr_px_epic_path) -> dict:
+    def create_sim_dict(self, curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy) -> dict:
         """
         Create simulation dictionary holding 
         "dx_dy"
@@ -51,8 +51,8 @@ class HandleEIC(object):
         """
         sim_dict = {}
 
-        px_key = f"{curr_dx}_{curr_dy}"
-        curr_px_path = os.path.join(self.simEvents_path, f"{curr_dx}x{curr_dy}px")
+        px_key = f"{curr_px_dx}_{curr_px_dy}"
+        curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px")
         os.makedirs(curr_px_path, exist_ok=True) 
 
         curr_px_epic_path = os.path.join(curr_px_path, "epic")
