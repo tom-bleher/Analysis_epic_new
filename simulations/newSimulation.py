@@ -196,6 +196,14 @@ class HandleEIC(object):
                         for attrib_key, attrib_value in elem.attrib.items():
                             if "${DETECTOR_PATH}" in attrib_value:
                                 elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")  
+                                
+                        if elem.text and self.det_dir in elem.text:
+                            elem.text = elem.text.replace(self.det_dir, f"{curr_epic_path}")
+                        # Replace self.det_dir in attributes
+                        for attrib_key, attrib_value in elem.attrib.items():
+                            if self.det_dir in attrib_value:
+                                elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")       
+                    
                     tree.write(filepath)
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
