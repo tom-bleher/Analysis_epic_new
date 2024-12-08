@@ -23,22 +23,20 @@ class HandleEIC(object):
         self.sim_dict = {}
 
     def setup_sim(self) -> None:
-        # we loop over every requested pixel value to 
-        # gather the simulation-needed information
         for curr_px_dx, curr_px_dy in self.pixel_sizes:
-            
-            # create respective px folder which will hold output and more
-            curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px") 
-            os.makedirs(curr_px_path, exist_ok=True) 
+            # Create respective px folder
+            curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px")
+            os.makedirs(curr_px_path, exist_ok=True)
 
-            # copy epic and compact folders (os.path.join(curr_px_path, "epic"))
+            # Copy epic folder
             curr_px_epic_path = self.copy_epic(curr_px_path)
 
-            # rewrite XML to hold current pixel values for all occurrences in epic detector                          
-            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)    
+            # Rewrite XML to hold current pixel values
+            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
 
-            # gather dictionary per pixel with information needed for run
-            self.sim_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy)
+            # Update the simulation dictionary instead of overwriting
+            px_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy)
+            self.sim_dict.update(px_dict)
 
     def create_sim_dict(self, curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy) -> dict:
         """
