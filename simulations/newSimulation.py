@@ -203,8 +203,18 @@ class HandleEIC(object):
                         for attrib_key, attrib_value in elem.attrib.items():
                             if self.det_dir in attrib_value:
                                 elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")       
-                    
                     tree.write(filepath)
+
+                else:
+                    # For non-XML files, use grep and sed to replace DETECTOR_PATH
+                    try:
+                        # Run the find and sed command
+                        command = f"find /data/tomble/eic/epic -type f -exec grep -l '/data/tomble/eic/epic' {{}} + | xargs sed -i 's|/data/tomble/eic/epic|{curr_epic_path}|g'"
+                        subprocess.run(command, shell=True, check=True)
+                    except subprocess.CalledProcessError as e:
+                        print(f"Error processing file replacements: {e}")
+                        
+
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
         """
