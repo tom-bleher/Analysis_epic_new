@@ -136,6 +136,32 @@ class HandleEIC(object):
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
         return os.path.join(curr_px_path, "epic")
 
+    def recompile_builds(self) -> None:
+        """
+        Method to recompile all builds by running 'make clean' and 'make -j$(nproc)' in each build directory
+        specified by the paths in the simulation dictionary.
+        """
+        for px_key, paths in self.sim_dict.items():
+            build_path = os.path.join(paths["px_epic_path"], "build")  # Assuming 'build' is the directory for compilation
+            
+            if os.path.exists(build_path) and os.path.isdir(build_path):
+                try:
+                    # Change to the build directory and run 'make clean'
+                    print(f"Cleaning build directory: {build_path}")
+                    result = subprocess.run("make clean", shell=True, cwd=build_path, text=True, check=True, capture_output=True)
+                    print(f"Output of 'make clean': {result.stdout}")
+                    
+                    # Run 'make -j$(nproc)'
+                    print(f"Compiling with 'make -j$(nproc)' in: {build_path}")
+                    result = subprocess.run("make -j$(nproc)", shell=True, cwd=build_path, text=True, check=True, capture_output=True)
+                    print(f"Compilation successful for: {px_key}")
+                    print(f"Output of 'make -j$(nproc)': {result.stdout}")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error during compilation for {px_key} in {build_path}: {e.stderr}")
+                    raise RuntimeError(f"Compilation failed for {px_key} in {build_path}.")
+            else:
+                print(f"Build path not found for {px_key}: {build_path}")
+
     def source_shell_script(self, script_path: str) -> dict:
         """
         Sources a shell script and updates the environment for each subprocess.
@@ -204,7 +230,7 @@ class HandleEIC(object):
                             if self.det_dir in attrib_value:
                                 elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")       
                     tree.write(filepath)
-
+                """
                 else:
                     # For non-XML files, use grep and sed to replace DETECTOR_PATH
                     try:
@@ -213,7 +239,7 @@ class HandleEIC(object):
                         subprocess.run(command, shell=True, check=True)
                     except subprocess.CalledProcessError as e:
                         print(f"Error processing file replacements: {e}")
-                        
+                """
 
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
@@ -328,7 +354,9 @@ if __name__ == "__main__":
     # Call setup_sim() to initialize sim_dict
     eic_object.setup_sim()
     print("Simulation dictionary:", eic_object.sim_dict)  # Debugging line
-    
+
+    eic_object.recompile_builds()
+
     # setup simulation
     eic_object.exec_sim()
 
