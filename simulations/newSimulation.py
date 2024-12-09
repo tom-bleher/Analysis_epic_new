@@ -215,32 +215,7 @@ class HandleEIC(object):
                             elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                                 elem.attrib['value'] = f"{curr_px_dy}*mm"
 
-                        # Replace DETECTOR_PATH in element text
-                        if elem.text and "${DETECTOR_PATH}" in elem.text:
-                            elem.text = elem.text.replace("${DETECTOR_PATH}", f"{curr_epic_path}")
-                        # Replace DETECTOR_PATH in attributes
-                        for attrib_key, attrib_value in elem.attrib.items():
-                            if "${DETECTOR_PATH}" in attrib_value:
-                                elem.attrib[attrib_key] = attrib_value.replace("${DETECTOR_PATH}", f"{curr_epic_path}")  
-                                
-                        if elem.text and self.det_dir in elem.text:
-                            elem.text = elem.text.replace(self.det_dir, f"{curr_epic_path}")
-                        # Replace self.det_dir in attributes
-                        for attrib_key, attrib_value in elem.attrib.items():
-                            if self.det_dir in attrib_value:
-                                elem.attrib[attrib_key] = attrib_value.replace(self.det_dir, f"{curr_epic_path}")       
                     tree.write(filepath)
-                """
-                else:
-                    # For non-XML files, use grep and sed to replace DETECTOR_PATH
-                    try:
-                        # Run the find and sed command
-                        command = f"find /data/tomble/eic/epic -type f -exec grep -l '/data/tomble/eic/epic' {{}} + | xargs sed -i 's|/data/tomble/eic/epic|{curr_epic_path}|g'"
-                        subprocess.run(command, shell=True, check=True)
-                    except subprocess.CalledProcessError as e:
-                        print(f"Error processing file replacements: {e}")
-                """
-
 
     def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
         """
