@@ -158,13 +158,13 @@ class HandleEIC(object):
                 # Run 'cmake ..'
                 print(f"Running 'cmake ..' in: {build_path}")
                 result = subprocess.run(["cmake", ".."], cwd=build_path, text=True, check=True, capture_output=True)
-                print(f"Output of 'cmake ..': {result.stdout}")
+                #print(f"Output of 'cmake ..': {result.stdout}")
 
                 # Run 'make -j$(nproc)'
                 print(f"Compiling with 'make -j$(nproc)' in: {build_path}")
                 result = subprocess.run(["make", f"-j{os.cpu_count()}"], cwd=build_path, text=True, check=True, capture_output=True)
                 print(f"Compilation successful for: {px_key}")
-                print(f"Output of 'make -j$(nproc)': {result.stdout}")
+                #print(f"Output of 'make -j$(nproc)': {result.stdout}")
             except subprocess.CalledProcessError as e:
                 print(f"Error during build process for {px_key} in {build_path}: {e.stderr}")
                 raise RuntimeError(f"Compilation failed for {px_key} in {build_path}.")
@@ -185,6 +185,7 @@ class HandleEIC(object):
             env_vars = dict(
                 line.split('=', 1) for line in result.stdout.splitlines() if '=' in line
             )
+            print(env_vars)
             return env_vars
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f'Failed to source script: {script_path}. Error: {e}')
