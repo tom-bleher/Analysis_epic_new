@@ -174,7 +174,7 @@ class HandleEIC(object):
 
     def source_shell_script(self, *path_components) -> dict:
         """Sources a shell script and returns the environment variables as a dictionary."""
-        script_path = self.get_path(*path_components)
+        script_path = os.path.join(*path_components)
 
         if not os.path.exists(script_path):
             raise FileNotFoundError(f'Script not found: {script_path}')
@@ -318,7 +318,11 @@ class HandleEIC(object):
             return value
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
-            
+
+    def get_path(self, *path_components):
+        """Joins path components into a single file path."""
+        return os.path.join(*path_components)
+
 if __name__ == "__main__":
     # initialize program
     eic_object = HandleEIC()
