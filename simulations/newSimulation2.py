@@ -60,7 +60,7 @@ class HandleEIC(object):
             "px_epic_path": curr_px_epic_path,
             "px_compact_path": curr_px_epic_path + "/install/share/epic/compact",
             "px_ip6_path": curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml",
-            "px_src_path": f"{curr_px_epic_path}/install/bin/thisepic.sh",
+            "px_src_path": f"{curr_px_epic_path}/install/bin/",
             "px_out_path": curr_px_path,
         }
 
@@ -250,9 +250,11 @@ class HandleEIC(object):
     def exec_sim(self) -> None:
         """Executes all simulations in parallel using multiprocessing."""
 
-        run_queue = [(cmd, self.sim_dict[px_key]["px_src_path"]) 
-                    for px_key in self.sim_dict 
-                    for cmd in self.sim_dict[px_key]["px_ddsim_cmds"]]
+        run_queue = [
+            (cmd, self.sim_dict[px_key]['px_src_path'], "thisepic.sh")
+            for px_key in self.sim_dict
+            for cmd in self.sim_dict[px_key]['px_ddsim_cmds']
+        ]
 
         num_workers = os.cpu_count() 
         with multiprocessing.Pool(num_workers) as pool:
