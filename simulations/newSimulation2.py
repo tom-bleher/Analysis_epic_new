@@ -12,185 +12,223 @@ import json
 import xml.etree.ElementTree as ET
 import subprocess
 import multiprocessing
+import logging
+from typing import Dict, List, Tuple
+from concurrent.futures import ProcessPoolExecutor
 
 class HandleEIC(object):
 
-    def __init__(self):
-        self.pixel_sizes = []
-        self.energy_levels = [] 
-        self.default_dx = 1.0 
-        self.default_dy = 1.0
-        self.sim_dict = {}
+    def __init__(
+        ) -> None:
+        
+        # init internal variables
+        self.energies: List[str] = []
+        self.sim_dict: Dict[str, Dict[str, str]] = {}
+        self.settings_path: str = "simulation_settings.json"
+        self.execution_path: str = os.getcwd()
+        self.backup_path: str = ""
+        
+        # init vars to be populated by the JSON file
+        self.px_pairs: List[Tuple[float, float]] = []
+        self.num_particles: int = 0
+        self.det_path: str = ""
+        self.file_type: str = ""
+        self.hepmc_path: str = ""
+        self.sim_out_path: str = ""
+        self.det_ip6_path: str = ""
 
-    def setup_sim(self) -> None:
-        for curr_px_dx, curr_px_dy in self.pixel_sizes:
-            # Create respective px folder
-            curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px")
-            os.makedirs(curr_px_path, exist_ok=True)
+        #self.setup_settings()  # load settings here
 
-            # Copy epic folder
-            curr_px_epic_path = self.copy_epic(curr_px_path)
+        # configure logging for the main process
+        log_file = os.path.join(self.execution_path, ".logging")
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            handlers=[
+                logging.FileHandler(log_file, mode='w'),
+                logging.StreamHandler()
+            ]
+        )
+        self.printlog("Main process logging initialized.")
 
-            # Rewrite XML to hold current pixel values
-            self.rewrite_xml_tree(curr_px_epic_path, curr_px_dx, curr_px_dy)
-
-            # Update the simulation dictionary instead of overwriting
-            px_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy)
-            self.sim_dict.update(px_dict)
-
-    def create_sim_dict(self, curr_px_path: str, curr_px_epic_path: str, curr_px_dx: float, curr_px_dy: float) -> dict[str, dict[str, str]]:
+    def setup_settings(
+        self
+        ) -> None:
         """
-        Create simulation dictionary holding 
+        Load simulation settings from a JSON file. If the file is missing or invalid,
+        create a default settings file and raise an error for the user to edit.
+        """
+        try:
+            if os.path.exists(self.settings_path):
+                with open(self.settings_path, 'r') as file:
+                    self.settings_dict = json.load(file)
+            else:
+                self.printlog(f"Settings file not found at {self.settings_path}.")
+                raise FileNotFoundError(f"Settings file not found at {self.settings_path}.")
+
+            required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path"]
+            for key in required_keys:
+                if key not in self.settings_dict or not self.settings_dict[key]:
+                    self.printlog(f"Missing or empty key: {key} in settings.")
+                    raise ValueError(f"Missing or empty key: {key} in settings.")
+
+            # set attributes dynamically
+            for key, value in self.settings_dict.items():
+                setattr(self, key, value)
+
+        except FileNotFoundError:
+            logging.info("Failed to load settings, creating default configuration.")
+            with open(self.settings_path, 'w') as file:
+                json.dump(self.def_set_dict, file, indent=4)
+            raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.") from e            
+
+        except json.JSONDecodeError as e:
+            self.printlog(f"Failed to parse settings file: {e}. Check for JSON formatting issues.")
+            raise ValueError("Invalid JSON format in settings file. Fix the file or delete it to recreate.")
+
+        except Exception as e:
+            self.printlog(f"Unexpected error while loading settings: {e}", level="error")
+            raise RuntimeError("Failed to load settings due to an unexpected error.") from e
+
+    def prep_sim(
+        self
+        ) -> None:
+
+        # loop over all requested detector changes and create specifics
+        self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}")
+        for curr_px_dx, curr_px_dy in self.px_pairs:
+            
+            """ soft changes """
+            # create respective px folder to hold simulation output and change-related objects
+            curr_sim_path = os.path.join(self.sim_out_path, f"{curr_px_dx}x{curr_px_dy}px")
+            os.makedirs(curr_sim_path, exist_ok=True)
+
+            """ hard changes """
+            # copy epic folder to current pixel path
+            curr_sim_det_path = self.copy_epic(curr_sim_path)
+
+            # rewrite detector's XMLs to hold current change for detector
+            self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
+
+            # update the simulation dictionary for current requested change
+            single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
+            self.sim_dict.update(single_sim_dict)
+        
+    def exec_sim(self) -> None:
+        """
+        Execute the simulation for all entries in the simulation dictionary,
+        ensuring recompilation and sourcing of the detector environment in each subprocess.
+        """
+        self.printlog("Preparing simulation commands and environments.")
+
+        # prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+         ]
+                
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            for future in concurrent.futures.as_completed(future_to_cmd):
+                cmd = future_to_cmd[future]
+                try:
+                    future.result()  # Handle success
+                    self.printlog(f"Simulation completed for command: {cmd[0]}")
+                except Exception as e:
+                    self.printlog(f"Simulation failed for command {cmd[0]}: {e}", level="error")
+
+    def create_sim_dict(
+        self, 
+        curr_sim_path: str, 
+        curr_sim_det_path: str, 
+        curr_px_dx: float, 
+        curr_px_dy: float
+        ) -> dict[str, dict[str, str]]:
+        """
+        Create simulation dictionary holding relavent parameters
         "dx_dy"
             "epic"
             "compact"
             "ip6"
-            "src_file"
+            "sh_file_path"
         """
-        sim_dict = {}
+        
+        # initilize dict to hold parameters for one simulation
+        single_sim_dict = {}
+        px_key = f"{curr_px_dx}x{curr_px_dy}"
 
-        px_key = f"{curr_px_dx}_{curr_px_dy}"
-        curr_px_path = os.path.join(self.simEvents_path, f"{curr_px_dx}x{curr_px_dy}px")
-        os.makedirs(curr_px_path, exist_ok=True)
-
-        curr_px_epic_path = os.path.join(curr_px_path, "epic")
-
-        # Create initial entry for px_key
-        sim_dict[px_key] = {
-            "px_epic_path": curr_px_epic_path,
-            "px_compact_path": curr_px_epic_path + "/install/share/epic/compact",
-            "px_ip6_path": curr_px_epic_path + "/install/share/epic/epic_ip6_extended.xml",
-            "px_src_path": f"{curr_px_epic_path}/install/bin/",
-            "px_out_path": curr_px_path,
+        # populate dict entry with all simulation-relavent information
+        single_sim_dict[px_key] = {
+            "sim_det_path": curr_sim_det_path,
+            "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
+            "sim_ip6_path": curr_sim_det_path + "/install/share/epic/epic_ip6_extended.xml",
+            "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
         }
 
-        # Now that px_ip6_path exists, populate px_ddsim_cmds
-        sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_px_path, sim_dict[px_key]["px_ip6_path"], energy)for energy in self.energy_levels]
+        # populate px_ddsim_cmds according to requested energies in hepmc_path
+        single_sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy) for energy in self.energies]
 
-        return sim_dict
+        # return the dict for the sim
+        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
+        return single_sim_dict
 
-    def init_path_var(self) -> None:
+    def init_paths(
+        self
+        ) -> None:
+
+        self.settings_path = "simulation_settings.json"
+        self.execution_path = os.getcwd()
+
+        if not os.path.isdir(self.sim_out_path) or self.sim_out_path == "":
+            self.sim_out_path = self.execution_path + "/simEvents"
+        else:
+            self.sim_out_path = self.settings_dict.get("sim_out_path")
+        os.makedirs(self.sim_out_path, exist_ok=True)
+
+        # create the path where the simulation file backup will go
+        self.backup_path = os.path.join(self.sim_out_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
+
+    def init_vars(
+        self
+        ) -> None:
         """
         Method for setting paths for input, output, and other resources.
         """
 
-        self.file_type = "beamEffectsElectrons" # or "idealElectrons" 
-        self.num_particles = 5
+        # get energy hepmcs from created
+        self.energies = [file for file in (os.listdir(self.hepmc_path)) if self.file_type in file]
 
-        self.execution_path = os.getcwd()
-        self.det_dir = "/data/tomble/eic/epic"
-        self.epicPath = self.det_dir + "/install/share/epic/epic_ip6_extended.xml"
+        # default if user does not provide JSON
+        self.def_set_dict = {
+            "px_pairs": [[0.1, 0.1]], # add more pixel pairs
+            "num_particles": 100,
+            "det_path": "/data/tomble/eic/epic", # sourced detector
+            "file_type": "beamEffectsElectrons", 
+            "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
+            "sim_out_path": "",
+            "det_ip6_path": "" # main settings pointer file of detector (should match sourced)
+        }
 
-        self.createGenFiles_path = os.path.join(self.execution_path, "createGenFiles.py") # get BH value for generated hepmc files (zero or one)
-        self.energy_levels = [file for file in (os.listdir(os.path.join(self.execution_path, "genEvents/results"))) if self.file_type in file]
-
-        self.in_path = ""
-        self.out_path = ""
-        if len(sys.argv) > 1: 
-            self.in_path = f"/{sys.argv[1]}"
-        if len(sys.argv) > 2: 
-            self.out_path = f"/{sys.argv[2]}"
-
-        if not self.out_path:
-            self.out_path = self.in_path
-
-        self.genEvents_path = os.path.join(os.getcwd(), f"genEvents{self.in_path}")
-        self.simEvents_path = os.path.join(os.getcwd(), f"simEvents{self.out_path}")
-
-        os.makedirs(self.genEvents_path, exist_ok=True)
-        os.makedirs(self.simEvents_path, exist_ok=True)
-
-        # create the path where the simulation file backup will go
-        self.backup_path = os.path.join(self.simEvents_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
-
-    def setup_json(self) -> list[tuple]:
-        """
-        Method for setting up JSON file containing pixel size.
-        If the JSON file doesn't exist or is incorrect, a new one is created with default pixel sizes.
-        """
-        self.px_size_dict = {}
-        self.px_json_path = os.path.join(self.execution_path, 'pixel_data.json')
+    def copy_epic(
+        self, 
+        curr_sim_path
+        ) -> str:
+        """copy epic to respective px folder for parameter reference"""
         try:
-            # try to read and load the JSON file
-            with open(self.px_json_path,'r') as file:
-                self.px_size_dict = json.load(file)
-            # validate the read data
-            px_data = self.px_size_dict['LumiSpecTracker_pixelSize']
+            dest_path = os.path.join(curr_sim_path, "epic")
+            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
+            return dest_path
+        except Exception as e:
+            logging.error(f"Failed to copy detector: {e}")
+            raise
 
-            if all(isinstance(item, list) and len(item) == 2 and 
-                isinstance(item[0], (float, int)) and isinstance(item[1], (float, int)) for item in px_data):
-                self.px_pairs = px_data
-            else:
-                raise ValueError("Invalid JSON file...")
-        except:
-            # create a new JSON with default values
-            self.px_size_dict = {"LumiSpecTracker_pixelSize": [[self.default_dx, self.default_dy]]}
-            with open(self.px_json_path,'w') as file:
-                json.dump(self.px_size_dict, file)
-            print(f"No valid JSON found. Created JSON file at {self.px_json_path}. Edit the pairs in the JSON to specify your desired values.")
-            self.px_pairs = self.px_size_dict['LumiSpecTracker_pixelSize']
-        return self.px_pairs
-
-    def copy_epic(self, curr_px_path):
-        # copy epic to respective px folder for parameter reference 
-        os.system(f'cp -r {self.det_dir} {curr_px_path}')    
-        #subprocess.run(["cp", "-r", self.det_dir, curr_px_path], check=True)
-        return os.path.join(curr_px_path, "epic")
-
-    def recompile_builds(self) -> None:
-        """
-        Method to recompile all builds by removing the 'build' directory, recreating it,
-        running 'cmake ..', and 'make -j$(nproc)' in each build directory specified by
-        the paths in the simulation dictionary.
-        """
-        for px_key, paths in self.sim_dict.items():
-            build_path = os.path.join(paths["px_epic_path"], "build")  # Assuming 'build' is the directory for compilation
-
-            if os.path.exists(build_path):
-                print(f"Removing existing build directory: {build_path}")
-                subprocess.run(["rm", "-rf", build_path], check=True)
-
-            try:
-                # Recreate the build directory
-                print(f"Creating new build directory: {build_path}")
-                os.makedirs(build_path, exist_ok=True)
-
-                # Run 'cmake ..'
-                print(f"Running 'cmake ..' in: {build_path}")
-                result = subprocess.run(["cmake", ".."], cwd=build_path, text=True, check=True, capture_output=True)
-                #print(f"Output of 'cmake ..': {result.stdout}")
-
-                # Run 'make -j$(nproc)'
-                print(f"Compiling with 'make -j$(nproc)' in: {build_path}")
-                result = subprocess.run(["make", f"-j{os.cpu_count()}"], cwd=build_path, text=True, check=True, capture_output=True)
-                print(f"Compilation successful for: {px_key}")
-                #print(f"Output of 'make -j$(nproc)': {result.stdout}")
-            except subprocess.CalledProcessError as e:
-                print(f"Error during build process for {px_key} in {build_path}: {e.stderr}")
-                raise RuntimeError(f"Compilation failed for {px_key} in {build_path}.")
-            except Exception as e:
-                print(f"Unexpected error for {px_key} in {build_path}: {str(e)}")
-                raise
-
-    def source_shell_script(self, *path_components) -> dict:
-        """Sources a shell script and returns the environment variables as a dictionary."""
-        script_path = os.path.join(*path_components)
-
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f'Script not found: {script_path}')
-
-        command = ['bash', '-c', 'source "$1" && env', 'bash', script_path]
-        try:
-            result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)
-            env_vars = dict(
-                line.split('=', 1) for line in result.stdout.splitlines() if '=' in line
-            )
-            print(env_vars)
-            return env_vars
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f'Failed to source script: {script_path}. Error: {e}')
-
-    def rewrite_xml_tree(self, curr_epic_path, curr_px_dx, curr_px_dy):
+    def mod_detector_settings(
+        self, 
+        curr_epic_path, 
+        curr_px_dx, 
+        curr_px_dy
+        ) -> None:
         """
         Method for rewriting desired pixel values for all XML files of the Epic 
         detector. For every "{DETECTOR_PATH}" in copied epic XMLs, we replace with the path 
@@ -198,116 +236,228 @@ class HandleEIC(object):
         we replace with our new compact path 
 
         Args:
-            curr_epic_path
-            curr_px_dx
-            curr_px_dy
+            curr_epic_path (str): Path to the copied detector directory.
+            curr_px_dx (float): Pixel size in the X direction (dx).
+            curr_px_dy (float): Pixel size in the Y direction (dy).
         """
 
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
-            for filename in files:
-                filepath = subdir + os.sep + filename
-                if filepath.endswith(".xml") and os.access(filepath, os.W_OK):
-                    tree = ET.parse(filepath)
-                    root = tree.getroot()
-                    for elem in root.iter():
-                        if "constant" in elem.tag and 'name' in elem.keys():
-                            if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
-                                elem.attrib['value'] = f"{curr_px_dx}*mm"
-                            elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
-                                elem.attrib['value'] = f"{curr_px_dy}*mm"
+            for file in files:
+                if file.endswith(".xml"):
+                    filepath = os.path.join(subdir, file)
+                    try:
+                        tree = ET.parse(filepath)
+                        root = tree.getroot()
+                        for elem in root.iter():
+                            # update pixel size constants in the XML file
+                            if elem.tag == "constant" and 'name' in elem.attrib:
+                                if elem.attrib['name'] == "LumiSpecTracker_pixelSize_dx":
+                                    elem.set('value', f"{curr_px_dx}*mm")
+                                elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
+                                    elem.set('value', f"{curr_px_dy}*mm")
+                        tree.write(filepath)
+                        self.printlog(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}")
+                    except Exception as e:
+                        logging.error(f"Failed to modify {filepath}: {e}")
+                        raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
 
-                    tree.write(filepath)
+    def recompile_detector(
+        self, 
+        det_path: str
+        ) -> None:
+        """
+        Method to recompile all builds by removing the 'build' directory, recreating it,
+        running 'cmake ..', and 'make -j$(nproc)' in each build directory specified by
+        the paths in the simulation dictionary. [MAYBE USE MAKE CLEAN INSTEAD?]
+        """
 
-    def get_ddsim_cmd(self, curr_px_path, curr_px_epic_ip6_path, energy) -> list:
+        # assuming 'build' is the directory for compilation
+        for px_key, paths in self.sim_dict.items():
+            build_path = os.path.join(paths["sim_det_path"], "build")  
+
+            if os.path.exists(build_path):
+                self.printlog(f"Removing existing build directory: {build_path}")
+                subprocess.run(["rm", "-rf", build_path], check=True)
+
+            try:
+                # recreate the build directory
+                self.printlog(f"Creating new build directory: {build_path}")
+                os.makedirs(build_path, exist_ok=True)
+
+                # run 'cmake ..'
+                self.printlog(f"Running 'cmake ..' in: {build_path}")
+                result = subprocess.run(["cmake", ".."], cwd=build_path, text=True, check=True, capture_output=True)
+                logging.infof("Output of 'cmake ..': {result.stdout}")
+
+                # run 'make -j$(nproc)'
+                self.printlog(f"Compiling with 'make -j$(nproc)' in: {build_path}")
+                result = subprocess.run(["make", f"-j{os.cpu_count()}"], cwd=build_path, text=True, check=True, capture_output=True)
+                print(f"Compilation successful for: {px_key}")
+                logging.info(f"Output of 'make -j$(nproc)': {result.stdout}")
+                logging.info(f"Successfully compiled detector for {px_key}")
+
+            except subprocess.CalledProcessError as e:
+                print(f"Error during build process for {px_key} in {build_path}: {e.stderr}")
+                logging.error(f"Compilation failed for {px_key}: {e.stderr}")
+                raise RuntimeError(f"Compilation failed for {px_key} in {build_path}.")
+
+            except Exception as e:
+                print(f"Compilation failed. Unexpected error for {px_key} in {build_path}: {str(e)}")
+                logging.error(f"Compilation failed. Unexpected error for {px_key}: {e.stderr}")
+                raise
+
+    def source_shell_script(
+        self, 
+        script_path
+        ) -> dict:
+        """Source a shell script and return the environment variables as a dictionary."""
+
+        if not os.path.exists(script_path):
+            raise FileNotFoundError(f'Script not found: {script_path}')
+
+        # construct shell command to source detector sh file and capture environment variables
+        command = ['bash', '-c', 'source "$1" && env', 'bash', script_path]
+
+        try:
+            # run the command and capture output
+            result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)
+
+            # parse the output into a dictionary of environment variables
+            env_vars = dict(
+                line.split('=', 1) for line in result.stdout.splitlines() if '=' in line
+            )
+
+            self.printlog(f"Sourced shell script {script_path} successfully.")
+            return env_vars
+
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to source script {script_path}: {e.stderr}")
+            raise RuntimeError(f'Failed to source script: {script_path}. Error: {e}')
+
+    def get_ddsim_cmd(
+        self, 
+        curr_sim_path, 
+        curr_sim_det_ip6_path, 
+        energy
+        ) -> str:
         """
-        Method for setting up the queue of commands, each for executing ddsim.
+        Generate ddsim command.
         """
-        inFile = os.path.join(self.genEvents_path, "results", energy)
-        match = re.search("\d+\.+\d\.", inFile)
+        inFile = os.path.join(self.hepmc_path, "results", energy)
+        match = re.search(r"\d+\.+\d\.", inFile)
         file_num = match.group() if match else energy.split("_")[1].split(".")[0]
-        cmd = f"ddsim --inputFiles {inFile} --outputFile {curr_px_path}/output_{file_num}edm4hep.root --compactFile {curr_px_epic_ip6_path} -N {self.num_particles}"
+        
+        output_file = os.path.join(curr_sim_path, f"output_{file_num}edm4hep.root")
+        cmd = f"ddsim --inputFiles {inFile} --outputFile {output_file} --compactFile {curr_sim_det_ip6_path} -N {self.num_particles}"
+        self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
-    def run_cmd(self, cmd_px: tuple) -> None:
-        """Executes a command with environment variables sourced from a shell script."""
-        cmd, script_dir, script_name = cmd_px
+    def run_cmd(
+        self, 
+        curr_cmd: Tuple[str, str, str]
+        ) -> None:
+        sim_cmd, shell_file_path, det_path = curr_cmd
         try:
-            env_vars = self.source_shell_script(script_dir, script_name)
-            print(f'Executing command: {cmd}')
-            result = subprocess.run(
-                cmd.split(),
-                env=env_vars,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            print(f'Output: {result.stdout}')
-            if result.returncode != 0:
-                print(f'Error: {result.stderr}')
+
+            # recompile and source detector
+            self.recompile_detector(det_path)
+            env_vars = self.source_shell_script(shell_file_path)
+            # run the subprocess with the command
+            result = subprocess.run(sim_cmd, shell=True, env=env_vars, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                self.printlog(f"Command succeeded: {sim_cmd}")
+            else:
+                self.printlog(f"Command failed: {sim_cmd}\nError: {result.stderr}", level="error")
+                
         except Exception as e:
-            print(f'Failed to execute command: {cmd}. Error: {e}')
+            self.printlog(f"Error running command {sim_cmd}: {e}", level="error")
+            raise
 
-    def exec_sim(self) -> None:
-        """Executes all simulations in parallel using multiprocessing."""
-
-        run_queue = [
-            (cmd, self.sim_dict[px_key]['px_src_path'], "thisepic.sh")
-            for px_key in self.sim_dict
-            for cmd in self.sim_dict[px_key]['px_ddsim_cmds']
-        ]
-
-        num_workers = os.cpu_count() 
-        with multiprocessing.Pool(num_workers) as pool:
-            pool.map(self.run_cmd, run_queue)
-
-    def mk_sim_backup(self) -> None:
+    def mk_sim_backup(
+        self
+        ) -> None:
         """
         Method to make a backup of simulation files.
         """
         # create a backup for this run
         os.makedirs(self.backup_path , exist_ok=True)
-        print(f"Created new backup directory in {self.backup_path }")
+        self.printlog(f"Created new backup directory in {self.backup_path }")
 
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
         # move pixel folders to backup
-        for item in os.listdir(self.simEvents_path):
-            item_path = os.path.join(self.simEvents_path, item)
+        for item in os.listdir(self.sim_out_path):
+            item_path = os.path.join(self.sim_out_path, item)
             # identify folders using regex
             if os.path.isdir(item_path) and px_folder_pattern.match(item):
-                shutil.move(item_path, self.backup_path )
+                shutil.move(item_path, self.backup_path)
 
         # call function to write the readme file containing the information
         self.setup_readme()
 
-    def setup_readme(self) -> None:
+    def setup_readme(
+        self
+        ) -> None:
         
         # define path for readme file 
         self.readme_path = os.path.join(self.backup_path , "README.txt")
+        logging.info(f"Setting up README file at: {self.readme_path}")
 
-        # call the function to read the BH value from the function
-        self.BH_val = self.get_BH_val()
+        try:
+            # get BH value from the function
+            self.BH_val = self.get_BH_val()
+            logging.info(f"Retrieved BH value: {self.BH_val}")
+        
+            # get energy levels from file names of genEvents
+            self.photon_energy_vals = [
+                '.'.join(file.split('_')[1].split('.', 2)[:2]) 
+                for file in self.energies 
+            ]
+            logging.info(f"Extracted photon energy levels: {self.photon_energy_vals}")
+        
+            #write the README content to the file
+            self.printlog(f"Writing simulation information to README file: {self.readme_path}")
+            with open(self.readme_path, 'a') as file:
+                file.write("SIMULATION INFORMATION:\n")
+                file.write(f"py_file: {os.path.basename(__file__)}\n")
+                logging.debug(f"Added py_file: {self.file_type}")
 
-        # get energy levels from files names of genEvents
-        self.photon_energy_vals = [
-            '.'.join(file.split('_')[1].split('.', 2)[:2]) 
-            for file in self.energy_levels 
-        ]
+                # write each key-value pair from the settings_dict
+                for key, value in self.settings_dict.items():
+                    file.write(f"{key}: {value}\n")
+                    logging.debug(f"Added setting: {key}: {value}")
 
-        # write readme content to the file
-        with open(self.readme_path, 'a') as file:
-            file.write(f'file_type: {self.file_type}\n')
-            file.write(f'Number of Particles: {self.num_particles}\n')
-            file.write(f'Pixel Value Pairs: {self.pixel_sizes}\n')
-            file.write(f'BH: {self.BH_val}\n')
-            file.write(f'Energy Levels : {self.photon_energy_vals}\n')
+                file.write(f"file_type: {self.file_type}\n")
+                logging.debug(f"Added file_type: {self.file_type}")
+                
+                file.write(f"Number of Particles: {self.num_particles}\n")
+                logging.debug(f"Added num_particles: {self.num_particles}")
+                
+                file.write(f"Pixel Value Pairs: {self.px_pairs}\n")
+                logging.debug(f"Added px_pairs: {self.px_pairs}")
+                
+                file.write(f"BH: {self.BH_val}\n")
+                logging.debug(f"Added BH: {self.BH_val}")
+                
+                file.write(f"Energy Levels: {self.photon_energy_vals}\n")
+                logging.debug(f"Added photon energy levels: {self.photon_energy_vals}")
+                
+                file.write("\n*********************\n")  
+                logging.info("Finished writing to README.")
 
-    def get_BH_val(self):
+        except Exception as e:
+            logging.error(f"An error occurred while setting up the README: {e}")
+            raise 
+
+    def get_BH_val(
+        self
+        ) -> None:
 
         # open the path storing the createGenFiles.py file
-        with open(self.createGenFiles_path, 'r') as file:
+        with open(self.hepmc_path, 'r') as file:
             content = file.read()
             
         # use a regex to find the line where BH is defined
@@ -320,26 +470,38 @@ class HandleEIC(object):
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
-    def get_path(self, *path_components):
-        """Joins path components into a single file path."""
-        return os.path.join(*path_components)
+    def printlog(self, message: str, level: str = "info") -> None:
+        """Centralized logging method with consistent levels."""
+
+        if level == "info":
+            logging.info(message)
+        elif level == "error":
+            logging.error(message)
+        elif level == "warning":
+            logging.warning(message)
+        elif level == "debug":
+            logging.debug(message)
+
+        # from JSON settings we allow choice 
+        if self.program_prints:
+            print(message)
 
 if __name__ == "__main__":
-    # initialize program
-    eic_object = HandleEIC()
-    eic_object.init_path_var()
-    pixel_sizes = eic_object.setup_json()
-    eic_object.pixel_sizes = pixel_sizes  
-    os.chmod(eic_object.execution_path, 0o777)
-    
-    # Call setup_sim() to initialize sim_dict
-    eic_object.setup_sim()
-    print("Simulation dictionary:", eic_object.sim_dict)  # Debugging line
+    # initialize the simulation handler
+    eic_handler = HandleEIC()
 
-    eic_object.recompile_builds()
+    # initialize paths, variables, and settings from JSON
+    eic_handler.init_vars()  
+    eic_handler.init_paths()  
+    eic_handler.setup_settings()  
+    os.chmod(os.getcwd(), 0o777)
 
-    # setup simulation
-    eic_object.exec_sim()
+    # prepare the simulation based on settings
+    eic_handler.prep_sim()
 
-    # create backup for simulation
-    eic_object.mk_sim_backup()
+    # execute the simulation in parallel
+    eic_handler.exec_sim()
+
+    # make backups after simulations have completed
+    eic_handler.mk_sim_backup()
+
