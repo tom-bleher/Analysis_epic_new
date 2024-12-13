@@ -186,6 +186,9 @@ class HandleEIC(object):
             self.sim_out_path = self.settings_dict.get("sim_out_path")
         os.makedirs(self.sim_out_path, exist_ok=True)
 
+        if not os.path.exists(self.hepmc_path):
+            raise ValueError(f"The specified hepmc path {self.hepmc_path} does not exist. Run GenSimFiles.py and link its output correctly.")
+
         # create the path where the simulation file backup will go
         self.backup_path = os.path.join(self.sim_out_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
 
@@ -262,78 +265,30 @@ class HandleEIC(object):
                         logging.error(f"Failed to modify {filepath}: {e}")
                         raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
 
-    def recompile_detector(
-        self, 
-        det_path: str
-        ) -> None:
+    def mod_detector_settingsv2(self, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
         """
-        Method to recompile all builds by removing the 'build' directory, recreating it,
-        running 'cmake ..', and 'make -j$(nproc)' in each build directory specified by
-        the paths in the simulation dictionary. [MAYBE USE MAKE CLEAN INSTEAD?]
+        Updates detector XML settings for the current pixel size.
         """
-
-        # assuming 'build' is the directory for compilation
-        for px_key, paths in self.sim_dict.items():
-            build_path = os.path.join(paths["sim_det_path"], "build")  
-
-            if os.path.exists(build_path):
-                self.printlog(f"Removing existing build directory: {build_path}")
-                subprocess.run(["rm", "-rf", build_path], check=True)
-
-            try:
-                # recreate the build directory
-                self.printlog(f"Creating new build directory: {build_path}")
-                os.makedirs(build_path, exist_ok=True)
-
-                # run 'cmake ..'
-                self.printlog(f"Running 'cmake ..' in: {build_path}")
-                result = subprocess.run(["cmake", ".."], cwd=build_path, text=True, check=True, capture_output=True)
-                logging.infof("Output of 'cmake ..': {result.stdout}")
-
-                # run 'make -j$(nproc)'
-                self.printlog(f"Compiling with 'make -j$(nproc)' in: {build_path}")
-                result = subprocess.run(["make", f"-j{os.cpu_count()}"], cwd=build_path, text=True, check=True, capture_output=True)
-                print(f"Compilation successful for: {px_key}")
-                logging.info(f"Output of 'make -j$(nproc)': {result.stdout}")
-                logging.info(f"Successfully compiled detector for {px_key}")
-
-            except subprocess.CalledProcessError as e:
-                print(f"Error during build process for {px_key} in {build_path}: {e.stderr}")
-                logging.error(f"Compilation failed for {px_key}: {e.stderr}")
-                raise RuntimeError(f"Compilation failed for {px_key} in {build_path}.")
-
-            except Exception as e:
-                print(f"Compilation failed. Unexpected error for {px_key} in {build_path}: {str(e)}")
-                logging.error(f"Compilation failed. Unexpected error for {px_key}: {e.stderr}")
-                raise
-
-    def source_shell_script(
-        self, 
-        script_path
-        ) -> dict:
-        """Source a shell script and return the environment variables as a dictionary."""
-
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f'Script not found: {script_path}')
-
-        # construct shell command to source detector sh file and capture environment variables
-        command = ['bash', '-c', 'source "$1" && env', 'bash', script_path]
-
-        try:
-            # run the command and capture output
-            result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)
-
-            # parse the output into a dictionary of environment variables
-            env_vars = dict(
-                line.split('=', 1) for line in result.stdout.splitlines() if '=' in line
-            )
-
-            self.printlog(f"Sourced shell script {script_path} successfully.")
-            return env_vars
-
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Failed to source script {script_path}: {e.stderr}")
-            raise RuntimeError(f'Failed to source script: {script_path}. Error: {e}')
+        for root, _, files in os.walk(curr_epic_path):
+            for file in files:
+                if file.endswith(".xml"):
+                    filepath = os.path.join(root, file)
+                    try:
+                        tree = ET.parse(filepath)
+                        root = tree.getroot()
+                        
+                        for elem in root.findall(".//constant[@name='LumiSpecTracker_pixelSize_dx']"):
+                            elem.set('value', f"{curr_px_dx}*mm")
+                        
+                        for elem in root.findall(".//constant[@name='LumiSpecTracker_pixelSize_dy']"):
+                            elem.set('value', f"{curr_px_dy}*mm")
+                        
+                        tree.write(filepath)
+                        logging.info(f"Updated XML: {filepath} with dx={curr_px_dx}, dy={curr_px_dy}")
+                    except ET.ParseError as e:
+                        logging.error(f"XML parsing error in {filepath}: {e}")
+                    except Exception as e:
+                        logging.error(f"Unexpected error modifying {filepath}: {e}")
 
     def get_ddsim_cmd(
         self, 
@@ -353,26 +308,77 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
-    def run_cmd(
-        self, 
-        curr_cmd: Tuple[str, str, str]
-        ) -> None:
+    def run_cmd(self, curr_cmd: Tuple[str, str, str], compile_method: str) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
+
         try:
+            # define the build directory
+            build_path = os.path.join(det_path, "build")
 
-            # recompile and source detector
-            self.recompile_detector(det_path)
-            env_vars = self.source_shell_script(shell_file_path)
-            # run the subprocess with the command
-            result = subprocess.run(sim_cmd, shell=True, env=env_vars, capture_output=True, text=True)
+            # determine the compile operation
+            if compile_method == "clean":
+                compile_method = [
+                    f"cd {build_path}",
+                    "make clean"
+                ]
+            elif compile_method == "recompile":
+                compile_method = [
+                    f"rm -rf {build_path}",
+                    f"mkdir -p {build_path} && cd {build_path}"
+                ]
+            else:
+                raise ValueError(f"Invalid compile method: {compile_method}")
 
+            # define recompile commands
+            recompile = [
+                f"echo 'Starting build process for detector at {det_path}'",
+                "cmake ..",
+                "make -j$(nproc)",
+                f"echo 'Build process completed for {det_path}'"
+            ]
+
+            # define source commands
+            source = [
+                f"source '{shell_file_path}'",
+                f"echo 'Sourced shell script: {shell_file_path}'"
+            ]
+
+            # Combine all steps into a single command sequence
+            commands = [
+                "set -e",  # Exit on error
+                *compile_method,
+                *recompile,
+                *source,
+                f"echo 'Running simulation command: {sim_cmd}'",
+                sim_cmd  # execute simulation command
+            ]
+
+            # join commands into a single string for `bash -c`
+            combined_command = " && ".join(commands)
+
+            self.printlog(f"Executing combined command:\n{combined_command}", level="debug")
+            
+            # execute the combined command in a single shell process
+            result = subprocess.run(
+                ["bash", "-c", combined_command],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
+
+            # check result and log output
             if result.returncode == 0:
                 self.printlog(f"Command succeeded: {sim_cmd}")
+                self.printlog(f"Combined command output:\n{result.stdout}")
             else:
                 self.printlog(f"Command failed: {sim_cmd}\nError: {result.stderr}", level="error")
-                
+
+        except subprocess.CalledProcessError as e:
+            self.printlog(f"Error during execution: {e.stderr}", level="error")
+            raise RuntimeError(f"Execution failed. Error: {e.stderr}")
         except Exception as e:
-            self.printlog(f"Error running command {sim_cmd}: {e}", level="error")
+            self.printlog(f"Unexpected error: {str(e)}", level="error")
             raise
 
     def mk_sim_backup(
