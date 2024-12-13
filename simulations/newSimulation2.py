@@ -502,9 +502,9 @@ if __name__ == "__main__":
     eic_handler = HandleEIC()
 
     # initialize paths, variables, and settings from JSON
+    eic_handler.setup_settings()  
     eic_handler.init_vars()  
     eic_handler.init_paths()  
-    eic_handler.setup_settings()  
     os.chmod(os.getcwd(), 0o777)
 
     # prepare the simulation based on settings
