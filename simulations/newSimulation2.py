@@ -15,12 +15,14 @@ import multiprocessing
 import logging
 from typing import Dict, List, Tuple
 from concurrent.futures import ProcessPoolExecutor
-import psutil
 
 class HandleEIC(object):
 
     def __init__(
+        self,
         ) -> None:
+
+        self.program_prints = True
         
         # init internal variables
         self.energies: List[str] = []
