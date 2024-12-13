@@ -35,6 +35,7 @@ class HandleEIC(object):
         # init vars to be populated by the JSON file
         self.px_pairs: List[Tuple[float, float]] = []
         self.num_particles: int = 0
+        self.eic_shell_path: str = ""
         self.det_path: str = ""
         self.file_type: str = ""
         self.hepmc_path: str = ""
