@@ -1,0 +1,12 @@
+{
+  "px_pairs": [[0.1, 0.1]],
+  "num_particles": 5,
+  "det_path": "/data/tomble/eic/epic",
+  "file_type": "beamEffectsElectrons",
+  "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
+  
+  "sim_out_path": "",
+  "det_ip6_path": "",
+  "program_print": "True"
+}
+  
