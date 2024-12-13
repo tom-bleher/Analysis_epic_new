@@ -308,57 +308,86 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
-    def run_cmd(self, curr_cmd: Tuple[str, str, str], compile_method: str) -> None:
+
+    def recompile_det(self, det_path, compile_method: str) -> str:
+
+        # define the build directory
+        build_path = os.path.join(det_path, "build")
+
+        # determine the compile operation
+        if compile_method == "clean":
+            compile_method = [
+                f"cd {build_path}",
+                "make clean"
+            ]
+        elif compile_method == "recompile":
+            compile_method = [
+                f"rm -rf {build_path}",
+                f"mkdir -p {build_path} && cd {build_path}"
+            ]
+        else:
+            raise ValueError(f"Invalid compile method: {compile_method}")
+
+        # define recompile commands
+        recompile_cmd = [
+            f"echo 'Starting build process for detector at {det_path}'",
+            *compile_method,
+            "cmake ..",
+            "make -j$(nproc)",
+            f"echo 'Build process completed for {det_path}'"
+        ]
+
+        return recompile_cmd
+
+    def source_det(self, shell_file_path) -> None:
+        source = [
+            f"source '{shell_file_path}'",
+            f"echo 'Sourced shell script: {shell_file_path}'"
+        ]
+        
+        return source
+
+    def subprocess_log(log_file_path: str) -> logging.Logger:
+        """
+        Configures a logger for a subprocess to write logs to a specific file.
+        """
+        logger = logging.getLogger(log_file_path)
+        logger.setLevel(logging.INFO)
+        
+        # add file handler
+        file_handler = logging.FileHandler(log_file_path, mode='w')
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
+        
+        # ensure it doesn't propagate to the root logger
+        logger.propagate = False
+        
+        return logger
+
+    def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
+        
+        # determine the pixel folder for logging
+        logger = subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
 
         try:
-            # define the build directory
-            build_path = os.path.join(det_path, "build")
+            # recompile and source the detector
+            recompile = self.recompile_det(det_path, "recompile")
+            source = self.source_det(shell_file_path)
 
-            # determine the compile operation
-            if compile_method == "clean":
-                compile_method = [
-                    f"cd {build_path}",
-                    "make clean"
-                ]
-            elif compile_method == "recompile":
-                compile_method = [
-                    f"rm -rf {build_path}",
-                    f"mkdir -p {build_path} && cd {build_path}"
-                ]
-            else:
-                raise ValueError(f"Invalid compile method: {compile_method}")
-
-            # define recompile commands
-            recompile = [
-                f"echo 'Starting build process for detector at {det_path}'",
-                "cmake ..",
-                "make -j$(nproc)",
-                f"echo 'Build process completed for {det_path}'"
-            ]
-
-            # define source commands
-            source = [
-                f"source '{shell_file_path}'",
-                f"echo 'Sourced shell script: {shell_file_path}'"
-            ]
-
-            # Combine all steps into a single command sequence
+            # combine all steps into a single command sequence
             commands = [
-                "set -e",  # Exit on error
-                *compile_method,
+                "set -e",  # exit on error
                 *recompile,
                 *source,
                 f"echo 'Running simulation command: {sim_cmd}'",
                 sim_cmd  # execute simulation command
             ]
 
-            # join commands into a single string for `bash -c`
             combined_command = " && ".join(commands)
 
-            self.printlog(f"Executing combined command:\n{combined_command}", level="debug")
+            logger.info(f"Starting subprocess with command: {sim_cmd}")
             
-            # execute the combined command in a single shell process
             result = subprocess.run(
                 ["bash", "-c", combined_command],
                 stdout=subprocess.PIPE,
@@ -367,18 +396,17 @@ class HandleEIC(object):
                 check=True
             )
 
-            # check result and log output
             if result.returncode == 0:
-                self.printlog(f"Command succeeded: {sim_cmd}")
-                self.printlog(f"Combined command output:\n{result.stdout}")
+                logger.info(f"Subprocess succeeded for command: {sim_cmd}")
+                logger.info(f"Output:\n{result.stdout}")
             else:
-                self.printlog(f"Command failed: {sim_cmd}\nError: {result.stderr}", level="error")
-
+                logger.error(f"Subprocess failed for command: {sim_cmd}\nError: {result.stderr}")
+                
         except subprocess.CalledProcessError as e:
-            self.printlog(f"Error during execution: {e.stderr}", level="error")
+            logger.error(f"Error during execution: {e.stderr}")
             raise RuntimeError(f"Execution failed. Error: {e.stderr}")
         except Exception as e:
-            self.printlog(f"Unexpected error: {str(e)}", level="error")
+            logger.error(f"Unexpected error: {str(e)}")
             raise
 
     def mk_sim_backup(
