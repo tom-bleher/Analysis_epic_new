@@ -113,7 +113,7 @@ class HandleEIC(object):
         # create the path where the simulation file backup will go
         self.backup_path = os.path.join(self.sim_out_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
         self.GenFiles_path = os.path.join(self.execution_path, "createGenFiles.py")
-        if not os.path.isdir(self.GenFiles_path):
+        if not os.path.isfile(self.GenFiles_path):
             print("Did not find your GenFiles.py file")
             raise
 
