@@ -345,8 +345,7 @@ class HandleEIC(object):
             # define the name for the screen session
             screen_name = f"sim_{det_path}"
             
-            # enter shell, recompile, and source the detector
-            enter_eic_shell = self.eic_shell_cmd()
+            # recompile, and source the detector
             recompile = self.recompile_det_cmd(det_path, "recompile")
             source = self.source_det_cmd(shell_file_path)
 
