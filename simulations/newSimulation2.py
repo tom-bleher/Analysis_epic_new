@@ -335,16 +335,6 @@ class HandleEIC(object):
         
         return source_cmd
 
-    def eic_shell_cmd(self) -> None:
-        eic_shell_cmd = [
-            "PREV_DIR=$(pwd)", # store the current directory
-            f"cd {self.eic_shell_path}",
-            "./eic-shell",
-            "cd $PREV_DIR" # return to the original directory
-        ]
-
-        return eic_shell_cmd
-
     def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
         
@@ -370,23 +360,16 @@ class HandleEIC(object):
                 sim_cmd  # execute simulation command
             ]
 
-            # form the command to run in a screen
-            full_cmd = " && ".join(commands)
-            screen_cmd = f"screen -dmS {screen_name} bash -c '{full_cmd}; screen -X -S {screen_name} quit'"
-
-            logger.info(f"Starting subprocess in screen session: {screen_name}")
+            logger.info(f"Starting subprocess with command: {sim_cmd}")
             
-            # execute the screen command
-            result = subprocess.run(
-                ["bash", "-c", screen_cmd],
+            result = subprocess.Popen(
+                ["bash", "-c", " && ".join(commands)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 check=True
             )
 
-            logging.error("STDOUT: %s", result.stdout.decode())
-            logging.error("STDERR: %s", result.stderr.decode())
 
             if result.returncode == 0:
                 logger.info(f"Screen session {screen_name} started successfully.")
