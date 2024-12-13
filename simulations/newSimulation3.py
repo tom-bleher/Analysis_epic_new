@@ -19,6 +19,7 @@ from concurrent.futures import ProcessPoolExecutor
 class HandleEIC(object):
 
     def __init__(
+        self
         ) -> None:
         
         # init internal variables
