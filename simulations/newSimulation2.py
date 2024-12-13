@@ -333,6 +333,16 @@ class HandleEIC(object):
         
         return source_cmd
 
+    def eic_shell_cmd(self) -> None:
+        eic_shell_cmd = [
+            "PREV_DIR=$(pwd)", # store the current directory
+            f"cd {self.eic_shell_path}",
+            "./eic-shell",
+            "cd $PREV_DIR" # return to the original directory
+        ]
+
+        return eic_shell_cmd
+
     def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
         
@@ -340,13 +350,15 @@ class HandleEIC(object):
         logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
 
         try:
-            # recompile and source the detector
+            # enter shell, recompile, and source the detector
+            enter_eic_shell = self.eic_shell_cmd()
             recompile = self.recompile_det_cmd(det_path, "recompile")
             source = self.source_det_cmd(shell_file_path)
 
             # combine all steps into a single command sequence
             commands = [
                 "set -e",  # exit on error
+                *enter_eic_shell,
                 *recompile,
                 *source,
                 f"echo 'Running simulation command: {sim_cmd}'",
