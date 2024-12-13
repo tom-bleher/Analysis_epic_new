@@ -112,6 +112,10 @@ class HandleEIC(object):
 
         # create the path where the simulation file backup will go
         self.backup_path = os.path.join(self.sim_out_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
+        self.GenFiles_path = os.path.join(self.execution_path, "createGenFiles.py")
+        if not os.path.isdir(self.GenFiles_path):
+            print("Did not find your GenFiles.py file")
+            raise
 
     def init_vars(
         self
@@ -125,13 +129,15 @@ class HandleEIC(object):
 
         # default if user does not provide JSON
         self.def_set_dict = {
-            "px_pairs": [[0.1, 0.1]], # add more pixel pairs
+            "px_pairs": [[2.0, 0.1]], # add more pixel pairs
             "num_particles": 100,
             "det_path": "/data/tomble/eic/epic", # sourced detector
             "file_type": "beamEffectsElectrons", 
             "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
+  
             "sim_out_path": "",
-            "det_ip6_path": "" # main settings pointer file of detector (should match sourced)
+            "det_ip6_path": "",
+            "program_prints": "True" # main settings pointer file of detector (should match sourced)
         }
 
     def prep_sim(
@@ -371,20 +377,11 @@ class HandleEIC(object):
             raise
 
     def subprocess_log(log_file_path: str) -> logging.Logger:
-        """
-        Configures a logger for a subprocess to write logs to a specific file.
-        """
         logger = logging.getLogger(log_file_path)
         logger.setLevel(logging.INFO)
-        
-        # add file handler
         file_handler = logging.FileHandler(log_file_path, mode='w')
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
-        
-        # ensure it doesn't propagate to the root logger
-        logger.propagate = False
-        
         return logger
 
     def mk_sim_backup(
@@ -469,7 +466,7 @@ class HandleEIC(object):
         ) -> None:
 
         # open the path storing the createGenFiles.py file
-        with open(self.hepmc_path, 'r') as file:
+        with open(self.GenFiles_path, 'r') as file:
             content = file.read()
             
         # use a regex to find the line where BH is defined
