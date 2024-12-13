@@ -22,6 +22,8 @@ class HandleEIC(object):
         self
         ) -> None:
         
+        self.program_prints = True
+        
         # init internal variables
         self.energies: List[str] = []
         self.sim_dict: Dict[str, Dict[str, str]] = {}
