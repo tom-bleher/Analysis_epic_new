@@ -15,6 +15,7 @@ import multiprocessing
 import logging
 from typing import Dict, List, Tuple
 from concurrent.futures import ProcessPoolExecutor
+import psutil
 
 class HandleEIC(object):
 
@@ -40,7 +41,7 @@ class HandleEIC(object):
         #self.setup_settings()  # load settings here
 
         # configure logging for the main process
-        log_file = os.path.join(self.execution_path, ".logging")
+        log_file = os.path.join(self.execution_path, self.backup_path, "logging_overview.log")
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(levelname)s - %(message)s",
@@ -90,89 +91,6 @@ class HandleEIC(object):
             self.printlog(f"Unexpected error while loading settings: {e}", level="error")
             raise RuntimeError("Failed to load settings due to an unexpected error.") from e
 
-    def prep_sim(
-        self
-        ) -> None:
-
-        # loop over all requested detector changes and create specifics
-        self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}")
-        for curr_px_dx, curr_px_dy in self.px_pairs:
-            
-            """ soft changes """
-            # create respective px folder to hold simulation output and change-related objects
-            curr_sim_path = os.path.join(self.sim_out_path, f"{curr_px_dx}x{curr_px_dy}px")
-            os.makedirs(curr_sim_path, exist_ok=True)
-
-            """ hard changes """
-            # copy epic folder to current pixel path
-            curr_sim_det_path = self.copy_epic(curr_sim_path)
-
-            # rewrite detector's XMLs to hold current change for detector
-            self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
-
-            # update the simulation dictionary for current requested change
-            single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
-            self.sim_dict.update(single_sim_dict)
-        
-    def exec_sim(self) -> None:
-        """
-        Execute the simulation for all entries in the simulation dictionary,
-        ensuring recompilation and sourcing of the detector environment in each subprocess.
-        """
-        self.printlog("Preparing simulation commands and environments.")
-
-        # prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-         ]
-                
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
-            for future in concurrent.futures.as_completed(future_to_cmd):
-                cmd = future_to_cmd[future]
-                try:
-                    future.result()  # Handle success
-                    self.printlog(f"Simulation completed for command: {cmd[0]}")
-                except Exception as e:
-                    self.printlog(f"Simulation failed for command {cmd[0]}: {e}", level="error")
-
-    def create_sim_dict(
-        self, 
-        curr_sim_path: str, 
-        curr_sim_det_path: str, 
-        curr_px_dx: float, 
-        curr_px_dy: float
-        ) -> dict[str, dict[str, str]]:
-        """
-        Create simulation dictionary holding relavent parameters
-        "dx_dy"
-            "epic"
-            "compact"
-            "ip6"
-            "sh_file_path"
-        """
-        
-        # initilize dict to hold parameters for one simulation
-        single_sim_dict = {}
-        px_key = f"{curr_px_dx}x{curr_px_dy}"
-
-        # populate dict entry with all simulation-relavent information
-        single_sim_dict[px_key] = {
-            "sim_det_path": curr_sim_det_path,
-            "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
-            "sim_ip6_path": curr_sim_det_path + "/install/share/epic/epic_ip6_extended.xml",
-            "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
-        }
-
-        # populate px_ddsim_cmds according to requested energies in hepmc_path
-        single_sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy) for energy in self.energies]
-
-        # return the dict for the sim
-        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
-        return single_sim_dict
-
     def init_paths(
         self
         ) -> None:
@@ -212,6 +130,66 @@ class HandleEIC(object):
             "sim_out_path": "",
             "det_ip6_path": "" # main settings pointer file of detector (should match sourced)
         }
+
+    def prep_sim(
+        self
+        ) -> None:
+
+        # loop over all requested detector changes and create specifics
+        self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}")
+        for curr_px_dx, curr_px_dy in self.px_pairs:
+            
+            """ soft changes """
+            # create respective px folder to hold simulation output and change-related objects
+            curr_sim_path = os.path.join(self.sim_out_path, f"{curr_px_dx}x{curr_px_dy}px")
+            os.makedirs(curr_sim_path, exist_ok=True)
+
+            # copy epic folder to current pixel path
+            curr_sim_det_path = self.copy_epic(curr_sim_path)
+
+            """ hard changes """
+            # rewrite detector's XMLs to hold current change for detector
+            self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
+            
+            """ gather simulation relavent details """
+            # update the simulation dictionary for current requested change
+            single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
+            self.sim_dict.update(single_sim_dict)
+        
+    def create_sim_dict(
+        self, 
+        curr_sim_path: str, 
+        curr_sim_det_path: str, 
+        curr_px_dx: float, 
+        curr_px_dy: float
+        ) -> dict[str, dict[str, str]]:
+        """
+        Create simulation dictionary holding relavent parameters
+        "dx_dy"
+            "epic"
+            "compact"
+            "ip6"
+            "sh_file_path"
+        """
+        
+        # initilize dict to hold parameters for one simulation
+        single_sim_dict = {}
+        px_key = f"{curr_px_dx}x{curr_px_dy}"
+
+        # populate dict entry with all simulation-relavent information
+        single_sim_dict[px_key] = {
+            "sim_det_path": curr_sim_det_path,
+            "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
+            "sim_ip6_path": curr_sim_det_path + "/install/share/epic/epic_ip6_extended.xml",
+            "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
+        }
+
+        # populate px_ddsim_cmds according to requested energies in hepmc_path
+        single_sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy) for energy in self.energies]
+
+        # return the dict for the sim
+        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
+        return single_sim_dict
 
     def copy_epic(
         self, 
@@ -265,31 +243,6 @@ class HandleEIC(object):
                         logging.error(f"Failed to modify {filepath}: {e}")
                         raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
 
-    def mod_detector_settingsv2(self, curr_epic_path, curr_px_dx, curr_px_dy) -> None:
-        """
-        Updates detector XML settings for the current pixel size.
-        """
-        for root, _, files in os.walk(curr_epic_path):
-            for file in files:
-                if file.endswith(".xml"):
-                    filepath = os.path.join(root, file)
-                    try:
-                        tree = ET.parse(filepath)
-                        root = tree.getroot()
-                        
-                        for elem in root.findall(".//constant[@name='LumiSpecTracker_pixelSize_dx']"):
-                            elem.set('value', f"{curr_px_dx}*mm")
-                        
-                        for elem in root.findall(".//constant[@name='LumiSpecTracker_pixelSize_dy']"):
-                            elem.set('value', f"{curr_px_dy}*mm")
-                        
-                        tree.write(filepath)
-                        logging.info(f"Updated XML: {filepath} with dx={curr_px_dx}, dy={curr_px_dy}")
-                    except ET.ParseError as e:
-                        logging.error(f"XML parsing error in {filepath}: {e}")
-                    except Exception as e:
-                        logging.error(f"Unexpected error modifying {filepath}: {e}")
-
     def get_ddsim_cmd(
         self, 
         curr_sim_path, 
@@ -308,8 +261,32 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
+    def exec_sim(self) -> None:
+        """
+        Execute the simulation for all entries in the simulation dictionary,
+        ensuring recompilation and sourcing of the detector environment in each subprocess.
+        """
+        self.printlog("Preparing simulation commands and environments.")
 
-    def recompile_det(self, det_path, compile_method: str) -> str:
+        # prepare the run queue
+        run_queue = [ 
+            # sim_cmd has according pixel ip6 XML file
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+         ]
+                
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            for future in concurrent.futures.as_completed(future_to_cmd):
+                cmd = future_to_cmd[future]
+                try:
+                    future.result()  # handle success
+                    self.printlog(f"Simulation completed for command: {cmd[0]}")
+                except Exception as e:
+                    self.printlog(f"Simulation failed for command {cmd[0]}: {e}", level="error")
+
+    def recompile_det_cmd(self, det_path, compile_method: str) -> str:
 
         # define the build directory
         build_path = os.path.join(det_path, "build")
@@ -318,7 +295,7 @@ class HandleEIC(object):
         if compile_method == "clean":
             compile_method = [
                 f"cd {build_path}",
-                "make clean"
+                "make clean" 
             ]
         elif compile_method == "recompile":
             compile_method = [
@@ -326,7 +303,7 @@ class HandleEIC(object):
                 f"mkdir -p {build_path} && cd {build_path}"
             ]
         else:
-            raise ValueError(f"Invalid compile method: {compile_method}")
+            raise ValueError(f"Invalid compile method: {compile_method}. Choose between 'clean' (make clean) and 'recompile' (rm -rf build).")
 
         # define recompile commands
         recompile_cmd = [
@@ -339,30 +316,13 @@ class HandleEIC(object):
 
         return recompile_cmd
 
-    def source_det(self, shell_file_path) -> None:
-        source = [
+    def source_det_cmd(self, shell_file_path) -> None:
+        source_cmd = [
             f"source '{shell_file_path}'",
             f"echo 'Sourced shell script: {shell_file_path}'"
         ]
         
-        return source
-
-    def subprocess_log(log_file_path: str) -> logging.Logger:
-        """
-        Configures a logger for a subprocess to write logs to a specific file.
-        """
-        logger = logging.getLogger(log_file_path)
-        logger.setLevel(logging.INFO)
-        
-        # add file handler
-        file_handler = logging.FileHandler(log_file_path, mode='w')
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        logger.addHandler(file_handler)
-        
-        # ensure it doesn't propagate to the root logger
-        logger.propagate = False
-        
-        return logger
+        return source_cmd
 
     def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
@@ -372,8 +332,8 @@ class HandleEIC(object):
 
         try:
             # recompile and source the detector
-            recompile = self.recompile_det(det_path, "recompile")
-            source = self.source_det(shell_file_path)
+            recompile = self.recompile_det_cmd(det_path, "recompile")
+            source = self.source_det_cmd(shell_file_path)
 
             # combine all steps into a single command sequence
             commands = [
@@ -384,12 +344,10 @@ class HandleEIC(object):
                 sim_cmd  # execute simulation command
             ]
 
-            combined_command = " && ".join(commands)
-
             logger.info(f"Starting subprocess with command: {sim_cmd}")
             
             result = subprocess.run(
-                ["bash", "-c", combined_command],
+                ["bash", "-c", " && ".join(commands)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -408,6 +366,23 @@ class HandleEIC(object):
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")
             raise
+
+    def subprocess_log(log_file_path: str) -> logging.Logger:
+        """
+        Configures a logger for a subprocess to write logs to a specific file.
+        """
+        logger = logging.getLogger(log_file_path)
+        logger.setLevel(logging.INFO)
+        
+        # add file handler
+        file_handler = logging.FileHandler(log_file_path, mode='w')
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
+        
+        # ensure it doesn't propagate to the root logger
+        logger.propagate = False
+        
+        return logger
 
     def mk_sim_backup(
         self
