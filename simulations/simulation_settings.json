@@ -3,7 +3,7 @@
   "num_particles": 5,
   "det_path": "/data/tomble/eic/epic",
   "file_type": "beamEffectsElectrons",
-  "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
+  "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
   
   "sim_out_path": "",
   "det_ip6_path": "",
