@@ -14,7 +14,7 @@ import subprocess
 import multiprocessing
 import logging
 from typing import Dict, List, Tuple
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 class HandleEIC(object):
 
