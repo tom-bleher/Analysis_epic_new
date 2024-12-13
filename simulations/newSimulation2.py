@@ -249,7 +249,7 @@ class HandleEIC(object):
                                 elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                                     elem.set('value', f"{curr_px_dy}*mm")
                         tree.write(filepath)
-                        self.printlog(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}")
+                        logging.info(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}")
                     except Exception as e:
                         logging.error(f"Failed to modify {filepath}: {e}")
                         raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
@@ -376,7 +376,7 @@ class HandleEIC(object):
 
             logger.info(f"Starting subprocess in screen session: {screen_name}")
             
-            # Execute the screen command
+            # execute the screen command
             result = subprocess.run(
                 ["bash", "-c", screen_cmd],
                 stdout=subprocess.PIPE,
@@ -384,6 +384,9 @@ class HandleEIC(object):
                 text=True,
                 check=True
             )
+
+            logging.error("STDOUT: %s", result.stdout.decode())
+            logging.error("STDERR: %s", result.stderr.decode())
 
             if result.returncode == 0:
                 logger.info(f"Screen session {screen_name} started successfully.")
