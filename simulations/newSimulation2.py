@@ -337,7 +337,7 @@ class HandleEIC(object):
         sim_cmd, shell_file_path, det_path = curr_cmd
         
         # determine the pixel folder for logging
-        logger = subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
+        logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
 
         try:
             # recompile and source the detector
@@ -376,7 +376,7 @@ class HandleEIC(object):
             logger.error(f"Unexpected error: {str(e)}")
             raise
 
-    def subprocess_log(log_file_path: str) -> logging.Logger:
+    def subprocess_log(self, log_file_path: str) -> logging.Logger:
         logger = logging.getLogger(log_file_path)
         logger.setLevel(logging.INFO)
         file_handler = logging.FileHandler(log_file_path, mode='w')
