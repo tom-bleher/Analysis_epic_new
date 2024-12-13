@@ -132,6 +132,7 @@ class HandleEIC(object):
         self.def_set_dict = {
             "px_pairs": [[2.0, 0.1]], # add more pixel pairs
             "num_particles": 100,
+            "eic_shell_path": "/data/tomble/eic",
             "det_path": "/data/tomble/eic/epic", # sourced detector
             "file_type": "beamEffectsElectrons", 
             "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
@@ -172,7 +173,7 @@ class HandleEIC(object):
         curr_sim_det_path: str, 
         curr_px_dx: float, 
         curr_px_dy: float
-        ) -> dict[str, dict[str, str]]:
+        ) -> Dict[str, dict[str, str]]:
         """
         Create simulation dictionary holding relavent parameters
         "dx_dy"
@@ -351,6 +352,9 @@ class HandleEIC(object):
         logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
 
         try:
+            # define the name for the screen session
+            screen_name = f"sim_{det_path}"
+            
             # enter shell, recompile, and source the detector
             enter_eic_shell = self.eic_shell_cmd()
             recompile = self.recompile_det_cmd(det_path, "recompile")
@@ -366,10 +370,15 @@ class HandleEIC(object):
                 sim_cmd  # execute simulation command
             ]
 
-            logger.info(f"Starting subprocess with command: {sim_cmd}")
+            # form the command to run in a screen
+            full_cmd = " && ".join(commands)
+            screen_cmd = f"screen -dmS {screen_name} bash -c '{full_cmd}; screen -X -S {screen_name} quit'"
+
+            logger.info(f"Starting subprocess in screen session: {screen_name}")
             
+            # Execute the screen command
             result = subprocess.run(
-                ["bash", "-c", " && ".join(commands)],
+                ["bash", "-c", screen_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -377,11 +386,10 @@ class HandleEIC(object):
             )
 
             if result.returncode == 0:
-                logger.info(f"Subprocess succeeded for command: {sim_cmd}")
-                logger.info(f"Output:\n{result.stdout}")
+                logger.info(f"Screen session {screen_name} started successfully.")
             else:
-                logger.error(f"Subprocess failed for command: {sim_cmd}\nError: {result.stderr}")
-                
+                logger.error(f"Failed to start screen session {screen_name}.\nError: {result.stderr}")
+        
         except subprocess.CalledProcessError as e:
             logger.error(f"Error during execution: {e.stderr}")
             raise RuntimeError(f"Execution failed. Error: {e.stderr}")
