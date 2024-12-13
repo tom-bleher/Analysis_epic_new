@@ -352,7 +352,6 @@ class HandleEIC(object):
             # combine all steps into a single command sequence
             commands = [
                 "set -e",  # exit on error
-                *enter_eic_shell,
                 *recompile,
                 *source,
                 f"echo 'Running simulation command: {sim_cmd}'",
