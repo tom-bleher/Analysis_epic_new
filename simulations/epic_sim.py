@@ -598,7 +598,7 @@ if __name__ == "__main__":
     eic_handler.prep_sim()
 
     # execute the simulation in parallel
-    eic_handler.exec_simv3()
+    eic_handler.exec_simv6()
 
     # make backups after simulations have completed
     eic_handler.mk_sim_backup()
