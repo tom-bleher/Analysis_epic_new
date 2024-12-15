@@ -318,46 +318,49 @@ class HandleEIC(object):
     def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
         
-        # determine the pixel folder for logging
+        # Determine the pixel folder for logging
         logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
 
+        # Define the commands
+        recompile = self.recompile_det_cmd(det_path)
+        source = self.source_det_cmd(shell_file_path)
+
+        commands = [
+            "set -e",  # Exit on error
+            *recompile,
+            *source,
+            f"echo 'Running simulation command: {sim_cmd}'",
+            sim_cmd  # Execute simulation command
+        ]
+
+        logger.info(f"Starting subprocess with command: {sim_cmd}")
+        
         try:
-            # define the name for the screen session
-            screen_name = f"sim_{det_path}"
-            
-            # recompile, and source the detector
-            recompile = self.recompile_det_cmd(det_path)
-            source = self.source_det_cmd(shell_file_path)
-
-            # combine all steps into a single command sequence
-            commands = [
-                "set -e",  # exit on error
-                *recompile,
-                *source,
-                f"echo 'Running simulation command: {sim_cmd}'",
-                sim_cmd  # execute simulation command
-            ]
-
-            logger.info(f"Starting subprocess with command: {sim_cmd}")
-            
-            result = subprocess.run(
+            process = subprocess.Popen(
                 ["bash", "-c", " && ".join(commands)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
-                check=True
+                text=True
             )
+            
+            # Stream output line by line
+            for line in iter(process.stdout.readline, ''):
+                sys.stdout.write(line)  # Print to console
+                logger.info(line.strip())  # Log to file
 
-            if result.returncode == 0:
-                logger.info(f"Screen session {screen_name} started successfully.")
+            for line in iter(process.stderr.readline, ''):
+                sys.stderr.write(line)  # Print errors to console
+                logger.error(line.strip())  # Log errors to file
+            
+            process.wait()  # Wait for the process to finish
+            if process.returncode != 0:
+                logger.error(f"Simulation failed with return code {process.returncode}")
+                raise RuntimeError(f"Command failed: {sim_cmd}")
             else:
-                logger.error(f"Failed to start screen session {screen_name}.\nError: {result.stderr}")
-        
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Error during execution: {e.stderr}")
-            raise RuntimeError(f"Execution failed. Error: {e.stderr}")
+                logger.info("Simulation completed successfully.")
+
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error: {e}")
             raise
 
     def subprocess_log(self, log_file_path: str) -> logging.Logger:
