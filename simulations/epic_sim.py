@@ -130,7 +130,7 @@ class HandleEIC(object):
             "px_pairs": [[2.0, 0.1]], # add more pixel pairs
             "num_particles": 100,
             "eic_shell_path": "/data/tomble/eic",
-            "det_path": "/data/tomble/eic/epic", # sourced detector
+            "det_path": "/data/tomble/eic/epic_sim", # sourced detector
             "file_type": "beamEffectsElectrons", 
             "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
   
@@ -187,8 +187,8 @@ class HandleEIC(object):
         # populate dict entry with all simulation-relavent information
         single_sim_dict[px_key] = {
             "sim_det_path": curr_sim_det_path,
-            "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
-            "sim_ip6_path": curr_sim_det_path + "/install/share/epic/epic_ip6_extended.xml",
+            "sim_compact_path": curr_sim_det_path + "/install/share/epic_sim/compact",
+            "sim_ip6_path": curr_sim_det_path + "/install/share/epic_sim/epic_ip6_extended.xml",
             "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
         }
 
@@ -205,7 +205,7 @@ class HandleEIC(object):
         ) -> str:
         """copy epic to respective px folder for parameter reference"""
         try:
-            dest_path = os.path.join(curr_sim_path, "epic")
+            dest_path = os.path.join(curr_sim_path, "epic_sim")
             os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:
