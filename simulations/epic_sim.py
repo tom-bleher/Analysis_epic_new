@@ -270,6 +270,41 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
+    def exec_simv4(self) -> None:
+    """
+    Execute all simulations in parallel using multiprocessing and return results as they are completed.
+    """
+    # Prepare the run queue
+    run_queue = [
+        (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+        for px_key, paths in self.sim_dict.items()
+        for sim_cmd in paths['px_ddsim_cmds']
+    ]
+
+    # Define a reasonable chunk size to balance task distribution
+    chunk_size = max(1, len(run_queue) // (os.cpu_count() * 4))  # Adjust multiplier as needed
+
+    with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+        # Use imap_unordered for unordered concurrent processing
+        for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
+            print(f"Completed: {result}")
+
+    def exec_simv3(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing and return results as they are completed.
+        """
+        # Prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+
+        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+            # Use imap_unordered for unordered concurrent processing
+            for result in pool.imap_unordered(self.run_cmd, run_queue):
+                print(f"Completed: {result}")
+
     def exec_simv2(self) -> None:
         """
         Execute all simulations in parallel using multiprocessing.
@@ -513,7 +548,7 @@ if __name__ == "__main__":
     eic_handler.prep_sim()
 
     # execute the simulation in parallel
-    eic_handler.exec_simv2()
+    eic_handler.exec_simv3()
 
     # make backups after simulations have completed
     eic_handler.mk_sim_backup()
