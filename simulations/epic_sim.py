@@ -270,6 +270,75 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
+    def exec_simv8(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing and return results as they are completed.
+        """
+        import os
+
+        # Prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+        
+        total_cores = os.cpu_count()  # Use the number of available cores
+        total_tasks = len(run_queue)
+        
+        # Dynamically calculate chunk size based on number of tasks and cores
+        chunk_size = max(1, min(1000, total_tasks // total_cores))  # Don't exceed 1000 tasks per chunk
+
+        # Create the multiprocessing pool with an appropriate number of processes
+        with multiprocessing.Pool(processes=total_cores * 2) as pool:
+            # Use imap_unordered for unordered concurrent processing
+            for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
+                print(f"Completed: {result}")
+
+    def exec_simv7(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing and return results as they are completed.
+        """
+        import os
+
+        # Prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+
+        # Calculate total number of processes based on the available CPUs
+        total_cores = os.cpu_count() or 1  # Ensure a fallback value
+
+        with ProcessPoolExecutor(max_workers=total_cores) as executor:
+            # Submit tasks and get results as they complete
+            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            for future in futures:
+                print(f"Completed: {future.result()}")
+
+    def exec_simv6(self) -> None:
+        """
+        Execute all simulations in parallel using threading and return results as they are completed.
+        """
+        import os
+
+        # Prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+
+        # Calculate total number of threads based on the available CPUs
+        total_cores = os.cpu_count() or 1  # Ensure a fallback value
+
+        with ThreadPoolExecutor(max_workers=total_cores) as executor:
+            # Submit tasks to the executor and process results as they complete
+            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            for future in futures:
+                print(f"Completed: {future.result()}")
+
     def exec_simv5(self) -> None:
         """
         Execute all simulations in parallel using multiprocessing and return results as they are completed.
