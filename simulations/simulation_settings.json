@@ -4,7 +4,7 @@
   "eic_shell_path": "/data/tomble/eic",
   "det_path": "/data/tomble/eic/epic",
   "file_type": "beamEffectsElectrons",
-  "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
+  "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents",
   
   "sim_out_path": "",
   "det_ip6_path": "",

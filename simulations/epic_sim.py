@@ -187,8 +187,8 @@ class HandleEIC(object):
         # populate dict entry with all simulation-relavent information
         single_sim_dict[px_key] = {
             "sim_det_path": curr_sim_det_path,
-            "sim_compact_path": curr_sim_det_path + "/install/share/epic_sim/compact",
-            "sim_ip6_path": curr_sim_det_path + "/install/share/epic_sim/epic_ip6_extended.xml",
+            "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
+            "sim_ip6_path": curr_sim_det_path + "/install/share/epic/epic_ip6_extended.xml",
             "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
         }
 
