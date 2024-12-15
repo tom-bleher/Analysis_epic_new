@@ -233,7 +233,7 @@ class HandleEIC(object):
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
             for file in files:
-                filepath = subdir + os.sep + filename
+                filepath = subdir + os.sep + file
                 if file.endswith(".xml") and os.access(filepath, os.W_OK):
                     filepath = os.path.join(subdir, file)
                     try:
@@ -269,6 +269,22 @@ class HandleEIC(object):
         cmd = f"ddsim --inputFiles {inFile} --outputFile {output_file} --compactFile {curr_sim_det_ip6_path} -N {self.num_particles}"
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
+
+    def exec_simv2(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing.
+        """
+
+        # prepare the run queue
+        run_queue = [ 
+            # sim_cmd has according pixel ip6 XML file
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+         ]
+
+        with multiprocessing.Pool(os.cpu_count()) as pool:
+            pool.map(self.run_cmd, run_queue)
 
     def exec_sim(self) -> None:
         """
@@ -497,7 +513,7 @@ if __name__ == "__main__":
     eic_handler.prep_sim()
 
     # execute the simulation in parallel
-    eic_handler.exec_sim()
+    eic_handler.exec_simv2()
 
     # make backups after simulations have completed
     eic_handler.mk_sim_backup()

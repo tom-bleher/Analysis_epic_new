@@ -1,6 +1,6 @@
 {
-  "px_pairs": [[0.1, 0.1]],
-  "num_particles": 5,
+  "px_pairs": [[2.0, 0.1]],
+  "num_particles": 100,
   "eic_shell_path": "/data/tomble/eic",
   "det_path": "/data/tomble/eic/epic_sim",
   "file_type": "beamEffectsElectrons",
