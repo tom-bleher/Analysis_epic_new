@@ -260,7 +260,7 @@ class HandleEIC(object):
         """
         Generate ddsim command.
         """
-        inFile = os.path.join(self.hepmc_path, "results", energy)
+        inFile = os.path.join(self.hepmc_path, energy)
         match = re.search(r"\d+\.+\d\.", inFile)
         file_num = match.group() if match else energy.split("_")[1].split(".")[0]
         

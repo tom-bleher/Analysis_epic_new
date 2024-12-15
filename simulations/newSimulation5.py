@@ -378,7 +378,9 @@ class HandleEIC(object):
 
             # Run the subprocess with the command
             result = subprocess.run(
-                sim_cmd, 
+                sim_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, 
                 shell=True, 
                 env=env_vars, 
                 capture_output=True, 
