@@ -296,16 +296,13 @@ class HandleEIC(object):
 
     def recompile_det_cmd(self, det_path) -> str:
 
-        original_dir = os.getcwd()
-
         # define recompile commands
         recompile_cmd = [
             f"echo 'Starting build process for detector at {det_path}'",
             f"cd {det_path}",
             "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
-            "cmake --build build -- -j$(nproc) install"
+            "cmake --build build -- -j$(nproc) install",
             f"echo 'Build process completed for {det_path}'",
-            f"cd {original_dir}"
         ]
 
         return recompile_cmd
@@ -329,7 +326,7 @@ class HandleEIC(object):
             screen_name = f"sim_{det_path}"
             
             # recompile, and source the detector
-            recompile = self.recompile_det_cmd(det_path, "recompile")
+            recompile = self.recompile_det_cmd(det_path)
             source = self.source_det_cmd(shell_file_path)
 
             # combine all steps into a single command sequence
@@ -343,7 +340,7 @@ class HandleEIC(object):
 
             logger.info(f"Starting subprocess with command: {sim_cmd}")
             
-            result = subprocess.Popen(
+            result = subprocess.run(
                 ["bash", "-c", " && ".join(commands)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
