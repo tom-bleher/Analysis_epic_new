@@ -369,28 +369,31 @@ class HandleEIC(object):
             logging.error(f"Failed to source script {script_path}: {e.stderr}")
             raise RuntimeError(f'Failed to source script: {script_path}. Error: {e}')
 
-    def run_cmd(
-        self, 
-        curr_cmd: Tuple[str, str, str]
-        ) -> None:
+    def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
         try:
-
-            # recompile and source detector
+            # Recompile and source detector
             self.recompile_detector(det_path)
             env_vars = self.source_shell_script(shell_file_path)
-            # run the subprocess with the command
-            result = subprocess.run(sim_cmd, shell=True, env=env_vars, capture_output=True, text=True)
 
+            # Run the subprocess with the command
+            result = subprocess.run(
+                sim_cmd, 
+                shell=True, 
+                env=env_vars, 
+                capture_output=True, 
+                text=True
+            )
+
+            # Check for successful execution
             if result.returncode == 0:
                 self.printlog(f"Command succeeded: {sim_cmd}")
             else:
-                self.printlog(f"Command failed: {sim_cmd}\nError: {result.stderr}", level="error")
-                
+                error_message = result.stderr if result.stderr else "No stderr available."
+                self.printlog(f"Command failed: {sim_cmd}\nError: {error_message}", level="error")
         except Exception as e:
             self.printlog(f"Error running command {sim_cmd}: {e}", level="error")
             raise
-
 
     def subprocess_log(self, log_file_path: str) -> logging.Logger:
         logger = logging.getLogger(log_file_path)
