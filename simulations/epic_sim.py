@@ -270,6 +270,56 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
+    def exec_simv6(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing.
+        """
+
+        # Prepare the run queue
+        run_queue = [ 
+            # sim_cmd has according pixel ip6 XML file
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+
+        # Dynamically adjust pool size based on run queue and available CPUs
+        pool_size = min(len(run_queue), os.cpu_count())  # No more workers than tasks or CPUs
+
+        def wrapper_run_cmd(args):
+            sim_cmd, sim_shell_path, sim_det_path = args
+            self.run_cmd(sim_cmd, sim_shell_path, sim_det_path)
+
+        with multiprocessing.Pool(pool_size) as pool:
+            # Use imap_unordered for dynamic task assignment
+            pool.imap_unordered(wrapper_run_cmd, run_queue)
+
+        # Ensure all tasks complete before closing
+        pool.close()
+        pool.join()
+
+    def exec_simv5(self) -> None:
+        """
+        Execute all simulations in parallel using multiprocessing and return results as they are completed.
+        """
+        import math
+
+        # Prepare the run queue
+        run_queue = [
+            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+            for px_key, paths in self.sim_dict.items()
+            for sim_cmd in paths['px_ddsim_cmds']
+        ]
+
+        # Calculate chunksize (set to 1 if tasks are much fewer than cores)
+        total_cores = os.cpu_count() or 1  # Ensure a fallback value
+        chunk_size = 1 if len(run_queue) <= total_cores else max(1, len(run_queue) // (total_cores * 4))
+
+        with multiprocessing.Pool(processes=total_cores) as pool:
+            # Use imap_unordered for unordered concurrent processing
+            for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
+                print(f"Completed: {result}")
+
     def exec_simv4(self) -> None:
         """
         Execute all simulations in parallel using multiprocessing and return results as they are completed.
