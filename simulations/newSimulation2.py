@@ -368,7 +368,6 @@ class HandleEIC(object):
                 check=True
             )
 
-
             if result.returncode == 0:
                 logger.info(f"Screen session {screen_name} started successfully.")
             else:

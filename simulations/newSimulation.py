@@ -38,7 +38,7 @@ class HandleEIC(object):
             px_dict = self.create_sim_dict(curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy)
             self.sim_dict.update(px_dict)
 
-    def create_sim_dict(self, curr_px_path, curr_px_epic_path, curr_px_dx, curr_px_dy) -> dict:
+    def create_sim_dict(self, curr_px_path: str, curr_px_epic_path: str, curr_px_dx: float, curr_px_dy: float) -> dict[str, dict[str, str]]:
         """
         Create simulation dictionary holding 
         "dx_dy"
@@ -134,6 +134,7 @@ class HandleEIC(object):
     def copy_epic(self, curr_px_path):
         # copy epic to respective px folder for parameter reference 
         os.system(f'cp -r {self.det_dir} {curr_px_path}')    
+        #subprocess.run(["cp", "-r", self.det_dir, curr_px_path], check=True)
         return os.path.join(curr_px_path, "epic")
 
     def recompile_builds(self) -> None:
@@ -170,11 +171,12 @@ class HandleEIC(object):
             raise FileNotFoundError(f"Script not found: {script_path}")
         
         # Command to source the script and output environment variables
-        command = f"bash -c 'source {script_path} && env'"
+        command = f"bash -c source {script_path} && env"
         
         try:
             # Run the command and capture the output (environment variables)
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            #result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable='/bin/bash', text=True, check=True)
             
             # Check if there are any errors
             if result.stderr:
@@ -254,9 +256,8 @@ class HandleEIC(object):
         run_queue = [(cmd, self.sim_dict[px_key]["px_src_path"]) 
                     for px_key in self.sim_dict 
                     for cmd in self.sim_dict[px_key]["px_ddsim_cmds"]]
-        
-        num_workers = os.cpu_count()  # Number of processes
-        with multiprocessing.Pool(num_workers) as pool:
+
+        with multiprocessing.Pool(os.cpu_count()) as pool:
             pool.map(self.run_cmd, run_queue)
 
     def mk_sim_backup(self) -> None:
