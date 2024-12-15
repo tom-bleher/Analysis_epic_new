@@ -233,7 +233,8 @@ class HandleEIC(object):
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
             for file in files:
-                if file.endswith(".xml"):
+                filepath = subdir + os.sep + filename
+                if file.endswith(".xml") and os.access(filepath, os.W_OK):
                     filepath = os.path.join(subdir, file)
                     try:
                         tree = ET.parse(filepath)
