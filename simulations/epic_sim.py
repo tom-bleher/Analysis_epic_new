@@ -97,7 +97,6 @@ class HandleEIC(object):
         ) -> None:
 
         self.settings_path = "simulation_settings.json"
-        self.execution_path = os.getcwd()
 
         if not os.path.isdir(self.sim_out_path) or self.sim_out_path == "":
             self.sim_out_path = self.execution_path + "/simEvents"

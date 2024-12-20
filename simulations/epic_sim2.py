@@ -97,7 +97,6 @@ class HandleEIC(object):
         ) -> None:
 
         self.settings_path = "simulation_settings.json"
-        self.execution_path = os.getcwd()
 
         if not os.path.isdir(self.sim_out_path) or self.sim_out_path == "":
             self.sim_out_path = self.execution_path + "/simEvents"
@@ -451,15 +450,16 @@ class HandleEIC(object):
         if method not in {"delete_build", "make_clean"}:
             raise ValueError(f"Invalid method: {method}. Choose 'delete_build' or 'make_clean'.")
 
+        build_path = os.path.join(det_path, "build")
+
         method_cmd_map = {
             "delete_build": [
-                f"rm -rf {det_path}/*",
+                f"rm -rf {build_path}/*",
                 "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
             ],
             "make_clean": [
-                f"cd {det_path}",
+                f"cd {build_path}",
                 "make clean",
-                "cd -",
             ],
         }
 
