@@ -198,25 +198,15 @@ class HandleEIC(object):
         self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
         return single_sim_dict
 
-    def copy_epic(self, curr_sim_path) -> str:
-        """
-        Copy epic to the respective px folder for parameter reference, 
-        excluding the .git folder.
-        """
+    def copy_epic(
+        self, 
+        curr_sim_path
+        ) -> str:
+        """copy epic to respective px folder for parameter reference"""
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-
-            # Copy everything from det_path to dest_path
-            shutil.copytree(self.det_path, dest_path, dirs_exist_ok=True)
-
-            # Construct the path to the .git folder in the destination
-            git_folder = os.path.join(dest_path, '.git')
-
-            # Remove the .git folder if it exists
-            if os.path.exists(git_folder):
-                shutil.rmtree(git_folder)
-
+            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:
             logging.error(f"Failed to copy detector: {e}")
@@ -546,7 +536,7 @@ if __name__ == "__main__":
     eic_handler.prep_sim()
 
     # execute the simulation in parallel
-    eic_handler.exec_simv5()
+    eic_handler.exec_simv2()
 
     # make backups after simulations have completed
     eic_handler.mk_sim_backup()
