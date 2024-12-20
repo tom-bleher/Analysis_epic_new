@@ -200,23 +200,22 @@ class HandleEIC(object):
 
     def copy_epic(self, curr_sim_path) -> str:
         """
-        Copy the detector folder to the respective simulation folder, 
-        excluding the .git directory, for parameter reference.
+        Copy epic to the respective px folder for parameter reference, 
+        excluding the .git folder.
         """
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-            
-            # Create the destination directory if it doesn't exist
-            if not os.path.exists(dest_path):
-                os.makedirs(dest_path)
-            
-            # Use find and cp to copy while excluding .git
-            copy_command = (
-                f'find "{self.det_path}" -mindepth 1 ! -path "{self.det_path}/.git*" '
-                f'-exec cp -r --parents {{}} "{dest_path}" \\;'
-            )
-            os.system(copy_command)
+
+            # Copy everything from det_path to dest_path
+            shutil.copytree(self.det_path, dest_path, dirs_exist_ok=True)
+
+            # Construct the path to the .git folder in the destination
+            git_folder = os.path.join(dest_path, '.git')
+
+            # Remove the .git folder if it exists
+            if os.path.exists(git_folder):
+                shutil.rmtree(git_folder)
 
             return dest_path
         except Exception as e:
