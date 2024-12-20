@@ -466,6 +466,7 @@ class HandleEIC(object):
         # Assemble recompile commands
         recompile_cmd = [
             f"echo 'Starting build process for detector at {det_path}'",
+            f"cd {det_path}",
             *method_cmd_map[method],
             "cmake --build build --target install -- -j$(nproc)",
             f"echo 'Build process completed for {det_path}'",
