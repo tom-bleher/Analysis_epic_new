@@ -205,7 +205,8 @@ class HandleEIC(object):
         ) -> str:
         """copy epic to respective px folder for parameter reference"""
         try:
-            dest_path = os.path.join(curr_sim_path, "epic_sim")
+            det_name = self.det_path.split('/')[-1]
+            dest_path = os.path.join(curr_sim_path, det_name)
             os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:

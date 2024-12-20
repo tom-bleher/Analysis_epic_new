@@ -205,7 +205,8 @@ class HandleEIC(object):
         ) -> str:
         """copy epic to respective px folder for parameter reference"""
         try:
-            dest_path = os.path.join(curr_sim_path, "epic_sim")
+            det_name = self.det_path.split('/')[-1]
+            dest_path = os.path.join(curr_sim_path, det_name)
             os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:
@@ -462,7 +463,7 @@ class HandleEIC(object):
         sim_cmd, shell_file_path, det_path = curr_cmd
         
         # Determine the pixel folder for logging
-        logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "..", "subprocess.log"))
+        logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "subprocess.log"))
 
         # Define the commands
         recompile = self.recompile_det_cmd(det_path)
