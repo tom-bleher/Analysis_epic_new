@@ -198,15 +198,26 @@ class HandleEIC(object):
         self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
         return single_sim_dict
 
-    def copy_epic(
-        self, 
-        curr_sim_path
-        ) -> str:
-        """copy epic to respective px folder for parameter reference"""
+    def copy_epic(self, curr_sim_path) -> str:
+        """
+        Copy the detector folder to the respective simulation folder, 
+        excluding the .git directory, for parameter reference.
+        """
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
+            
+            # Create the destination directory if it doesn't exist
+            if not os.path.exists(dest_path):
+                os.makedirs(dest_path)
+            
+            # Use find and cp to copy while excluding .git
+            copy_command = (
+                f'find "{self.det_path}" -mindepth 1 ! -path "{self.det_path}/.git*" '
+                f'-exec cp -r --parents {{}} "{dest_path}" \\;'
+            )
+            os.system(copy_command)
+
             return dest_path
         except Exception as e:
             logging.error(f"Failed to copy detector: {e}")
@@ -270,147 +281,19 @@ class HandleEIC(object):
         self.printlog(f"Generated ddsim command: {cmd}")
         return cmd
 
-    def exec_simv8(self) -> None:
-        """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
-        """
-        import os
-
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-        
-        total_cores = os.cpu_count()  # Use the number of available cores
-        total_tasks = len(run_queue)
-        
-        # Dynamically calculate chunk size based on number of tasks and cores
-        chunk_size = max(1, min(1000, total_tasks // total_cores))  # Don't exceed 1000 tasks per chunk
-
-        # Create the multiprocessing pool with an appropriate number of processes
-        with multiprocessing.Pool(processes=total_cores * 2) as pool:
-            # Use imap_unordered for unordered concurrent processing
-            for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
-                print(f"Completed: {result}")
-
-    def exec_simv7(self) -> None:
-        """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
-        """
-        import os
-
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-
-        # Calculate total number of processes based on the available CPUs
-        total_cores = os.cpu_count() or 1  # Ensure a fallback value
-
-        with ProcessPoolExecutor(max_workers=total_cores) as executor:
-            # Submit tasks and get results as they complete
-            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
-            for future in futures:
-                print(f"Completed: {future.result()}")
-
-    def exec_simv6(self) -> None:
-        """
-        Execute all simulations in parallel using threading and return results as they are completed.
-        """
-        import os
-
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-
-        # Calculate total number of threads based on the available CPUs
-        total_cores = os.cpu_count() or 1  # Ensure a fallback value
-
-        with ThreadPoolExecutor(max_workers=total_cores) as executor:
-            # Submit tasks to the executor and process results as they complete
-            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
-            for future in futures:
-                print(f"Completed: {future.result()}")
-
-    def exec_simv5(self) -> None:
-        """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
-        """
-        import math
-
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-
-        # Calculate chunksize (set to 1 if tasks are much fewer than cores)
-        total_cores = os.cpu_count() or 1  # Ensure a fallback value
-        chunk_size = 1 if len(run_queue) <= total_cores else max(1, len(run_queue) // (total_cores * 4))
-
-        with multiprocessing.Pool(processes=total_cores) as pool:
-            # Use imap_unordered for unordered concurrent processing
-            for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
-                print(f"Completed: {result}")
-
-    def exec_simv4(self) -> None:
-        """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
-        """
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-
-        # Define a reasonable chunk size to balance task distribution
-        chunk_size = max(1, len(run_queue) // (os.cpu_count() * 4))  # Adjust multiplier as needed
-
-        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-            # Use imap_unordered for unordered concurrent processing
-            for result in pool.imap_unordered(self.run_cmd, run_queue, chunksize=chunk_size):
-                print(f"Completed: {result}")
-
-    def exec_simv3(self) -> None:
-        """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
-        """
-        # Prepare the run queue
-        run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-        ]
-
-        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-            # Use imap_unordered for unordered concurrent processing
-            for result in pool.imap_unordered(self.run_cmd, run_queue):
-                print(f"Completed: {result}")
-
     def exec_simv2(self) -> None:
         """
-        Execute all simulations in parallel using multiprocessing.
+        Execute all simulations in parallel using multiprocessing and return results as they are completed.
         """
-
-        # prepare the run queue
-        run_queue = [ 
-            # sim_cmd has according pixel ip6 XML file
+        # Prepare the run queue
+        run_queue = [
             (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
             for px_key, paths in self.sim_dict.items()
             for sim_cmd in paths['px_ddsim_cmds']
-         ]
+        ]
 
-        with multiprocessing.Pool(os.cpu_count()) as pool:
-            pool.map(self.run_cmd, run_queue)
+        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+            pool.imap_unordered(self.run_cmd, run_queue)
 
     def exec_sim(self) -> None:
         """
@@ -463,7 +346,7 @@ class HandleEIC(object):
             ],
         }
 
-        # Assemble recompile commands
+        # assemble recompile commands
         recompile_cmd = [
             f"echo 'Starting build process for detector at {det_path}'",
             f"cd {det_path}",
@@ -472,7 +355,7 @@ class HandleEIC(object):
             f"echo 'Build process completed for {det_path}'",
         ]
 
-        # Join commands into a single string for execution
+        # return commands to recompile
         return recompile_cmd
 
     def source_det_cmd(self, shell_file_path) -> None:
