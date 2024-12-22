@@ -41,17 +41,45 @@ class HandleEIC(object):
         self.det_ip6_path: str = ""
         self.program_prints = True
 
-        # configure logging for the main process
-        log_file = os.path.join(self.execution_path, self.backup_path, "logging_overview.log")
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            handlers=[
-                logging.FileHandler(log_file, mode='w'),
-                logging.StreamHandler()
-            ]
-        )
-        self.printlog("Main process logging initialized.")
+        # initialize logging
+        self.self.logger = self.setup_logger("main_logger", "logging.log")
+        self.logger.info("Initialized HandleEIC class.")
+
+    def printlog(self, message: str, level: str = "info") -> None:
+        """
+        Log a message and optionally print it to the console.
+        :param message: Message to log and optionally print.
+        :param level: Log level ('info', 'warning', 'error', etc.).
+        """
+        # Log the message at the appropriate level
+        if level.lower() == "info":
+            self.logger.info(message)
+        elif level.lower() == "warning":
+            self.logger.warning(message)
+        elif level.lower() == "error":
+            self.logger.error(message)
+        elif level.lower() == "debug":
+            self.logger.debug(message)
+        else:
+            self.logger.info(message)  # Default to info level
+
+        # Optionally print the message
+        if self.program_prints:
+            print(f"{level.upper()}: {message}")
+
+    def setup_logger(self, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+        """
+        Set up a logger with file and console handlers.
+        """
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        
+        # File handler
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
+        
+        return logger
 
     def setup_settings(
         self
@@ -129,7 +157,7 @@ class HandleEIC(object):
             "px_pairs": [[2.0, 0.1]], # add more pixel pairs
             "num_particles": 100,
             "eic_shell_path": "/data/tomble/eic",
-            "det_path": "/data/tomble/eic/epic_sim", # sourced detector
+            "det_path": "/data/tomble/eic/epic", # sourced detector
             "file_type": "beamEffectsElectrons", 
             "hepmc_path": "/data/tomble/Analysis_epic_new/genFiles/results",
   
@@ -198,15 +226,18 @@ class HandleEIC(object):
         self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
         return single_sim_dict
 
-    def copy_epic(
-        self, 
-        curr_sim_path
-        ) -> str:
-        """copy epic to respective px folder for parameter reference"""
+    def copy_epic(self, curr_sim_path) -> str:
+        """Copy epic to respective px folder for parameter reference."""
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
+            
+            # create destination directory if it doesn't exist
+            os.makedirs(dest_path, exist_ok=True)
+            
+            # use find to copy all files except .git
+            os.system(f'find {self.det_path} -path {self.det_path}/.git -prune -o -exec cp -r {{}} {dest_path}/ \\;')
+            
             return dest_path
         except Exception as e:
             logging.error(f"Failed to copy detector: {e}")
@@ -347,33 +378,35 @@ class HandleEIC(object):
         # return commands to recompile
         return recompile_cmd
 
-    def source_det_cmd(self, shell_file_path) -> None:
+    def source_det_cmd(self, shell_file_path) -> str:
         source_cmd = [
             f"source '{shell_file_path}'",
             f"echo 'Sourced shell script: {shell_file_path}'"
         ]
-        
         return source_cmd
+
+    def enter_singularity(self, sif_path: str, shell_path: str) -> str:
+        eic_shell_path = os.path.join(shell_path, "eic-shell")
+        return f"exec singularity {sif_path} {eic_shell_path}"
 
     def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
         sim_cmd, shell_file_path, det_path = curr_cmd
-        
-        # Determine the pixel folder for logging
-        logger = self.subprocess_log(os.path.join(os.path.dirname(det_path), "subprocess.log"))
 
-        # Define the commands
+        # define the commands
+        singularity = self.enter_singularity(self.eic_shell_path)
         recompile = self.recompile_det_cmd(det_path, "delete_build")
         source = self.source_det_cmd(shell_file_path)
 
         commands = [
             "set -e",  # Exit on error
+            *singularity,
             *recompile,
             *source,
             f"echo 'Running simulation command: {sim_cmd}'",
             sim_cmd  # Execute simulation command
         ]
 
-        logger.info(f"Starting subprocess with command: {sim_cmd}")
+        self.logger.info(f"Starting subprocess with command: {sim_cmd}")
         
         try:
             process = subprocess.Popen(
@@ -386,30 +419,22 @@ class HandleEIC(object):
             # Stream output line by line
             for line in iter(process.stdout.readline, ''):
                 sys.stdout.write(line)  # Print to console
-                logger.info(line.strip())  # Log to file
+                self.logger.info(line.strip())  # Log to file
 
             for line in iter(process.stderr.readline, ''):
                 sys.stderr.write(line)  # Print errors to console
-                logger.error(line.strip())  # Log errors to file
+                self.logger.error(line.strip())  # Log errors to file
             
             process.wait()  # Wait for the process to finish
             if process.returncode != 0:
-                logger.error(f"Simulation failed with return code {process.returncode}")
+                self.logger.error(f"Simulation failed with return code {process.returncode}")
                 raise RuntimeError(f"Command failed: {sim_cmd}")
             else:
-                logger.info("Simulation completed successfully.")
+                self.logger.info("Simulation completed successfully.")
 
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            self.logger.error(f"Unexpected error: {e}")
             raise
-
-    def subprocess_log(self, log_file_path: str) -> logging.Logger:
-        logger = logging.getLogger(log_file_path)
-        logger.setLevel(logging.INFO)
-        file_handler = logging.FileHandler(log_file_path, mode='w')
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        logger.addHandler(file_handler)
-        return logger
 
     def mk_sim_backup(
         self
@@ -458,6 +483,7 @@ class HandleEIC(object):
             self.printlog(f"Writing simulation information to README file: {self.readme_path}")
             with open(self.readme_path, 'a') as file:
                 file.write("SIMULATION INFORMATION:\n")
+
                 file.write(f"py_file: {os.path.basename(__file__)}\n")
                 logging.debug(f"Added py_file: {self.file_type}")
 
@@ -505,22 +531,6 @@ class HandleEIC(object):
             return value
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
-
-    def printlog(self, message: str, level: str = "info") -> None:
-        """Centralized logging method with consistent levels."""
-
-        if level == "info":
-            logging.info(message)
-        elif level == "error":
-            logging.error(message)
-        elif level == "warning":
-            logging.warning(message)
-        elif level == "debug":
-            logging.debug(message)
-
-        # from JSON settings we allow choice 
-        if self.program_prints:
-            print(message)
 
 if __name__ == "__main__":
     # initialize the simulation handler
