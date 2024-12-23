@@ -5,9 +5,12 @@
   "det_path": "/data/tomble/eic/epic_sim",
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
-  
+  "sif_path": "/data/tomble/eic/local/lib/jug_xl-nightly.sif",  
+
+  "reconstruct": "True",
   "sim_out_path": "",
   "det_ip6_path": "",
-  "program_prints": "True"
+  "program_prints": "True",
+  "sim_description": ""
 }
   
