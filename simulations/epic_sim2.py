@@ -60,14 +60,14 @@ class HandleSim(object):
 
             # File handler
             file_handler = logging.FileHandler(log_file, mode="w")
-            file_handler.setLevel(logging.DEBUG)
+            file_handler.setLevel(logging.DEBUG)  # capture all levels in the file
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
             logger.addHandler(file_handler)
 
-            # Conditionally add console handler
+            # console handler (conditionally enabled)
             if self.program_prints:
                 console_handler = logging.StreamHandler()
-                console_handler.setLevel(level)
+                console_handler.setLevel(logging.DEBUG)  # show all levels in the console
                 console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
                 logger.addHandler(console_handler)
         
@@ -85,6 +85,7 @@ class HandleSim(object):
             "warning": self.logger.warning,
             "error": self.logger.error,
             "debug": self.logger.debug,
+            "critical": self.logger.critical,
         }.get(level, self.logger.info)  # Default to info level if unrecognized
 
         # Log the message (console output handled by logger configuration)
