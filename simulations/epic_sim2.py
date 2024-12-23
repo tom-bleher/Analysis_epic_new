@@ -46,7 +46,7 @@ class HandleSim(object):
 
         # initialize logging
         self.logger = self.setup_logger("main_logger", "logging.log")
-        self.logger("Initialized HandleSim class.", level="info")
+        self.printlog("Initialized HandleSim class.", level="info")
 
     def setup_logger(self, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
         """
@@ -172,7 +172,7 @@ class HandleSim(object):
         # check that all boolean settings are correct
         bool_keys = ["reconstruct", "program_prints"]
         for bkey in bool_keys:
-            if bkey not in self.settings:
+            if not hasattr(self, bkey):
                 raise KeyError(f"Missing key: '{bkey}' in settings.")
             if not isinstance(self.settings[bkey], bool):
                 raise ValueError(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).")
@@ -304,7 +304,7 @@ class HandleSim(object):
         curr_sim_path, 
         curr_sim_det_ip6_path, 
         energy
-        ) -> str, str:
+        ) -> Tuple[str, str]:
         """
         Generate ddsim command.
         """
