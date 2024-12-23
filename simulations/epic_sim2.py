@@ -256,6 +256,7 @@ class HandleSim(object):
             )
             ddsim_cmds.append(ddsim_cmd)
 
+            print(f"{self.reconstruct}MEOWWWWWWWWWWWWWWW")
             if self.reconstruct:
                 self.recon_out_paths.append(output_file)
                 recon_cmds.append(self.get_recon_cmd(curr_sim_path, output_file))
