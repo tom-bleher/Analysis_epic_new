@@ -17,7 +17,10 @@ from typing import Dict, List, Tuple
 import concurrent
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-class HandleEIC(object):
+class HandleSim(object):
+    """
+    Handle the main simulation farming
+    """
 
     def __init__(
         self,
@@ -42,10 +45,24 @@ class HandleEIC(object):
         self.program_prints = True
 
         # initialize logging
-        self.self.logger = self.setup_logger("main_logger", "logging.log")
-        self.logger.info("Initialized HandleEIC class.")
+        self.logger = self.setup_logger("main_logger", "logging.log")
+        self.logger("Initialized HandleSim class.", level="info")
 
-    def printlog(self, message: str, level: str = "info") -> None:
+    def setup_logger(self, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+        """
+        Set up a logger with file and console handlers.
+        """
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        
+        # File handler
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
+        
+        return logger
+
+    def printlog(self, message: str, level: str="info") -> None:
         """
         Log a message and optionally print it to the console.
         :param message: Message to log and optionally print.
@@ -67,20 +84,6 @@ class HandleEIC(object):
         if self.program_prints:
             print(f"{level.upper()}: {message}")
 
-    def setup_logger(self, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
-        """
-        Set up a logger with file and console handlers.
-        """
-        logger = logging.getLogger(name)
-        logger.setLevel(level)
-        
-        # File handler
-        file_handler = logging.FileHandler(log_file, mode="w")
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        logger.addHandler(file_handler)
-        
-        return logger
-
     def setup_settings(
         self
         ) -> None:
@@ -93,13 +96,13 @@ class HandleEIC(object):
                 with open(self.settings_path, 'r') as file:
                     self.settings_dict = json.load(file)
             else:
-                self.printlog(f"Settings file not found at {self.settings_path}.")
+                self.printlog(f"Settings file not found at {self.settings_path}.", level="error")
                 raise FileNotFoundError(f"Settings file not found at {self.settings_path}.")
 
             required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path"]
             for key in required_keys:
                 if key not in self.settings_dict or not self.settings_dict[key]:
-                    self.printlog(f"Missing or empty key: {key} in settings.")
+                    self.printlog(f"Missing or empty key: {key} in settings.", level="error")
                     raise ValueError(f"Missing or empty key: {key} in settings.")
 
             # set attributes dynamically
@@ -113,7 +116,7 @@ class HandleEIC(object):
             raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.") from e            
 
         except json.JSONDecodeError as e:
-            self.printlog(f"Failed to parse settings file: {e}. Check for JSON formatting issues.")
+            self.printlog(f"Failed to parse settings file: {e}. Check for JSON formatting issues.", level="error")
             raise ValueError("Invalid JSON format in settings file. Fix the file or delete it to recreate.")
 
         except Exception as e:
@@ -166,12 +169,20 @@ class HandleEIC(object):
             "program_prints": "True" # main settings pointer file of detector (should match sourced)
         }
 
+        # check that all boolean settings are correct
+        bool_keys = ["reconstruct", "program_prints"]
+        for bkey in bool_keys:
+            if bkey not in self.settings:
+                raise KeyError(f"Missing key: '{bkey}' in settings.")
+            if not isinstance(self.settings[bkey], bool):
+                raise ValueError(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).")
+
     def prep_sim(
         self
         ) -> None:
 
         # loop over all requested detector changes and create specifics
-        self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}")
+        self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}", level="info")
         for curr_px_dx, curr_px_dy in self.px_pairs:
             
             """ soft changes """
@@ -200,13 +211,7 @@ class HandleEIC(object):
         ) -> Dict[str, dict[str, str]]:
         """
         Create simulation dictionary holding relavent parameters
-        "dx_dy"
-            "epic"
-            "compact"
-            "ip6"
-            "sh_file_path"
         """
-        
         # initilize dict to hold parameters for one simulation
         single_sim_dict = {}
         px_key = f"{curr_px_dx}x{curr_px_dy}"
@@ -219,25 +224,36 @@ class HandleEIC(object):
             "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
         }
 
-        # populate px_ddsim_cmds according to requested energies in hepmc_path
-        single_sim_dict[px_key]["px_ddsim_cmds"] = [self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy) for energy in self.energies]
+        # populate ddsim_cmds according to requested energies in hepmc_path
+        single_sim_dict[px_key]["ddsim_cmds"] = [
+            self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy)[0] for energy in self.energies
+        ]
+
+        # populate recon commands and gather output paths
+        if self.reconstruct:
+            self.recon_out_paths = []
+            recon_cmds = []
+            for energy in self.energies:
+                _, output_file = self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy)
+                self.recon_out_paths.append(output_file)
+                recon_cmds.append(self.get_recon_cmd(output_file))
+            single_sim_dict[px_key]["recon_cmds"] = recon_cmds
 
         # return the dict for the sim
-        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}")
+        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}", level="info")
         return single_sim_dict
 
-    def copy_epic(self, curr_sim_path) -> str:
-        """Copy epic to respective px folder for parameter reference."""
+    def copy_epic(
+        self, 
+        curr_sim_path
+        ) -> str:
+        """
+        copy epic to to perform simulation changes on it
+        """
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-            
-            # create destination directory if it doesn't exist
-            os.makedirs(dest_path, exist_ok=True)
-            
-            # use find to copy all files except .git
-            os.system(f'find {self.det_path} -path {self.det_path}/.git -prune -o -exec cp -r {{}} {dest_path}/ \\;')
-            
+            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:
             logging.error(f"Failed to copy detector: {e}")
@@ -288,7 +304,7 @@ class HandleEIC(object):
         curr_sim_path, 
         curr_sim_det_ip6_path, 
         energy
-        ) -> str:
+        ) -> str, str:
         """
         Generate ddsim command.
         """
@@ -298,45 +314,74 @@ class HandleEIC(object):
         
         output_file = os.path.join(curr_sim_path, f"output_{file_num}edm4hep.root")
         cmd = f"ddsim --inputFiles {inFile} --outputFile {output_file} --compactFile {curr_sim_det_ip6_path} -N {self.num_particles}"
-        self.printlog(f"Generated ddsim command: {cmd}")
+        self.printlog(f"Generated ddsim command: {cmd}", level="info")
+        return cmd, output_file
+
+    def get_recon_cmd(
+        self, 
+        curr_sim_path, 
+        file
+        ) -> str:
+        """
+        Method to run EIC recon on created simulation files
+        """
+        # in the backup path, loop over pixel folders to find output root files
+        inFile = os.path.join(curr_sim_path, file)
+        match = re.search("\d+\.+\d\.", inFile)
+        file_num = match.group() if match else file.split('_')[1][:2]
+
+        output_file = f'{file_path}/eicrecon_{file_num}.root'
+        cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={output_file} {inFile}"
+        self.printlog(f"Generated recon command: {cmd}", level="info")
         return cmd
 
     def exec_simv2(self) -> None:
         """
         Execute all simulations in parallel using multiprocessing and return results as they are completed.
         """
-        # Prepare the run queue
+        # prepare the run queue
         run_queue = [
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
+            cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
         ]
 
         with multiprocessing.Pool(processes=os.cpu_count()) as pool:
             pool.imap_unordered(self.run_cmd, run_queue)
+
+    def build_run_queue(self, paths: dict) -> list:
+        """
+        Helper function to build the run queue depending on whether reconstruction is enabled.
+        """
+        if self.reconstruct:
+            return [
+                (ddsin_cmd, recon_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+                for recon_cmd in paths['recon_cmds']
+                for ddsin_cmd in paths['ddsim_cmds']
+            ]
+        else:
+            return [
+                (ddsin_cmd, paths['sim_shell_path'], paths['sim_det_path'])
+                for ddsin_cmd in paths['ddsim_cmds']
+            ]
 
     def exec_sim(self) -> None:
         """
         Execute the simulation for all entries in the simulation dictionary,
         ensuring recompilation and sourcing of the detector environment in each subprocess.
         """
-        self.printlog("Preparing simulation commands and environments.")
+        self.printlog("Preparing simulation commands and environments.", level="info")
 
         # prepare the run queue
-        run_queue = [ 
-            # sim_cmd has according pixel ip6 XML file
-            (sim_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-            for px_key, paths in self.sim_dict.items()
-            for sim_cmd in paths['px_ddsim_cmds']
-         ]
-                
+        run_queue = [
+            cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
+        ]
+
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
             for future in concurrent.futures.as_completed(future_to_cmd):
                 cmd = future_to_cmd[future]
                 try:
                     future.result()  # handle success
-                    self.printlog(f"Simulation completed for command: {cmd[0]}")
+                    self.printlog(f"Simulation completed for command: {cmd[0]}", level="info")
                 except Exception as e:
                     self.printlog(f"Simulation failed for command {cmd[0]}: {e}", level="error")
 
@@ -389,8 +434,16 @@ class HandleEIC(object):
         eic_shell_path = os.path.join(shell_path, "eic-shell")
         return f"exec singularity {sif_path} {eic_shell_path}"
 
-    def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
-        sim_cmd, shell_file_path, det_path = curr_cmd
+    def run_cmd(
+        self, 
+        curr_cmd: Tuple[str, str, str]
+        ) -> None:
+        
+        # unpack the command from the simulation dictionary
+        if self.reconstruct:
+            sim_cmd, recon_cmd, shell_file_path, det_path = curr_cmd
+        else:
+            sim_cmd, shell_file_path, det_path = curr_cmd            
 
         # define the commands
         singularity = self.enter_singularity(self.eic_shell_path)
@@ -398,15 +451,23 @@ class HandleEIC(object):
         source = self.source_det_cmd(shell_file_path)
 
         commands = [
-            "set -e",  # Exit on error
+            "set -e",  # exit on error
             *singularity,
             *recompile,
             *source,
             f"echo 'Running simulation command: {sim_cmd}'",
-            sim_cmd  # Execute simulation command
+            sim_cmd,  # execute simulation command
         ]
 
-        self.logger.info(f"Starting subprocess with command: {sim_cmd}")
+        # add recon commands to subprocess
+        if self.reconstruct:
+            success_recon = self.success_recon(recon_cmd)
+            commands.extend([
+                *recon_cmd,  # optional reconstruction
+                *success_recon  # optional check for recon success
+            ])
+
+        self.printlog.info(f"Starting subprocess with command: {sim_cmd}", level="info")
         
         try:
             process = subprocess.Popen(
@@ -416,24 +477,22 @@ class HandleEIC(object):
                 text=True
             )
             
-            # Stream output line by line
+            # stream output line by line
             for line in iter(process.stdout.readline, ''):
-                sys.stdout.write(line)  # Print to console
-                self.logger.info(line.strip())  # Log to file
+                self.printlog(line.strip(), level="info")  
 
             for line in iter(process.stderr.readline, ''):
-                sys.stderr.write(line)  # Print errors to console
-                self.logger.error(line.strip())  # Log errors to file
+                self.printlog(line.strip(), level="error")  
             
-            process.wait()  # Wait for the process to finish
+            process.wait()  # wait for the process to finish
             if process.returncode != 0:
-                self.logger.error(f"Simulation failed with return code {process.returncode}")
+                self.printlog(f"Simulation failed with return code {process.returncode}", level="error")
                 raise RuntimeError(f"Command failed: {sim_cmd}")
             else:
-                self.logger.info("Simulation completed successfully.")
+                self.printlog("Simulation completed successfully.", level="info")
 
         except Exception as e:
-            self.logger.error(f"Unexpected error: {e}")
+            self.printlog(f"Unexpected error: {e}", level="error")
             raise
 
     def mk_sim_backup(
@@ -444,7 +503,7 @@ class HandleEIC(object):
         """
         # create a backup for this run
         os.makedirs(self.backup_path , exist_ok=True)
-        self.printlog(f"Created new backup directory in {self.backup_path }")
+        self.printlog(f"Created new backup directory in {self.backup_path }", level="info")
 
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
@@ -479,39 +538,39 @@ class HandleEIC(object):
             ]
             logging.info(f"Extracted photon energy levels: {self.photon_energy_vals}")
         
-            #write the README content to the file
-            self.printlog(f"Writing simulation information to README file: {self.readme_path}")
+            # write the README content to the file
+            self.printlog(f"Writing simulation information to README file: {self.readme_path}", level="info")
             with open(self.readme_path, 'a') as file:
                 file.write("SIMULATION INFORMATION:\n")
 
                 file.write(f"py_file: {os.path.basename(__file__)}\n")
-                logging.debug(f"Added py_file: {self.file_type}")
+                self.printlog(f"Added py_file: {self.file_type}", level="info")
 
                 # write each key-value pair from the settings_dict
                 for key, value in self.settings_dict.items():
                     file.write(f"{key}: {value}\n")
-                    logging.debug(f"Added setting: {key}: {value}")
+                    self.printlog(f"Added setting: {key}: {value}")
 
                 file.write(f"file_type: {self.file_type}\n")
-                logging.debug(f"Added file_type: {self.file_type}")
+                self.printlog(f"Added file_type: {self.file_type}", level="info")
                 
                 file.write(f"Number of Particles: {self.num_particles}\n")
-                logging.debug(f"Added num_particles: {self.num_particles}")
+                self.printlog(f"Added num_particles: {self.num_particles}", level="info")
                 
                 file.write(f"Pixel Value Pairs: {self.px_pairs}\n")
-                logging.debug(f"Added px_pairs: {self.px_pairs}")
+                self.printlog(f"Added px_pairs: {self.px_pairs}", level="info")
                 
                 file.write(f"BH: {self.BH_val}\n")
-                logging.debug(f"Added BH: {self.BH_val}")
+                self.printlog(f"Added BH: {self.BH_val}", level="info")
                 
                 file.write(f"Energy Levels: {self.photon_energy_vals}\n")
-                logging.debug(f"Added photon energy levels: {self.photon_energy_vals}")
+                self.printlog(f"Added photon energy levels: {self.photon_energy_vals}", level="info")
                 
                 file.write("\n*********************\n")  
-                logging.info("Finished writing to README.")
+                self.printlog("Finished writing to README.", level="info")
 
         except Exception as e:
-            logging.error(f"An error occurred while setting up the README: {e}")
+            self.printlog(f"An error occurred while setting up the README: {e}", level="error")
             raise 
 
     def get_BH_val(
@@ -532,22 +591,65 @@ class HandleEIC(object):
         else:
             raise ValueError("Could not find a value for 'BH' in the content of the file.")
 
+    def success_recon(self, recon_path: str) -> bool:
+        """
+        Checks if the reconstruction output at the given path is successful. Reconstruction is considered successful if the file size is >= 1000 bytes.
+        
+        Args:
+            recon_path (str): Path to the reconstruction output file.
+        
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            # use subprocess to safely execute the command and capture the output
+            result = subprocess.run(
+                ["stat", "-c", "%s", recon_path],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            filesize = int(result.stdout.strip())
+            if filesize < 1000:  # less than 1000 bytes indicates failure
+                self.printlog(f"Failed reconstruction for file at path {recon_path}.")
+                return False
+            return True
+        except subprocess.CalledProcessError as e:
+            self.printlog.error(f"Checking recon output size failed: {e}")
+            raise RuntimeError(f"Failed to check file size for {recon_path}") from e
+        except ValueError:
+            self.printlog.error(f"Invalid file size value returned for {recon_path}")
+            raise
+        
+    def merge_recon_out(self):
+        """
+        This method merges all the different roots files
+        """
+        # merge them and have the merge in the grander simulation backup folder
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(self.recon_out_paths)}")
+
 if __name__ == "__main__":
+
+    """ Simulation """
     # initialize the simulation handler
-    eic_handler = HandleEIC()
+    eic_simulation = HandleSim()
 
     # initialize paths, variables, and settings from JSON
-    eic_handler.setup_settings()  
-    eic_handler.init_vars()  
-    eic_handler.init_paths()  
+    eic_simulation.setup_settings()  
+    eic_simulation.init_vars()  
+    eic_simulation.init_paths()  
     os.chmod(os.getcwd(), 0o777)
 
     # prepare the simulation based on settings
-    eic_handler.prep_sim()
+    eic_simulation.prep_sim()
 
     # execute the simulation in parallel
-    eic_handler.exec_simv2()
+    eic_simulation.exec_simv2()
+
+    """ Reconstruction """
+    # save combined eicrecon output
+    eic_simulation.merge_recon_out()
 
     # make backups after simulations have completed
-    eic_handler.mk_sim_backup()
+    eic_simulation.mk_sim_backup()
 
