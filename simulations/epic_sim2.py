@@ -616,7 +616,7 @@ class HandleSim(object):
             value = match.group(1).strip()
             return value
         else:
-            self.printlog("Could not find a value for 'BH' in the content of the file.", level=)
+            self.printlog("Could not find a value for 'BH' in the content of the file.", level="error")
             raise ValueError
 
     def success_recon(self, recon_path: str) -> bool:
