@@ -416,22 +416,24 @@ class HandleSim(object):
         Generates a recompile command for a given detector path and method.
         
         :param det_path: Path to the detector source code.
-        :param method: Compilation method, either 'delete_build' or 'make_clean'.
+        :param method: Compilation method, either 'new_build' or 'clean_build'.
         :return: The full recompile command as a single string.
         :raises ValueError: If an invalid method is provided.
         """
 
-        if method not in {"delete_build", "make_clean"}:
-            raise ValueError(f"Invalid method: {method}. Choose 'delete_build' or 'make_clean'.")
+        if method not in {"new_build", "clean_build"}:
+            raise ValueError(f"Invalid method: {method}. Choose 'new_build' or 'clean_build'.")
 
+        # detector's cmake build path
         build_path = os.path.join(det_path, "build")
 
+        # define recompile commands
         method_cmd_map = {
-            "delete_build": [
-                f"rm -rf {build_path}/*",
+            "new_build": [
+                f"rm -rf {build_path}/*", # here if we have a uncompiled detector we will simply not get it
                 "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
             ],
-            "make_clean": [
+            "clean_build": [
                 f"cd {build_path}",
                 "make clean",
             ],
@@ -472,26 +474,26 @@ class HandleSim(object):
             sim_cmd, shell_file_path, det_path = curr_cmd            
 
         # define the commands
-        singularity = self.enter_singularity(self.eic_shell_path)
-        recompile = self.recompile_det_cmd(det_path, "delete_build")
+        recompile = self.recompile_det_cmd(det_path, "new_build")
         source = self.source_det_cmd(shell_file_path)
 
         commands = [
-            "set -e",  # exit on error
-            *singularity,
+            #"set -e",  # exit on error
             *recompile,
             *source,
             f"echo 'Running simulation command: {sim_cmd}'",
             sim_cmd,  # execute simulation command
         ]
 
-        # add recon commands to subprocess
+        # add optional commands
         if self.reconstruct:
-            success_recon = self.success_recon(recon_cmd)
-            commands.extend([
-                *recon_cmd,  # optional reconstruction
-                *success_recon  # optional check for recon success
-            ])
+            recon_commands = self.success_recon(recon_cmd)
+            commands.extend(recon_cmd + recon_commands)  # add recon and success check
+
+        # enter singularity if the path is set
+        if self.sif_path:
+            singularity_commands = self.enter_singularity(self.eic_shell_path)
+            commands.extend(singularity_commands)  # add Singularity entry
 
         self.printlog(f"Starting subprocess with command: {sim_cmd}", level="info")
         

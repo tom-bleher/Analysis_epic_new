@@ -5,7 +5,7 @@
   "det_path": "/data/tomble/eic/epic",
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
-  "sif_path": "/data/tomble/eic/local/lib/jug_xl-nightly.sif",  
+  "sif_path": "",  
 
   "reconstruct": "True",
   "sim_out_path": "",
