@@ -238,19 +238,24 @@ class HandleSim(object):
             "sim_shell_path": f"{curr_sim_det_path}/install/bin/thisepic.sh",
         }
 
-        # populate ddsim_cmds according to requested energies in hepmc_path
-        single_sim_dict[px_key]["ddsim_cmds"] = [
-            self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy)[0] for energy in self.energies
-        ]
+        # populate commands and gather recon output paths
+        ddsim_cmds = []
+        recon_cmds = []
+        self.recon_out_paths = [] if self.reconstruct else None
 
-        # populate recon commands and gather output paths
-        if self.reconstruct:
-            self.recon_out_paths = []
-            recon_cmds = []
-            for energy in self.energies:
-                _, output_file = self.get_ddsim_cmd(curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy)
+        for energy in self.energies:
+            ddsim_cmd, output_file = self.get_ddsim_cmd(
+                curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy
+            )
+            ddsim_cmds.append(ddsim_cmd)
+
+            if self.reconstruct:
                 self.recon_out_paths.append(output_file)
-                recon_cmds.append(self.get_recon_cmd(output_file))
+                recon_cmds.append(self.get_recon_cmd(curr_sim_path, output_file))
+
+        # assign to dictionary
+        single_sim_dict[px_key]["ddsim_cmds"] = ddsim_cmds
+        if self.reconstruct:
             single_sim_dict[px_key]["recon_cmds"] = recon_cmds
 
         # return the dict for the sim
@@ -344,7 +349,7 @@ class HandleSim(object):
         match = re.search("\d+\.+\d\.", inFile)
         file_num = match.group() if match else file.split('_')[1][:2]
 
-        output_file = f'{file_path}/eicrecon_{file_num}.root'
+        output_file = f'{curr_sim_path}/eicrecon_{file_num}.root'
         cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={output_file} {inFile}"
         self.printlog(f"Generated recon command: {cmd}", level="info")
         return cmd
@@ -634,13 +639,19 @@ class HandleSim(object):
         except ValueError:
             self.printlog.error(f"Invalid file size value returned for {recon_path}")
             raise
-        
+            
     def merge_recon_out(self):
         """
-        This method merges all the different roots files
+        This method merges all the different root files
         """
-        # merge them and have the merge in the grander simulation backup folder
-        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(self.recon_out_paths)}")
+        # collect all recon commands from self.sim_dict
+        all_recon_cmds = []
+        for px_key, sim_data in self.sim_dict.items():
+            if "recon_cmds" in sim_data:
+                all_recon_cmds.extend(sim_data["recon_cmds"])
+
+        # use recon output paths for merging
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(all_recon_cmds)}")
 
 if __name__ == "__main__":
 
