@@ -2,7 +2,7 @@
   "px_pairs": [[2.0, 0.1]],
   "num_particles": 100,
   "eic_shell_path": "/data/tomble/eic",
-  "det_path": "/data/tomble/eic/epic_sim",
+  "det_path": "/data/tomble/eic/epic",
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
   "sif_path": "/data/tomble/eic/local/lib/jug_xl-nightly.sif",  

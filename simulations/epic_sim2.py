@@ -56,7 +56,7 @@ class HandleSim(object):
         if not logger.hasHandlers():  # Prevent duplicate handlers
             logger.setLevel(logging.DEBUG)  # Set logger level to DEBUG to capture all messages
 
-            # File handler
+            # file handler
             file_handler = logging.FileHandler(log_file, mode="w")
             file_handler.setLevel(logging.DEBUG)  # Capture all levels
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
@@ -118,7 +118,7 @@ class HandleSim(object):
                 setattr(self, key, value)
 
         except FileNotFoundError:
-            logging.info("Failed to load settings, creating default configuration.")
+            self.printlog("Failed to load settings, creating default configuration.", level="info")
             with open(self.settings_path, 'w') as file:
                 json.dump(self.def_set_dict, file, indent=4)
             raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.") from e            
@@ -283,7 +283,7 @@ class HandleSim(object):
             os.system(f'cp -r {self.det_path} {curr_sim_path}')    
             return dest_path
         except Exception as e:
-            logging.error(f"Failed to copy detector: {e}")
+            self.printlog(f"Failed to copy detector: {e}", level="error")
             raise
 
     def mod_detector_settings(
@@ -323,7 +323,7 @@ class HandleSim(object):
                         tree.write(filepath)
                         #logging.info(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}")
                     except Exception as e:
-                        logging.error(f"Failed to modify {filepath}: {e}")
+                        self.printlog(f"Failed to modify {filepath}: {e}", "error")
                         raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
 
     def get_ddsim_cmd(
@@ -494,7 +494,7 @@ class HandleSim(object):
                 *success_recon  # optional check for recon success
             ])
 
-        self.printlog.info(f"Starting subprocess with command: {sim_cmd}", level="info")
+        self.printlog(f"Starting subprocess with command: {sim_cmd}", level="info")
         
         try:
             process = subprocess.Popen(
@@ -551,19 +551,19 @@ class HandleSim(object):
         
         # define path for readme file 
         self.readme_path = os.path.join(self.backup_path , "README.txt")
-        logging.info(f"Setting up README file at: {self.readme_path}")
+        self.printlog(f"Setting up README file at: {self.readme_path}", level="info")
 
         try:
             # get BH value from the function
             self.BH_val = self.get_BH_val()
-            logging.info(f"Retrieved BH value: {self.BH_val}")
+            self.printlog(f"Retrieved BH value: {self.BH_val}", level="info")
         
             # get energy levels from file names of genEvents
             self.photon_energy_vals = [
                 '.'.join(file.split('_')[1].split('.', 2)[:2]) 
                 for file in self.energies 
             ]
-            logging.info(f"Extracted photon energy levels: {self.photon_energy_vals}")
+            self.printlog(f"Extracted photon energy levels: {self.photon_energy_vals}", level="info")
         
             # write the README content to the file
             self.printlog(f"Writing simulation information to README file: {self.readme_path}", level="info")
@@ -616,7 +616,8 @@ class HandleSim(object):
             value = match.group(1).strip()
             return value
         else:
-            raise ValueError("Could not find a value for 'BH' in the content of the file.")
+            self.printlog("Could not find a value for 'BH' in the content of the file.", level=)
+            raise ValueError
 
     def success_recon(self, recon_path: str) -> bool:
         """
@@ -638,14 +639,14 @@ class HandleSim(object):
             )
             filesize = int(result.stdout.strip())
             if filesize < 1000:  # less than 1000 bytes indicates failure
-                self.printlog(f"Failed reconstruction for file at path {recon_path}.")
+                self.printlog(f"Failed reconstruction for file at path {recon_path}.", level="error")
                 return False
             return True
         except subprocess.CalledProcessError as e:
-            self.printlog.error(f"Checking recon output size failed: {e}")
+            self.printlog(f"Checking recon output size failed: {e}", level="error")
             raise RuntimeError(f"Failed to check file size for {recon_path}") from e
         except ValueError:
-            self.printlog.error(f"Invalid file size value returned for {recon_path}")
+            self.printlog(f"Invalid file size value returned for {recon_path}", level="error")
             raise
             
     def merge_recon_out(self):
