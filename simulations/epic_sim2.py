@@ -174,7 +174,7 @@ class HandleSim(object):
         for bkey in bool_keys:
             if not hasattr(self, bkey):
                 raise KeyError(f"Missing key: '{bkey}' in settings.")
-            if not isinstance(self.settings[bkey], bool):
+            if not isinstance(getattr(self, bkey), bool):
                 raise ValueError(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).")
 
     def prep_sim(
