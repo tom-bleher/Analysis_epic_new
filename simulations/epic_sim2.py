@@ -174,7 +174,21 @@ class HandleSim(object):
         for bkey in bool_keys:
             if not hasattr(self, bkey):
                 raise KeyError(f"Missing key: '{bkey}' in settings.")
-            if not isinstance(getattr(self, bkey), bool):
+            
+            # Get the value of the attribute and convert to boolean if it's a string
+            value = getattr(self, bkey)
+            
+            # If the value is a string that represents a boolean, convert it
+            if isinstance(value, str):
+                if value.lower() == "true":
+                    value = True
+                elif value.lower() == "false":
+                    value = False
+                else:
+                    raise ValueError(f"Invalid value for '{bkey}' in settings. Expected 'True' or 'False' as a string.")
+            
+            # Now check if the value is actually a boolean
+            if not isinstance(value, bool):
                 raise ValueError(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).")
 
     def prep_sim(
