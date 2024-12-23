@@ -53,35 +53,42 @@ class HandleSim(object):
         Set up a logger with file and console handlers.
         """
         logger = logging.getLogger(name)
-        logger.setLevel(level)
-        
-        # file handler
-        file_handler = logging.FileHandler(log_file, mode="w")
-        file_handler.setLevel(logging.DEBUG)  # Ensure file handler captures all levels
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        logger.addHandler(file_handler)
+        if not logger.hasHandlers():  # Prevent duplicate handlers
+            logger.setLevel(logging.DEBUG)  # Set logger level to DEBUG to capture all messages
+
+            # File handler
+            file_handler = logging.FileHandler(log_file, mode="w")
+            file_handler.setLevel(logging.DEBUG)  # Capture all levels
+            file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+            logger.addHandler(file_handler)
+
+            # Console handler
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(level)  # Show messages based on provided level
+            console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+            logger.addHandler(console_handler)
         
         return logger
-
-    def printlog(self, message: str, level: str="info") -> None:
+        
+    def printlog(self, message: str, level: str = "info") -> None:
         """
         Log a message and optionally print it to the console.
         :param message: Message to log and optionally print.
-        :param level: Log level ('info', 'warning', 'error', etc.).
+        :param level: Log level ('info', 'warning', 'error', 'debug', etc.).
         """
-        # Log the message at the appropriate level
-        if level.lower() == "info":
-            self.logger.info(message)
-        elif level.lower() == "warning":
-            self.logger.warning(message)
-        elif level.lower() == "error":
-            self.logger.error(message)
-        elif level.lower() == "debug":
-            self.logger.debug(message)
-        else:
-            self.logger.info(message)  # Default to info level
+        # Convert level to lowercase for comparison
+        level = level.lower()
+        log_function = {
+            "info": self.logger.info,
+            "warning": self.logger.warning,
+            "error": self.logger.error,
+            "debug": self.logger.debug,
+        }.get(level, self.logger.info)  # Default to info level if unrecognized
 
-        # Optionally print the message
+        # Log the message
+        log_function(message)
+
+        # Optionally print to console
         if self.program_prints:
             print(f"{level.upper()}: {message}")
 
