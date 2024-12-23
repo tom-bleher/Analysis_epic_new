@@ -48,15 +48,16 @@ class HandleSim(object):
         self.logger = self.setup_logger("main_logger", "logging.log")
         self.printlog("Initialized HandleSim class.", level="info")
 
-    def setup_logger(self, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+    def setup_logger(self, name: str, log_file: str, level=logging.DEBUG) -> logging.Logger:
         """
         Set up a logger with file and console handlers.
         """
         logger = logging.getLogger(name)
         logger.setLevel(level)
         
-        # File handler
+        # file handler
         file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setLevel(logging.DEBUG)  # Ensure file handler captures all levels
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
         
@@ -673,7 +674,8 @@ if __name__ == "__main__":
 
     """ Reconstruction """
     # save combined eicrecon output
-    eic_simulation.merge_recon_out()
+    if eic_simulation.reconstruct:
+        eic_simulation.merge_recon_out()
 
     # make backups after simulations have completed
     eic_simulation.mk_sim_backup()
