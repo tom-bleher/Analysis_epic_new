@@ -50,33 +50,35 @@ class HandleSim(object):
 
     def setup_logger(self, name: str, log_file: str, level=logging.DEBUG) -> logging.Logger:
         """
-        Set up a logger with file and console handlers.
+        Set up a logger with file and conditional console handlers.
         """
         logger = logging.getLogger(name)
-        if not logger.hasHandlers():  # Prevent duplicate handlers
-            logger.setLevel(logging.DEBUG)  # Set logger level to DEBUG to capture all messages
+        
+        # Prevent duplicate handlers
+        if not logger.hasHandlers():
+            logger.setLevel(logging.DEBUG)  # Capture all log levels
 
-            # file handler
+            # File handler
             file_handler = logging.FileHandler(log_file, mode="w")
-            file_handler.setLevel(logging.DEBUG)  # Capture all levels
+            file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
             logger.addHandler(file_handler)
 
-            # Console handler
-            console_handler = logging.StreamHandler()
-            console_handler.setLevel(level)  # Show messages based on provided level
-            console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
-            logger.addHandler(console_handler)
+            # Conditionally add console handler
+            if self.program_prints:
+                console_handler = logging.StreamHandler()
+                console_handler.setLevel(level)
+                console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+                logger.addHandler(console_handler)
         
         return logger
-        
+
     def printlog(self, message: str, level: str = "info") -> None:
         """
-        Log a message and optionally print it to the console.
-        :param message: Message to log and optionally print.
+        Log a message based on the specified log level.
+        :param message: Message to log.
         :param level: Log level ('info', 'warning', 'error', 'debug', etc.).
         """
-        # Convert level to lowercase for comparison
         level = level.lower()
         log_function = {
             "info": self.logger.info,
@@ -85,12 +87,8 @@ class HandleSim(object):
             "debug": self.logger.debug,
         }.get(level, self.logger.info)  # Default to info level if unrecognized
 
-        # Log the message
+        # Log the message (console output handled by logger configuration)
         log_function(message)
-
-        # Optionally print to console
-        if self.program_prints:
-            print(f"{level.upper()}: {message}")
 
     def setup_settings(
         self
