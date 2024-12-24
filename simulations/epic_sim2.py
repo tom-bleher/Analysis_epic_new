@@ -558,12 +558,12 @@ class HandleSim(object):
         subprocess_logger.info(f"Starting subprocess for command: {sim_cmd}")
 
         # define the commands
-        recompile = self.recompile_det_cmd(det_path, "new_build")
+        #recompile = self.recompile_det_cmd(det_path, "new_build")
         source = self.source_det_cmd(shell_file_path)
 
         commands = [
             #"set -e",  # exit on error
-            *recompile,
+            #*recompile,
             *source,
             f"echo 'Running simulation command: {sim_cmd}'",
             sim_cmd,  # execute simulation command
