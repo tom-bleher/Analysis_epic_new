@@ -508,22 +508,25 @@ class HandleSim(object):
         eic_shell_path = os.path.join(shell_path, "eic-shell")
         return f"exec singularity {sif_path} {eic_shell_path}"
 
-    def setup_subprocess_logger(self, sim_cmd: str) -> logging.Logger:
+    def setup_subprocess_logger(self, sim_cmd: str, px_key: str) -> Tuple[logging.Logger, str]:
         """
-        Create a separate logger for each subprocess with its own log file.
+        Create a separate logger for each subprocess with its own log file in the pixel folder.
         """
-        # create unique logger name using command hash and process ID
         logger_name = f"subprocess_{hash(sim_cmd)}_{os.getpid()}"
         logger = logging.getLogger(logger_name)
         
         if not logger.hasHandlers():
             logger.setLevel(logging.DEBUG)
             
-            # create subprocess-specific log file
+            # Create log file in the pixel-specific directory
+            px_path = os.path.join(self.sim_out_path, px_key)
             log_file = os.path.join(
-                self.sim_out_path,
+                px_path,
                 f"subprocess_{os.getpid()}.log"
             )
+            
+            # Ensure log directory exists
+            os.makedirs(os.path.dirname(log_file), exist_ok=True)
             
             file_handler = logging.FileHandler(log_file)
             file_handler.setFormatter(logging.Formatter(
@@ -553,8 +556,11 @@ class HandleSim(object):
         else:
             sim_cmd, shell_file_path, det_path = curr_cmd            
 
-        # Setup subprocess-specific logger
-        subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd)
+        # Extract pixel key from sim_cmd path
+        px_key = sim_cmd.split(self.sim_out_path)[1].split('/')[1]
+
+        # Setup subprocess-specific logger with pixel key
+        subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd, px_key)
         subprocess_logger.info(f"Starting subprocess for command: {sim_cmd}")
 
         # define the commands
@@ -603,16 +609,22 @@ class HandleSim(object):
             else:
                 subprocess_logger.info("Simulation completed successfully")
 
-            # Move subprocess log to backup directory after completion
+            # Move subprocess log to backup while maintaining pixel directory structure
             if os.path.exists(log_file):
-                dest_path = os.path.join(self.backup_path, os.path.basename(log_file))
+                # Create the same directory structure in backup
+                backup_px_path = os.path.join(self.backup_path, px_key)
+                os.makedirs(backup_px_path, exist_ok=True)
+                
+                dest_path = os.path.join(backup_px_path, os.path.basename(log_file))
                 shutil.move(log_file, dest_path)
                 self.printlog(f"Moved subprocess log to: {dest_path}", level="info")
 
         except Exception as e:
             subprocess_logger.error(f"Unexpected error: {e}")
             if os.path.exists(log_file):
-                dest_path = os.path.join(self.backup_path, os.path.basename(log_file))
+                backup_px_path = os.path.join(self.backup_path, px_key)
+                os.makedirs(backup_px_path, exist_ok=True)
+                dest_path = os.path.join(backup_px_path, os.path.basename(log_file))
                 shutil.move(log_file, dest_path)
                 self.printlog(f"Moved failed subprocess log to: {dest_path}", level="error")
             raise
