@@ -42,13 +42,61 @@ class HandleSim(object):
         self.hepmc_path: str = ""
         self.sim_out_path: str = ""
         self.det_ip6_path: str = ""
-        self.program_prints = True
+        self.reconstruct = False  
+        self.console_logging = False 
+
+        # load settings from JSON
+        self.load_settings()
 
         # initialize logging
-        self.logger = self.setup_logger("main_logger", "logging.log")
+        self.logger = self.setup_logger("main_logger")
         self.printlog("Initialized HandleSim class.", level="info")
 
-    def setup_logger(self, name: str, log_file: str, level=logging.DEBUG) -> logging.Logger:
+    def load_settings(self) -> None:
+        """
+        Load settings from the JSON file to update attributes.
+        """
+        print("Loading settings from JSON file.")  # Debug print statement
+        try:
+            if os.path.exists(self.settings_path):
+                with open(self.settings_path, 'r') as file:
+                    self.settings_dict = json.load(file)
+                print(f"Loaded settings from {self.settings_path}.")  # Debug print statement
+            else:
+                print(f"Settings file not found at {self.settings_path}.")  # Debug print statement
+                raise FileNotFoundError(f"Settings file not found at {self.settings_path}.")
+
+            # Load initial settings
+            self.console_logging = self.settings_dict.get("console_logging", self.console_logging)
+            print(f"console_logging set to: {self.console_logging}")  # Debug print statement
+
+            # Load required settings
+            required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path", "reconstruct"]
+            for key in required_keys:
+                if key not in self.settings_dict or self.settings_dict[key] is None:
+                    print(f"Missing or empty key: {key} in settings.")  # Debug print statement
+                    raise ValueError(f"Missing or empty key: {key} in settings: {self.settings_dict.get(key)}")
+
+            # set attributes dynamically
+            for key, value in self.settings_dict.items():
+                setattr(self, key, value)
+                print(f"Set attribute {key} to {value}.")  # Debug print statement
+
+        except FileNotFoundError:
+            print("Failed to load settings, creating default configuration.")  # Debug print statement
+            with open(self.settings_path, 'w') as file:
+                json.dump(self.def_set_dict, file, indent=4)
+            raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.")
+
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse settings file: {e}. Check for JSON formatting issues.")  # Debug print statement
+            raise ValueError("Invalid JSON format in settings file. Fix the file or delete it to recreate.")
+
+        except Exception as e:
+            print(f"Unexpected error while loading settings: {e}")  # Debug print statement
+            raise RuntimeError("Failed to load settings due to an unexpected error.") from e
+
+    def setup_logger(self, name: str, level=logging.DEBUG) -> logging.Logger:
         """
         Set up a logger with file and conditional console handlers.
         """
@@ -59,17 +107,22 @@ class HandleSim(object):
             logger.setLevel(logging.DEBUG)  # Capture all log levels
 
             # File handler
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(self.backup_path, f"{timestamp}.log")
             file_handler = logging.FileHandler(log_file, mode="w")
             file_handler.setLevel(logging.DEBUG)  # capture all levels in the file
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
             logger.addHandler(file_handler)
 
             # console handler (conditionally enabled)
-            if self.program_prints:
+            if self.console_logging:
                 console_handler = logging.StreamHandler()
                 console_handler.setLevel(logging.DEBUG)  # show all levels in the console
                 console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
                 logger.addHandler(console_handler)
+                print("Console logging enabled.")  # Debug print statement
+            else:
+                print("Console logging disabled.")  # Debug print statement
         
         return logger
 
@@ -91,49 +144,13 @@ class HandleSim(object):
         # Log the message (console output handled by logger configuration)
         log_function(message)
 
-    def setup_settings(
-        self
-        ) -> None:
-        """
-        Load simulation settings from a JSON file. If the file is missing or invalid,
-        create a default settings file and raise an error for the user to edit.
-        """
-        try:
-            if os.path.exists(self.settings_path):
-                with open(self.settings_path, 'r') as file:
-                    self.settings_dict = json.load(file)
-            else:
-                self.printlog(f"Settings file not found at {self.settings_path}.", level="error")
-                raise FileNotFoundError(f"Settings file not found at {self.settings_path}.")
-
-            required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path"]
-            for key in required_keys:
-                if key not in self.settings_dict or not self.settings_dict[key]:
-                    self.printlog(f"Missing or empty key: {key} in settings.", level="error")
-                    raise ValueError(f"Missing or empty key: {key} in settings.")
-
-            # set attributes dynamically
-            for key, value in self.settings_dict.items():
-                setattr(self, key, value)
-
-        except FileNotFoundError:
-            self.printlog("Failed to load settings, creating default configuration.", level="info")
-            with open(self.settings_path, 'w') as file:
-                json.dump(self.def_set_dict, file, indent=4)
-            raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.")
-
-        except json.JSONDecodeError as e:
-            self.printlog(f"Failed to parse settings file: {e}. Check for JSON formatting issues.", level="error")
-            raise ValueError("Invalid JSON format in settings file. Fix the file or delete it to recreate.")
-
-        except Exception as e:
-            self.printlog(f"Unexpected error while loading settings: {e}", level="error")
-            raise RuntimeError("Failed to load settings due to an unexpected error.") from e
-
     def init_paths(
         self
         ) -> None:
-
+        """
+        Method for setting paths for input, output, and other resources.
+        """
+        self.printlog("Initializing paths.", level="info")
         self.settings_path = "simulation_settings.json"
 
         if not os.path.isdir(self.sim_out_path) or self.sim_out_path == "":
@@ -141,15 +158,17 @@ class HandleSim(object):
         else:
             self.sim_out_path = self.settings_dict.get("sim_out_path")
         os.makedirs(self.sim_out_path, exist_ok=True)
+        self.printlog(f"Simulation output path set to {self.sim_out_path}.", level="info")
 
         if not os.path.exists(self.hepmc_path):
+            self.printlog(f"The specified hepmc path {self.hepmc_path} does not exist.", level="error")
             raise ValueError(f"The specified hepmc path {self.hepmc_path} does not exist. Run GenSimFiles.py and link its output correctly.")
 
         # create the path where the simulation file backup will go
         self.backup_path = os.path.join(self.sim_out_path , datetime.now().strftime("%Y%m%d_%H%M%S"))
         self.GenFiles_path = os.path.join(self.execution_path, "createGenFiles.py")
         if not os.path.isfile(self.GenFiles_path):
-            print("Did not find your GenFiles.py file")
+            self.printlog("Did not find your GenFiles.py file", level="error")
             raise
 
     def init_vars(
@@ -158,9 +177,10 @@ class HandleSim(object):
         """
         Method for setting paths for input, output, and other resources.
         """
-
+        self.printlog("Initializing variables.", level="info")
         # get energy hepmcs from created
         self.energies = [file for file in (os.listdir(self.hepmc_path)) if self.file_type in file]
+        self.printlog(f"Found energies: {self.energies}", level="info")
 
         # default if user does not provide JSON
         self.def_set_dict = {
@@ -173,18 +193,19 @@ class HandleSim(object):
   
             "sim_out_path": "",
             "det_ip6_path": "",
-            "program_prints": "True" # main settings pointer file of detector (should match sourced)
+            "console_logging": "True" # main settings pointer file of detector (should match sourced)
         }
 
         # check that all boolean settings are correct
-        bool_keys = ["reconstruct", "program_prints"]
+        bool_keys = ["reconstruct", "console_logging"]
         for bkey in bool_keys:
             if not hasattr(self, bkey):
+                self.printlog(f"Missing key: '{bkey}' in settings.", level="error")
                 raise KeyError(f"Missing key: '{bkey}' in settings.")
             
             # Get the value of the attribute and convert to boolean if it's a string
             value = getattr(self, bkey)
-            
+
             # If the value is a string that represents a boolean, convert it
             if isinstance(value, str):
                 if value.lower() == "true":
@@ -192,16 +213,22 @@ class HandleSim(object):
                 elif value.lower() == "false":
                     value = False
                 else:
+                    self.printlog(f"Invalid value for '{bkey}' in settings. Expected 'True' or 'False' as a string.", level="error")
                     raise ValueError(f"Invalid value for '{bkey}' in settings. Expected 'True' or 'False' as a string.")
             
             # Now check if the value is actually a boolean
             if not isinstance(value, bool):
+                self.printlog(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).", level="error")
                 raise ValueError(f"Invalid value for '{bkey}' in settings. Expected a boolean (True or False).")
+            
+            # Set the attribute to the correct boolean value
+            setattr(self, bkey, value)
+            self.printlog(f"Set boolean attribute {bkey} to {value}.", level="debug")
 
     def prep_sim(
         self
         ) -> None:
-
+        self.printlog("Preparing simulation.", level="info")
         # loop over all requested detector changes and create specifics
         self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}", level="info")
         for curr_px_dx, curr_px_dy in self.px_pairs:
@@ -210,6 +237,7 @@ class HandleSim(object):
             # create respective px folder to hold simulation output and change-related objects
             curr_sim_path = os.path.join(self.sim_out_path, f"{curr_px_dx}x{curr_px_dy}px")
             os.makedirs(curr_sim_path, exist_ok=True)
+            self.printlog(f"Created simulation path: {curr_sim_path}", level="info")
 
             # copy epic folder to current pixel path
             curr_sim_det_path = self.copy_epic(curr_sim_path)
@@ -222,6 +250,7 @@ class HandleSim(object):
             # update the simulation dictionary for current requested change
             single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
             self.sim_dict.update(single_sim_dict)
+            self.printlog(f"Updated simulation dictionary with key {curr_px_dx}x{curr_px_dy}.", level="info")
         
     def create_sim_dict(
         self, 
@@ -233,6 +262,7 @@ class HandleSim(object):
         """
         Create simulation dictionary holding relavent parameters
         """
+        self.printlog(f"Creating simulation dictionary for {curr_px_dx}x{curr_px_dy}.", level="info")
         # initilize dict to hold parameters for one simulation
         single_sim_dict = {}
         px_key = f"{curr_px_dx}x{curr_px_dy}"
@@ -255,11 +285,12 @@ class HandleSim(object):
                 curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy
             )
             ddsim_cmds.append(ddsim_cmd)
+            self.printlog(f"Generated ddsim command: {ddsim_cmd}", level="debug")
 
-            print(f"{self.reconstruct}MEOWWWWWWWWWWWWWWW")
             if self.reconstruct:
                 self.recon_out_paths.append(output_file)
                 recon_cmds.append(self.get_recon_cmd(curr_sim_path, output_file))
+                self.printlog(f"Generated recon command for {energy}: {recon_cmds[-1]}", level="debug")
 
         # assign to dictionary
         single_sim_dict[px_key]["ddsim_cmds"] = ddsim_cmds
@@ -277,10 +308,12 @@ class HandleSim(object):
         """
         copy epic to to perform simulation changes on it
         """
+        self.printlog(f"Copying epic detector to {curr_sim_path}.", level="info")
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
             os.system(f'cp -r {self.det_path} {curr_sim_path}')    
+            self.printlog(f"Copied epic detector to {dest_path}.", level="info")
             return dest_path
         except Exception as e:
             self.printlog(f"Failed to copy detector: {e}", level="error")
@@ -303,7 +336,7 @@ class HandleSim(object):
             curr_px_dx (float): Pixel size in the X direction (dx).
             curr_px_dy (float): Pixel size in the Y direction (dy).
         """
-
+        self.printlog(f"Modifying detector settings for {curr_px_dx}x{curr_px_dy}.", level="info")
         # iterate over all XML files in the copied epic directory
         for subdir, dirs, files in os.walk(curr_epic_path):
             for file in files:
@@ -321,7 +354,7 @@ class HandleSim(object):
                                 elif elem.attrib['name'] == "LumiSpecTracker_pixelSize_dy":
                                     elem.set('value', f"{curr_px_dy}*mm")
                         tree.write(filepath)
-                        #logging.info(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}")
+                        self.printlog(f"Updated {filepath} with pixel sizes dx={curr_px_dx}, dy={curr_px_dy}.", level="info")
                     except Exception as e:
                         self.printlog(f"Failed to modify {filepath}: {e}", "error")
                         raise RuntimeError(f"Error in mod_detector_settings: {filepath}") from e
@@ -335,6 +368,7 @@ class HandleSim(object):
         """
         Generate ddsim command.
         """
+        self.printlog(f"Generating ddsim command for energy {energy}.", level="info")
         inFile = os.path.join(self.hepmc_path, energy)
         match = re.search(r"\d+\.+\d\.", inFile)
         file_num = match.group() if match else energy.split("_")[1].split(".")[0]
@@ -352,6 +386,7 @@ class HandleSim(object):
         """
         Method to run EIC recon on created simulation files
         """
+        self.printlog(f"Generating recon command for file {file}.", level="info")
         # in the backup path, loop over pixel folders to find output root files
         inFile = os.path.join(curr_sim_path, file)
         match = re.search("\d+\.+\d\.", inFile)
@@ -366,6 +401,7 @@ class HandleSim(object):
         """
         Execute all simulations in parallel using multiprocessing and return results as they are completed.
         """
+        self.printlog("Executing simulations in parallel.", level="info")
         # prepare the run queue
         run_queue = [
             cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
@@ -378,6 +414,7 @@ class HandleSim(object):
         """
         Helper function to build the run queue depending on whether reconstruction is enabled.
         """
+        self.printlog("Building run queue.", level="info")
         if self.reconstruct:
             return [
                 (ddsin_cmd, recon_cmd, paths['sim_shell_path'], paths['sim_det_path'])
@@ -421,8 +458,10 @@ class HandleSim(object):
         :return: The full recompile command as a single string.
         :raises ValueError: If an invalid method is provided.
         """
+        self.printlog(f"Generating recompile command for {det_path} using method {method}.", level="info")
 
         if method not in {"new_build", "clean_build"}:
+            self.printlog(f"Invalid method: {method}. Choose 'new_build' or 'clean_build'.", level="error")
             raise ValueError(f"Invalid method: {method}. Choose 'new_build' or 'clean_build'.")
 
         # detector's cmake build path
@@ -449,14 +488,18 @@ class HandleSim(object):
             f"echo 'Build process completed for {det_path}'",
         ]
 
-        # return commands to recompile
+        self.printlog(f"Generated recompile command: {recompile_cmd}", level="debug")
         return recompile_cmd
 
     def source_det_cmd(self, shell_file_path) -> str:
+        """
+        Generate the command to source the detector environment.
+        """
         source_cmd = [
             f"source '{shell_file_path}'",
             f"echo 'Sourced shell script: {shell_file_path}'"
         ]
+        self.printlog(f"Generated source command: {source_cmd}", level="debug")
         return source_cmd
 
     def enter_singularity(self, sif_path: str, shell_path: str) -> str:
@@ -467,7 +510,9 @@ class HandleSim(object):
         self, 
         curr_cmd: Tuple[str, str, str]
         ) -> None:
-        
+        """
+        Run the simulation command in a subprocess.
+        """
         # unpack the command from the simulation dictionary
         if self.reconstruct:
             sim_cmd, recon_cmd, shell_file_path, det_path = curr_cmd
@@ -530,6 +575,7 @@ class HandleSim(object):
         """
         Method to make a backup of simulation files.
         """
+        self.printlog("Creating simulation backup.", level="info")
         # create a backup for this run
         os.makedirs(self.backup_path , exist_ok=True)
         self.printlog(f"Created new backup directory in {self.backup_path }", level="info")
@@ -543,6 +589,13 @@ class HandleSim(object):
             # identify folders using regex
             if os.path.isdir(item_path) and px_folder_pattern.match(item):
                 shutil.move(item_path, self.backup_path)
+                self.printlog(f"Moved {item_path} to backup.", level="info")
+
+        # move the log file to the backup directory
+        log_file_path = os.path.join(self.execution_path, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        if os.path.exists(log_file_path):
+            shutil.move(log_file_path, self.backup_path)
+            self.printlog(f"Moved log file to backup directory: {self.backup_path}", level="info")
 
         # call function to write the readme file containing the information
         self.setup_readme()
@@ -550,7 +603,9 @@ class HandleSim(object):
     def setup_readme(
         self
         ) -> None:
-        
+        """
+        Set up the README file with simulation information.
+        """
         # define path for readme file 
         self.readme_path = os.path.join(self.backup_path , "README.txt")
         self.printlog(f"Setting up README file at: {self.readme_path}", level="info")
@@ -605,7 +660,10 @@ class HandleSim(object):
     def get_BH_val(
         self
         ) -> None:
-
+        """
+        Retrieve the BH value from the createGenFiles.py file.
+        """
+        self.printlog("Retrieving BH value from createGenFiles.py.", level="info")
         # open the path storing the createGenFiles.py file
         with open(self.GenFiles_path, 'r') as file:
             content = file.read()
@@ -616,6 +674,7 @@ class HandleSim(object):
         # if we found BH in the file, we return the value
         if match:
             value = match.group(1).strip()
+            self.printlog(f"Retrieved BH value: {value}", level="info")
             return value
         else:
             self.printlog("Could not find a value for 'BH' in the content of the file.", level="error")
@@ -631,6 +690,7 @@ class HandleSim(object):
         Returns:
             bool: True if successful, False otherwise.
         """
+        self.printlog(f"Checking reconstruction output size for {recon_path}.", level="info")
         try:
             # use subprocess to safely execute the command and capture the output
             result = subprocess.run(
@@ -640,6 +700,7 @@ class HandleSim(object):
                 check=True
             )
             filesize = int(result.stdout.strip())
+            self.printlog(f"File size for {recon_path}: {filesize} bytes.", level="debug")
             if filesize < 1000:  # less than 1000 bytes indicates failure
                 self.printlog(f"Failed reconstruction for file at path {recon_path}.", level="error")
                 return False
@@ -655,37 +716,45 @@ class HandleSim(object):
         """
         This method merges all the different root files
         """
+        self.printlog("Merging reconstruction output files.", level="info")
         all_recon_out_paths = []
         for px_key, sim_data in self.sim_dict.items():
             if "recon_cmds" in sim_data:
                 all_recon_out_paths.extend(self.recon_out_paths)
+        self.printlog(f"Reconstruction output paths: {all_recon_out_paths}", level="debug")
 
         os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(all_recon_out_paths)}")
+        self.printlog("Merged reconstruction output files.", level="info")
 
 if __name__ == "__main__":
 
     """ Simulation """
     # initialize the simulation handler
     eic_simulation = HandleSim()
+    eic_simulation.printlog("Simulation handler initialized.", level="info")
 
     # initialize paths, variables, and settings from JSON
-    eic_simulation.setup_settings()  
+    eic_simulation.printlog("Initializing settings, variables, and paths.", level="info")
     eic_simulation.init_vars()  
     eic_simulation.init_paths()  
     os.chmod(os.getcwd(), 0o777)
+    eic_simulation.printlog("Settings, variables, and paths initialized.", level="info")
 
     # prepare the simulation based on settings
+    eic_simulation.printlog("Preparing simulation based on settings.", level="info")
     eic_simulation.prep_sim()
 
     # execute the simulation in parallel
+    eic_simulation.printlog("Executing simulation in parallel.", level="info")
     eic_simulation.exec_simv2()
 
     """ Reconstruction """
-    print(f"YEEEEEEEEEEEEEEEEE{eic_simulation.reconstruct}")
-    # save combined eicrecon output
     if eic_simulation.reconstruct:
+        eic_simulation.printlog("Reconstruction is enabled. Merging reconstruction outputs.", level="info")
         eic_simulation.merge_recon_out()
 
     # make backups after simulations have completed
+    eic_simulation.printlog("Making backups after simulations have completed.", level="info")
     eic_simulation.mk_sim_backup()
+    eic_simulation.printlog("Simulation process completed.", level="info")
 

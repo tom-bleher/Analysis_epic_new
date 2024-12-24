@@ -6,9 +6,9 @@
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
   "sif_path": "",  
-  "reconstruct": "True",
+  "reconstruct": false,
   "sim_out_path": "",
   "det_ip6_path": "",
-  "program_prints": "True",
-  "sim_description": ""
+  "sim_description": "",
+  "console_logging": true
 }
