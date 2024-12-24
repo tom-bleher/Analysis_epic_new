@@ -370,7 +370,7 @@ class HandleSim(object):
         run_queue = [
             cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
         ]
-
+    
         with multiprocessing.Pool(processes=os.cpu_count()) as pool:
             pool.imap_unordered(self.run_cmd, run_queue)
 
@@ -379,6 +379,7 @@ class HandleSim(object):
         Helper function to build the run queue depending on whether reconstruction is enabled.
         """
         if self.reconstruct:
+            print("MEOWWWWWWWWWWWWW")
             return [
                 (ddsin_cmd, recon_cmd, paths['sim_shell_path'], paths['sim_det_path'])
                 for recon_cmd in paths['recon_cmds']
@@ -683,8 +684,10 @@ if __name__ == "__main__":
     eic_simulation.exec_simv2()
 
     """ Reconstruction """
+    print(f"YEEEEEEEEEEEEEEEEE{eic_simulation.reconstruct}")
     # save combined eicrecon output
     if eic_simulation.reconstruct:
+        print("wwwwwwwwwwwwoooooooooof")
         eic_simulation.merge_recon_out()
 
     # make backups after simulations have completed
