@@ -120,7 +120,7 @@ class HandleSim(object):
             self.printlog("Failed to load settings, creating default configuration.", level="info")
             with open(self.settings_path, 'w') as file:
                 json.dump(self.def_set_dict, file, indent=4)
-            raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.") from e            
+            raise RuntimeError(f"Settings JSON created at {self.settings_path}. Edit and rerun.")
 
         except json.JSONDecodeError as e:
             self.printlog(f"Failed to parse settings file: {e}. Check for JSON formatting issues.", level="error")
@@ -379,7 +379,6 @@ class HandleSim(object):
         Helper function to build the run queue depending on whether reconstruction is enabled.
         """
         if self.reconstruct:
-            print("MEOWWWWWWWWWWWWW")
             return [
                 (ddsin_cmd, recon_cmd, paths['sim_shell_path'], paths['sim_det_path'])
                 for recon_cmd in paths['recon_cmds']
@@ -656,14 +655,12 @@ class HandleSim(object):
         """
         This method merges all the different root files
         """
-        # collect all recon commands from self.sim_dict
-        all_recon_cmds = []
+        all_recon_out_paths = []
         for px_key, sim_data in self.sim_dict.items():
             if "recon_cmds" in sim_data:
-                all_recon_cmds.extend(sim_data["recon_cmds"])
+                all_recon_out_paths.extend(self.recon_out_paths)
 
-        # use recon output paths for merging
-        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(all_recon_cmds)}")
+        os.system(f"hadd {self.backup_path}/eicrecon_MergedOutput.root {' '.join(all_recon_out_paths)}")
 
 if __name__ == "__main__":
 
@@ -687,7 +684,6 @@ if __name__ == "__main__":
     print(f"YEEEEEEEEEEEEEEEEE{eic_simulation.reconstruct}")
     # save combined eicrecon output
     if eic_simulation.reconstruct:
-        print("wwwwwwwwwwwwoooooooooof")
         eic_simulation.merge_recon_out()
 
     # make backups after simulations have completed
