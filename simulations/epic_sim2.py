@@ -31,7 +31,8 @@ class HandleSim(object):
         self.sim_dict: Dict[str, Dict[str, str]] = {}
         self.settings_path: str = "simulation_settings.json"
         self.execution_path: str = os.getcwd()
-        self.backup_path: str = ""
+        self.backup_path: str = os.path.join(self.execution_path, "simEvents", datetime.now().strftime("%Y%m%d_%H%M%S"))
+        os.makedirs(self.backup_path, exist_ok=True)
         
         # init vars to be populated by the JSON file
         self.px_pairs: List[Tuple[float, float]] = []
@@ -106,9 +107,8 @@ class HandleSim(object):
         if not logger.hasHandlers():
             logger.setLevel(logging.DEBUG)  # Capture all log levels
 
-            # File handler
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            log_file = os.path.join(self.backup_path, f"{timestamp}.log")
+            # file handler
+            log_file = os.path.join(self.backup_path, f"overview.log")
             file_handler = logging.FileHandler(log_file, mode="w")
             file_handler.setLevel(logging.DEBUG)  # capture all levels in the file
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
@@ -251,6 +251,7 @@ class HandleSim(object):
             single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
             self.sim_dict.update(single_sim_dict)
             self.printlog(f"Updated simulation dictionary with key {curr_px_dx}x{curr_px_dy}.", level="info")
+            self.printlog(f"Current simulation dictionary: {json.dumps(self.sim_dict, indent=2)}", level="debug")
         
     def create_sim_dict(
         self, 
@@ -298,7 +299,7 @@ class HandleSim(object):
             single_sim_dict[px_key]["recon_cmds"] = recon_cmds
 
         # return the dict for the sim
-        self.printlog(f"Created simulation dictionary: {json.dumps(self.sim_dict, indent=2)}", level="info")
+        self.printlog(f"Created simulation dictionary: {json.dumps(single_sim_dict, indent=2)}", level="info")
         return single_sim_dict
 
     def copy_epic(
@@ -408,7 +409,8 @@ class HandleSim(object):
         ]
     
         with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-            pool.imap_unordered(self.run_cmd, run_queue)
+            for result in pool.imap_unordered(self.run_cmd, run_queue):
+                self.printlog(result, level="info")
 
     def build_run_queue(self, paths: dict) -> list:
         """
@@ -506,6 +508,38 @@ class HandleSim(object):
         eic_shell_path = os.path.join(shell_path, "eic-shell")
         return f"exec singularity {sif_path} {eic_shell_path}"
 
+    def setup_subprocess_logger(self, sim_cmd: str) -> logging.Logger:
+        """
+        Create a separate logger for each subprocess with its own log file.
+        """
+        # create unique logger name using command hash and process ID
+        logger_name = f"subprocess_{hash(sim_cmd)}_{os.getpid()}"
+        logger = logging.getLogger(logger_name)
+        
+        if not logger.hasHandlers():
+            logger.setLevel(logging.DEBUG)
+            
+            # create subprocess-specific log file
+            log_file = os.path.join(
+                self.sim_out_path,
+                f"subprocess_{os.getpid()}.log"
+            )
+            
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s - Process %(process)d - %(levelname)s - %(message)s'
+            ))
+            logger.addHandler(file_handler)
+            
+            if self.console_logging:
+                console_handler = logging.StreamHandler()
+                console_handler.setFormatter(logging.Formatter(
+                    '%(levelname)s - Process %(process)d - %(message)s'
+                ))
+                logger.addHandler(console_handler)
+        
+        return logger, log_file
+
     def run_cmd(
         self, 
         curr_cmd: Tuple[str, str, str]
@@ -518,6 +552,10 @@ class HandleSim(object):
             sim_cmd, recon_cmd, shell_file_path, det_path = curr_cmd
         else:
             sim_cmd, shell_file_path, det_path = curr_cmd            
+
+        # Setup subprocess-specific logger
+        subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd)
+        subprocess_logger.info(f"Starting subprocess for command: {sim_cmd}")
 
         # define the commands
         recompile = self.recompile_det_cmd(det_path, "new_build")
@@ -553,20 +591,30 @@ class HandleSim(object):
             
             # stream output line by line
             for line in iter(process.stdout.readline, ''):
-                self.printlog(line.strip(), level="info")  
+                subprocess_logger.info(line.strip())
 
             for line in iter(process.stderr.readline, ''):
-                self.printlog(line.strip(), level="error")  
+                subprocess_logger.error(line.strip())
             
             process.wait()  # wait for the process to finish
             if process.returncode != 0:
-                self.printlog(f"Simulation failed with return code {process.returncode}", level="error")
+                subprocess_logger.error(f"Simulation failed with return code {process.returncode}")
                 raise RuntimeError(f"Command failed: {sim_cmd}")
             else:
-                self.printlog("Simulation completed successfully.", level="info")
+                subprocess_logger.info("Simulation completed successfully")
+
+            # Move subprocess log to backup directory after completion
+            if os.path.exists(log_file):
+                dest_path = os.path.join(self.backup_path, os.path.basename(log_file))
+                shutil.move(log_file, dest_path)
+                self.printlog(f"Moved subprocess log to: {dest_path}", level="info")
 
         except Exception as e:
-            self.printlog(f"Unexpected error: {e}", level="error")
+            subprocess_logger.error(f"Unexpected error: {e}")
+            if os.path.exists(log_file):
+                dest_path = os.path.join(self.backup_path, os.path.basename(log_file))
+                shutil.move(log_file, dest_path)
+                self.printlog(f"Moved failed subprocess log to: {dest_path}", level="error")
             raise
 
     def mk_sim_backup(
@@ -592,13 +640,32 @@ class HandleSim(object):
                 self.printlog(f"Moved {item_path} to backup.", level="info")
 
         # move the log file to the backup directory
-        log_file_path = os.path.join(self.execution_path, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        log_file_path = os.path.join(self.backup_path, f"overview.log")
         if os.path.exists(log_file_path):
             shutil.move(log_file_path, self.backup_path)
             self.printlog(f"Moved log file to backup directory: {self.backup_path}", level="info")
 
         # call function to write the readme file containing the information
         self.setup_readme()
+
+    def get_detector_path(self) -> str:
+        """
+        Retrieve the value of the DETECTOR_PATH environment variable.
+        """
+        self.printlog("Retrieving DETECTOR_PATH environment variable.", level="info")
+        detector_path = os.getenv('DETECTOR_PATH', 'Not set')
+        self.printlog(f"DETECTOR_PATH: {detector_path}", level="info")
+        return detector_path
+
+    def check_singularity(self) -> Tuple[bool, str]:
+        """
+        Check if the script is executed from Singularity and return the .sif path if applicable.
+        """
+        self.printlog("Checking if executed from Singularity.", level="info")
+        sif_path = os.getenv('SINGULARITY_CONTAINER', '')
+        in_singularity = bool(sif_path)
+        self.printlog(f"Executed from Singularity: {in_singularity}, SIF path: {sif_path}", level="info")
+        return in_singularity, sif_path
 
     def setup_readme(
         self
@@ -621,6 +688,12 @@ class HandleSim(object):
                 for file in self.energies 
             ]
             self.printlog(f"Extracted photon energy levels: {self.photon_energy_vals}", level="info")
+        
+            # get DETECTOR_PATH value
+            detector_path = self.get_detector_path()
+
+            # check if executed from Singularity
+            in_singularity, sif_path = self.check_singularity()
         
             # write the README content to the file
             self.printlog(f"Writing simulation information to README file: {self.readme_path}", level="info")
@@ -649,6 +722,14 @@ class HandleSim(object):
                 
                 file.write(f"Energy Levels: {self.photon_energy_vals}\n")
                 self.printlog(f"Added photon energy levels: {self.photon_energy_vals}", level="info")
+
+                file.write(f"DETECTOR_PATH: {detector_path}\n")
+                self.printlog(f"Added DETECTOR_PATH: {detector_path}", level="info")
+
+                file.write(f"Executed from Singularity: {in_singularity}\n")
+                if in_singularity:
+                    file.write(f"SIF path: {sif_path}\n")
+                    self.printlog(f"Added SIF path: {sif_path}", level="info")
                 
                 file.write("\n*********************\n")  
                 self.printlog("Finished writing to README.", level="info")
