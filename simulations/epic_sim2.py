@@ -425,17 +425,30 @@ class HandleSim(object):
 
     def exec_simv2(self) -> None:
         """
-        Execute all simulations in parallel using multiprocessing and return results as they are completed.
+        Execute all simulations in parallel using ProcessPoolExecutor.
         """
         self.printlog("Executing simulations in parallel.", level="info")
-        # prepare the run queue
-        run_queue = [
-            cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
-        ]
-    
-        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-            for result in pool.imap_unordered(self.run_cmd, run_queue):
-                self.printlog(result, level="info")
+        
+        # Calculate optimal number of workers based on CPU cores and memory
+        max_workers = min(os.cpu_count(), 4)  # Limit to prevent memory exhaustion
+        
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # Prepare the run queue
+            run_queue = [
+                cmd for paths in self.sim_dict.values() 
+                for cmd in self.build_run_queue(paths)
+            ]
+            
+            # Submit all tasks and monitor completion
+            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            
+            for future in as_completed(futures):
+                cmd = futures[future]
+                try:
+                    future.result()
+                    self.printlog(f"Successfully completed simulation for command: {cmd}", level="info")
+                except Exception as e:
+                    self.printlog(f"Failed simulation for command {cmd}: {str(e)}", level="error")
 
     def build_run_queue(self, paths: dict) -> list:
         """
@@ -530,8 +543,14 @@ class HandleSim(object):
         return source_cmd
 
     def enter_singularity(self, sif_path: str, shell_path: str) -> str:
-        eic_shell_path = os.path.join(shell_path, "eic-shell")
-        return f"exec singularity {sif_path} {eic_shell_path}"
+        """Execute commands inside Singularity container"""
+        singularity_commands = [
+            f"echo 'Entering Singularity container: {sif_path}'",
+            f"singularity exec {sif_path} {shell_path}",  # Use shell_path directly
+            f"echo 'SINGULARITY_CONTAINER: {os.getenv('SINGULARITY_CONTAINER', 'Not set')}'"
+        ]
+        self.printlog(f"Generated Singularity commands: {singularity_commands}", level="debug")
+        return singularity_commands
 
     def setup_subprocess_logger(self, sim_cmd: str, px_key: str) -> Tuple[logging.Logger, str]:
         """
@@ -568,82 +587,94 @@ class HandleSim(object):
         
         return logger, log_file
 
-    def run_cmd(
-        self, 
-        curr_cmd: Tuple[str, str, str]
-        ) -> None:
-        """
-        Run the simulation command in a subprocess.
-        """
-        # unpack the command from the simulation dictionary
+    def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
+        """Run the simulation command in a subprocess with proper container management and compilation."""
+        # Unpack the command tuple
         if self.reconstruct:
             sim_cmd, recon_cmd, shell_file_path, det_path = curr_cmd
         else:
-            sim_cmd, shell_file_path, det_path = curr_cmd            
+            sim_cmd, shell_file_path, det_path = curr_cmd
 
         # Extract pixel key from sim_cmd path
         px_key = sim_cmd.split(self.sim_out_path)[1].split('/')[1]
 
-        # Setup subprocess-specific logger with pixel key
+        # Setup subprocess-specific logger
         subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd, px_key)
         subprocess_logger.info(f"Starting subprocess for command: {sim_cmd}")
 
-        # define the commands
-        #recompile = self.recompile_det_cmd(det_path, "new_build")
-        source = self.source_det_cmd(shell_file_path)
-
-        commands = [
-            #"set -e",  # exit on error
-            #*recompile,
-            *source,
-            f"echo 'Running simulation command: {sim_cmd}'",
-            sim_cmd,  # execute simulation command
-        ]
-
-        # add optional commands
-        if self.reconstruct:
-            recon_commands = self.success_recon(recon_cmd)
-            commands.extend(recon_cmd + recon_commands)  # add recon and success check
-
-        # enter singularity if the path is set
-        if self.sif_path:
-            singularity_commands = self.enter_singularity(self.eic_shell_path)
-            commands.extend(singularity_commands)  # add Singularity entry
-
-        self.printlog(f"Starting subprocess with command: {sim_cmd}", level="info")
+        # Create a temporary script for this simulation
+        script_path = os.path.join(self.sim_out_path, px_key, f"run_simulation_{os.getpid()}.sh")
         
         try:
+            # Build command sequence
+            command_script = [
+                "#!/bin/bash",
+                "set -e",  # Exit on any error
+                f"echo 'Starting simulation process for {px_key}'",
+                
+                # Enter Singularity container and execute commands
+                f"singularity exec {self.sif_path} /bin/bash << 'EOF'",
+                
+                # Change to detector directory and recompile
+                f"cd {det_path}",
+                "rm -rf build/*",
+                "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
+                "cmake --build build --target install -- -j$(nproc)",
+                
+                # Source environment and run simulation
+                f"source {shell_file_path}",
+                sim_cmd
+            ]
+
+            # Add reconstruction command if enabled
+            if self.reconstruct:
+                command_script.append(recon_cmd)
+
+            # Close heredoc
+            command_script.append("EOF")
+
+            # Write command script
+            with open(script_path, 'w') as f:
+                f.write('\n'.join(command_script))
+            os.chmod(script_path, 0o755)
+
+            # Execute the script and capture output
             process = subprocess.Popen(
-                ["bash", "-c", " && ".join(commands)],
+                [script_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                bufsize=1,
+                universal_newlines=True
             )
-            
-            # stream output line by line
-            for line in iter(process.stdout.readline, ''):
-                subprocess_logger.info(line.strip())
 
-            for line in iter(process.stderr.readline, ''):
-                subprocess_logger.error(line.strip())
-            
-            process.wait()  # wait for the process to finish
-            if process.returncode != 0:
-                subprocess_logger.error(f"Simulation failed with return code {process.returncode}")
-                raise RuntimeError(f"Command failed: {sim_cmd}")
-            else:
-                subprocess_logger.info("Simulation completed successfully")
+            # Stream output in real-time
+            while True:
+                stdout_line = process.stdout.readline()
+                stderr_line = process.stderr.readline()
+                
+                if stdout_line == '' and stderr_line == '' and process.poll() is not None:
+                    break
+                
+                if stdout_line:
+                    subprocess_logger.info(stdout_line.strip())
+                if stderr_line:
+                    subprocess_logger.error(stderr_line.strip())
 
-            # Keep log file in pixel directory instead of moving it
-            if os.path.exists(log_file):
-                self.printlog(f"Simulation log saved at: {log_file}", level="info")
+            # Wait for process to complete and check return code
+            return_code = process.wait()
+            if return_code != 0:
+                raise subprocess.CalledProcessError(return_code, script_path)
+
+            subprocess_logger.info("Simulation completed successfully")
 
         except Exception as e:
-            subprocess_logger.error(f"Unexpected error: {e}")
-            # Still keep log file in pixel directory even on failure
-            if os.path.exists(log_file):
-                self.printlog(f"Failed simulation log saved at: {log_file}", level="error")
+            subprocess_logger.error(f"Simulation failed: {str(e)}")
             raise
+        finally:
+            # Clean up temporary script
+            if os.path.exists(script_path):
+                os.remove(script_path)
 
     def mk_sim_backup(
         self

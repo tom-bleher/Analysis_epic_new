@@ -1,14 +1,14 @@
 {
-  "px_pairs": [[2.0, 0.1],[1.0, 0.1],[0.1, 0.1],[0.5, 0.1],[1.5, 0.1]],
-  "num_particles": 5,
+  "px_pairs": [[2.0, 0.1], [0.1, 2.0]],
+  "num_particles": 1000,
   "eic_shell_path": "/data/tomble/eic",
-  "det_path": "/data/tomble/eic/epic",
+  "det_path": "/data/tomble/eic/epic4",
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
-  "sif_path": "",  
+  "sif_path": "/data/tomble/eic/local/lib/eic_xl-nightly.sif",
   "reconstruct": false,
   "sim_out_path": "",
   "det_ip6_path": "",
   "sim_description": "",
-  "console_logging": false
+  "console_logging": true
 }
