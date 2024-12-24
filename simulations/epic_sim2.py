@@ -22,10 +22,7 @@ class HandleSim(object):
     Handle the main simulation farming
     """
 
-    def __init__(
-        self,
-        ) -> None:
-        
+    def __init__(self) -> None:
         # init internal variables
         self.energies: List[str] = []
         self.sim_dict: Dict[str, Dict[str, str]] = {}
@@ -45,13 +42,43 @@ class HandleSim(object):
         self.det_ip6_path: str = ""
         self.reconstruct = False  
         self.console_logging = False 
-
+        
+        # Set up logger first without using printlog
+        self.logger = None  # Initialize logger as None
+        
         # load settings from JSON
         self.load_settings()
-
-        # initialize logging
-        self.logger = self.setup_logger("main_logger")
+        
+        # Now initialize logging after settings are loaded
+        self.init_logger()
+        
+        # Log initialization complete
         self.printlog("Initialized HandleSim class.", level="info")
+
+    def init_logger(self) -> None:
+        """
+        Initialize the logger after settings are loaded.
+        """
+        self.logger = logging.getLogger("main_logger")
+        self.logger.setLevel(logging.DEBUG)
+        
+        # Clear any existing handlers
+        self.logger.handlers = []
+        
+        # Add file handler
+        log_file = os.path.join(self.execution_path, "overview.log")
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        self.logger.addHandler(file_handler)
+        
+        # Add console handler if enabled
+        if self.console_logging:
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.DEBUG)
+            console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+            self.logger.addHandler(console_handler)
+            print("Console logging enabled.")  # Direct print since logger might not be ready
 
     def load_settings(self) -> None:
         """
@@ -107,10 +134,10 @@ class HandleSim(object):
         if not logger.hasHandlers():
             logger.setLevel(logging.DEBUG)  # Capture all log levels
 
-            # file handler
-            log_file = os.path.join(self.backup_path, f"overview.log")
+            # file handler - store in execution directory initially
+            log_file = os.path.join(self.execution_path, f"overview.log")
             file_handler = logging.FileHandler(log_file, mode="w")
-            file_handler.setLevel(logging.DEBUG)  # capture all levels in the file
+            file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
             logger.addHandler(file_handler)
 
@@ -120,9 +147,7 @@ class HandleSim(object):
                 console_handler.setLevel(logging.DEBUG)  # show all levels in the console
                 console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
                 logger.addHandler(console_handler)
-                print("Console logging enabled.")  # Debug print statement
-            else:
-                print("Console logging disabled.")  # Debug print statement
+                self.printlog("Console logging enabled.", level="info")
         
         return logger
 
@@ -609,24 +634,15 @@ class HandleSim(object):
             else:
                 subprocess_logger.info("Simulation completed successfully")
 
-            # Move subprocess log to backup while maintaining pixel directory structure
+            # Keep log file in pixel directory instead of moving it
             if os.path.exists(log_file):
-                # Create the same directory structure in backup
-                backup_px_path = os.path.join(self.backup_path, px_key)
-                os.makedirs(backup_px_path, exist_ok=True)
-                
-                dest_path = os.path.join(backup_px_path, os.path.basename(log_file))
-                shutil.move(log_file, dest_path)
-                self.printlog(f"Moved subprocess log to: {dest_path}", level="info")
+                self.printlog(f"Simulation log saved at: {log_file}", level="info")
 
         except Exception as e:
             subprocess_logger.error(f"Unexpected error: {e}")
+            # Still keep log file in pixel directory even on failure
             if os.path.exists(log_file):
-                backup_px_path = os.path.join(self.backup_path, px_key)
-                os.makedirs(backup_px_path, exist_ok=True)
-                dest_path = os.path.join(backup_px_path, os.path.basename(log_file))
-                shutil.move(log_file, dest_path)
-                self.printlog(f"Moved failed subprocess log to: {dest_path}", level="error")
+                self.printlog(f"Failed simulation log saved at: {log_file}", level="error")
             raise
 
     def mk_sim_backup(
@@ -636,26 +652,37 @@ class HandleSim(object):
         Method to make a backup of simulation files.
         """
         self.printlog("Creating simulation backup.", level="info")
-        # create a backup for this run
-        os.makedirs(self.backup_path , exist_ok=True)
-        self.printlog(f"Created new backup directory in {self.backup_path }", level="info")
+        os.makedirs(self.backup_path, exist_ok=True)
 
         # regex pattern to match pixel folders
         px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
 
-        # move pixel folders to backup
+        # move pixel folders to backup (now including their logs)
         for item in os.listdir(self.sim_out_path):
             item_path = os.path.join(self.sim_out_path, item)
+            backup_path = os.path.join(self.backup_path, item)
+            
             # identify folders using regex
             if os.path.isdir(item_path) and px_folder_pattern.match(item):
-                shutil.move(item_path, self.backup_path)
-                self.printlog(f"Moved {item_path} to backup.", level="info")
+                try:
+                    # If destination exists, remove it first
+                    if os.path.exists(backup_path):
+                        self.printlog(f"Removing existing backup folder: {backup_path}", level="info")
+                        shutil.rmtree(backup_path)
+                    
+                    # Move the entire folder to backup
+                    shutil.move(item_path, self.backup_path)
+                    self.printlog(f"Moved pixel folder {item_path} to backup.", level="info")
+                except Exception as e:
+                    self.printlog(f"Error moving {item_path}: {e}", level="error")
+                    raise
 
-        # move the log file to the backup directory
-        log_file_path = os.path.join(self.backup_path, f"overview.log")
-        if os.path.exists(log_file_path):
-            shutil.move(log_file_path, self.backup_path)
-            self.printlog(f"Moved log file to backup directory: {self.backup_path}", level="info")
+        # Move overview.log to backup directory
+        overview_log = os.path.join(self.execution_path, "overview.log")
+        if os.path.exists(overview_log):
+            backup_log = os.path.join(self.backup_path, "overview.log")
+            shutil.move(overview_log, backup_log)
+            self.printlog(f"Moved overview log to backup directory: {backup_log}", level="info")
 
         # call function to write the readme file containing the information
         self.setup_readme()
