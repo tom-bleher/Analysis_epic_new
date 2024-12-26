@@ -6,15 +6,12 @@ Created on Fri Sep  6 15:33:11 2024
 import os
 import shutil
 from datetime import datetime
-import sys
 import re
 import json
 import xml.etree.ElementTree as ET
 import subprocess
-import multiprocessing
 import logging
 from typing import Dict, List, Tuple
-import concurrent
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 class HandleSim(object):
@@ -28,7 +25,10 @@ class HandleSim(object):
         self.sim_dict: Dict[str, Dict[str, str]] = {}
         self.settings_path: str = "simulation_settings.json"
         self.execution_path: str = os.getcwd()
-        self.backup_path: str = os.path.join(self.execution_path, "simEvents", datetime.now().strftime("%Y%m%d_%H%M%S"))
+        
+        # Create backup path early
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.backup_path: str = os.path.join(self.execution_path, "simEvents", timestamp)
         os.makedirs(self.backup_path, exist_ok=True)
         
         # init vars to be populated by the JSON file
@@ -42,9 +42,30 @@ class HandleSim(object):
         self.det_ip6_path: str = ""
         self.reconstruct = False  
         self.console_logging = False 
+        self.sif_path: str = ""  # Initialize sif_path
         
         # Set up logger first without using printlog
         self.logger = None  # Initialize logger as None
+        
+        # Add validation for required paths
+        self.required_paths = [
+            'det_path',
+            'hepmc_path',
+            'sif_path'  # Add explicit check for sif_path
+        ]
+        
+        # Add explicit validation for simulation settings
+        self.required_simulation_settings = [
+            'px_pairs',
+            'num_particles',
+            'det_path',
+            'file_type',
+            'hepmc_path',
+            'sif_path'
+        ]
+        
+        # Move overview.log to backup path after it's created
+        self.overview_log_path: str = None  # Will be set after backup_path is created
         
         # load settings from JSON
         self.load_settings()
@@ -65,9 +86,9 @@ class HandleSim(object):
         # Clear any existing handlers
         self.logger.handlers = []
         
-        # Add file handler
-        log_file = os.path.join(self.execution_path, "overview.log")
-        file_handler = logging.FileHandler(log_file, mode="w")
+        # Add file handler - now using backup_path
+        self.overview_log_path = os.path.join(self.backup_path, "overview.log")
+        file_handler = logging.FileHandler(self.overview_log_path, mode="w")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(file_handler)
@@ -82,24 +103,36 @@ class HandleSim(object):
 
     def load_settings(self) -> None:
         """
-        Load settings from the JSON file to update attributes.
+        Load and validate settings from JSON file with enhanced error checking.
         """
         print("Loading settings from JSON file.")  # Debug print statement
         try:
-            if os.path.exists(self.settings_path):
-                with open(self.settings_path, 'r') as file:
-                    self.settings_dict = json.load(file)
-                print(f"Loaded settings from {self.settings_path}.")  # Debug print statement
-            else:
-                print(f"Settings file not found at {self.settings_path}.")  # Debug print statement
-                raise FileNotFoundError(f"Settings file not found at {self.settings_path}.")
+            if not os.path.exists(self.settings_path):
+                raise FileNotFoundError(f"Settings file not found at {self.settings_path}")
+
+            with open(self.settings_path, 'r') as file:
+                self.settings_dict = json.load(file)
+            print(f"Loaded settings from {self.settings_path}.")  # Debug print statement
+
+            # Validate all required settings are present
+            missing_settings = [
+                setting for setting in self.required_simulation_settings 
+                if setting not in self.settings_dict
+            ]
+            if missing_settings:
+                raise ValueError(f"Missing required settings: {', '.join(missing_settings)}")
+
+            # Validate px_pairs format
+            if not isinstance(self.settings_dict['px_pairs'], list) or \
+               not all(isinstance(pair, list) and len(pair) == 2 for pair in self.settings_dict['px_pairs']):
+                raise ValueError("px_pairs must be a list of [dx, dy] pairs")
 
             # Load initial settings
             self.console_logging = self.settings_dict.get("console_logging", self.console_logging)
             print(f"console_logging set to: {self.console_logging}")  # Debug print statement
 
             # Load required settings
-            required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path", "reconstruct"]
+            required_keys = ["px_pairs", "num_particles", "det_path", "file_type", "hepmc_path", "reconstruct", "sif_path"]
             for key in required_keys:
                 if key not in self.settings_dict or self.settings_dict[key] is None:
                     print(f"Missing or empty key: {key} in settings.")  # Debug print statement
@@ -109,6 +142,16 @@ class HandleSim(object):
             for key, value in self.settings_dict.items():
                 setattr(self, key, value)
                 print(f"Set attribute {key} to {value}.")  # Debug print statement
+
+            # Validate all required paths exist
+            for path_key in self.required_paths:
+                path_value = self.settings_dict.get(path_key)
+                if not path_value or not os.path.exists(path_value):
+                    raise ValueError(f"Required path '{path_key}' is missing or invalid: {path_value}")
+            # Validate sif_path
+            self.sif_path = self.settings_dict.get("sif_path")
+            if not self.sif_path or not os.path.exists(self.sif_path):
+                raise ValueError(f"Singularity image path 'sif_path' is missing or invalid: {self.sif_path}")
 
         except FileNotFoundError:
             print("Failed to load settings, creating default configuration.")  # Debug print statement
@@ -253,31 +296,46 @@ class HandleSim(object):
     def prep_sim(
         self
         ) -> None:
+        """
+        Prepare simulation environment with enhanced error handling.
+        """
         self.printlog("Preparing simulation.", level="info")
+        
+        # Validate px_pairs before starting
+        if not self.px_pairs:
+            raise ValueError("No pixel pairs defined for simulation")
+            
+        # Create simulation root directory if it doesn't exist
+        os.makedirs(self.backup_path, exist_ok=True)
+        
         # loop over all requested detector changes and create specifics
         self.printlog(f"Starting simulation loop for px_pairs for init_specifics: {self.px_pairs}", level="info")
         for curr_px_dx, curr_px_dy in self.px_pairs:
             
             """ soft changes """
-            # create respective px folder to hold simulation output and change-related objects
-            curr_sim_path = os.path.join(self.sim_out_path, f"{curr_px_dx}x{curr_px_dy}px")
-            os.makedirs(curr_sim_path, exist_ok=True)
-            self.printlog(f"Created simulation path: {curr_sim_path}", level="info")
+            # create respective px folder in backup path instead of sim_out_path
+            curr_sim_path = os.path.join(self.backup_path, f"{curr_px_dx}x{curr_px_dy}px")
+            try:
+                os.makedirs(curr_sim_path, exist_ok=True)
+                self.printlog(f"Created simulation path: {curr_sim_path}", level="info")
 
-            # copy epic folder to current pixel path
-            curr_sim_det_path = self.copy_epic(curr_sim_path)
+                # copy epic folder to current pixel path
+                curr_sim_det_path = self.copy_epic(curr_sim_path)
 
-            """ hard changes """
-            # rewrite detector's XMLs to hold current change for detector
-            self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
-            
-            """ gather simulation relavent details """
-            # update the simulation dictionary for current requested change
-            single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
-            self.sim_dict.update(single_sim_dict)
-            self.printlog(f"Updated simulation dictionary with key {curr_px_dx}x{curr_px_dy}.", level="info")
-            self.printlog(f"Current simulation dictionary: {json.dumps(self.sim_dict, indent=2)}", level="debug")
-        
+                """ hard changes """
+                # rewrite detector's XMLs to hold current change for detector
+                self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
+                
+                """ gather simulation relavent details """
+                # update the simulation dictionary for current requested change
+                single_sim_dict = self.create_sim_dict(curr_sim_path, curr_sim_det_path, curr_px_dx, curr_px_dy)
+                self.sim_dict.update(single_sim_dict)
+                self.printlog(f"Updated simulation dictionary with key {curr_px_dx}x{curr_px_dy}.", level="info")
+                self.printlog(f"Current simulation dictionary: {json.dumps(self.sim_dict, indent=2)}", level="debug")
+            except Exception as e:
+                self.printlog(f"Failed to prepare simulation for {curr_px_dx}x{curr_px_dy}: {e}", level="error")
+                raise
+
     def create_sim_dict(
         self, 
         curr_sim_path: str, 
@@ -332,15 +390,27 @@ class HandleSim(object):
         curr_sim_path
         ) -> str:
         """
-        copy epic to to perform simulation changes on it
+        Copy uncompiled detector to simulation directory.
         """
         self.printlog(f"Copying epic detector to {curr_sim_path}.", level="info")
         try:
             det_name = self.det_path.split('/')[-1]
             dest_path = os.path.join(curr_sim_path, det_name)
-            os.system(f'cp -r {self.det_path} {curr_sim_path}')    
-            self.printlog(f"Copied epic detector to {dest_path}.", level="info")
+            
+            # Copy fresh, uncompiled detector
+            if os.path.exists(dest_path):
+                shutil.rmtree(dest_path)
+            shutil.copytree(self.det_path, dest_path, symlinks=True)
+            
+            # Clean any existing build artifacts
+            build_path = os.path.join(dest_path, 'build')
+            if os.path.exists(build_path):
+                shutil.rmtree(build_path)
+            os.makedirs(build_path)
+            
+            self.printlog(f"Copied fresh detector to {dest_path}.", level="info")
             return dest_path
+            
         except Exception as e:
             self.printlog(f"Failed to copy detector: {e}", level="error")
             raise
@@ -423,134 +493,179 @@ class HandleSim(object):
         self.printlog(f"Generated recon command: {cmd}", level="info")
         return cmd
 
-    def exec_simv2(self) -> None:
+    def exec_sim(self) -> None:
         """
         Execute all simulations in parallel using ProcessPoolExecutor.
         """
         self.printlog("Executing simulations in parallel.", level="info")
-        
-        # Calculate optimal number of workers based on CPU cores and memory
-        max_workers = min(os.cpu_count(), 4)  # Limit to prevent memory exhaustion
-        
+        max_workers = os.cpu_count()  
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Prepare the run queue
-            run_queue = [
-                cmd for paths in self.sim_dict.values() 
-                for cmd in self.build_run_queue(paths)
-            ]
+            futures = []
             
-            # Submit all tasks and monitor completion
-            futures = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
+            # Submit jobs for each pixel configuration
+            for px_key, sim_config in self.sim_dict.items():
+                detector_path = sim_config['sim_det_path']
+                shell_path = sim_config['sim_shell_path']
+                
+                # Submit each simulation command as a separate job
+                for sim_cmd in sim_config['ddsim_cmds']:
+                    futures.append(
+                        executor.submit(
+                            self.run_single_sim,
+                            sim_cmd=sim_cmd,
+                            detector_path=detector_path,
+                            shell_path=shell_path,
+                            px_key=px_key
+                        )
+                    )
             
+            # Process results as they complete
             for future in as_completed(futures):
-                cmd = futures[future]
                 try:
-                    future.result()
-                    self.printlog(f"Successfully completed simulation for command: {cmd}", level="info")
+                    result = future.result()
+                    self.printlog(f"Completed simulation: {result}", level="info")
                 except Exception as e:
-                    self.printlog(f"Failed simulation for command {cmd}: {str(e)}", level="error")
+                    self.printlog(f"Simulation failed: {e}", level="error")
+                    raise
 
-    def build_run_queue(self, paths: dict) -> list:
+    def run_single_sim(self, sim_cmd: str, detector_path: str, shell_path: str, px_key: str) -> str:
         """
-        Helper function to build the run queue depending on whether reconstruction is enabled.
+        Enhanced single simulation execution with better error handling and validation.
         """
-        self.printlog("Building run queue.", level="info")
-        if self.reconstruct:
-            return [
-                (ddsin_cmd, recon_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-                for recon_cmd in paths['recon_cmds']
-                for ddsin_cmd in paths['ddsim_cmds']
-            ]
-        else:
-            return [
-                (ddsin_cmd, paths['sim_shell_path'], paths['sim_det_path'])
-                for ddsin_cmd in paths['ddsim_cmds']
-            ]
-
-    def exec_sim(self) -> None:
-        """
-        Execute the simulation for all entries in the simulation dictionary,
-        ensuring recompilation and sourcing of the detector environment in each subprocess.
-        """
-        self.printlog("Preparing simulation commands and environments.", level="info")
-
-        # prepare the run queue
-        run_queue = [
-            cmd for paths in self.sim_dict.values() for cmd in self.build_run_queue(paths)
-        ]
-
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            future_to_cmd = {executor.submit(self.run_cmd, cmd): cmd for cmd in run_queue}
-            for future in concurrent.futures.as_completed(future_to_cmd):
-                cmd = future_to_cmd[future]
-                try:
-                    future.result()  # handle success
-                    self.printlog(f"Simulation completed for command: {cmd[0]}", level="info")
-                except Exception as e:
-                    self.printlog(f"Simulation failed for command {cmd[0]}: {e}", level="error")
-
-    def recompile_det_cmd(self, det_path: str, method: str) -> str:
-        """
-        Generates a recompile command for a given detector path and method.
+        subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd, px_key)
+        script_path = None  # Initialize script_path outside the try block
         
-        :param det_path: Path to the detector source code.
-        :param method: Compilation method, either 'new_build' or 'clean_build'.
-        :return: The full recompile command as a single string.
-        :raises ValueError: If an invalid method is provided.
-        """
-        self.printlog(f"Generating recompile command for {det_path} using method {method}.", level="info")
-
-        if method not in {"new_build", "clean_build"}:
-            self.printlog(f"Invalid method: {method}. Choose 'new_build' or 'clean_build'.", level="error")
-            raise ValueError(f"Invalid method: {method}. Choose 'new_build' or 'clean_build'.")
-
-        # detector's cmake build path
-        build_path = os.path.join(det_path, "build")
-
-        # define recompile commands
-        method_cmd_map = {
-            "new_build": [
-                f"rm -rf {build_path}/*", # here if we have a uncompiled detector we will simply not get it
-                "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
-            ],
-            "clean_build": [
-                f"cd {build_path}",
-                "make clean",
-            ],
-        }
-
-        # assemble recompile commands
-        recompile_cmd = [
-            f"echo 'Starting build process for detector at {det_path}'",
-            f"cd {det_path}",
-            *method_cmd_map[method],
-            "cmake --build build --target install -- -j$(nproc)",
-            f"echo 'Build process completed for {det_path}'",
-        ]
-
-        self.printlog(f"Generated recompile command: {recompile_cmd}", level="debug")
-        return recompile_cmd
-
-    def source_det_cmd(self, shell_file_path) -> str:
-        """
-        Generate the command to source the detector environment.
-        """
-        source_cmd = [
-            f"source '{shell_file_path}'",
-            f"echo 'Sourced shell script: {shell_file_path}'"
-        ]
-        self.printlog(f"Generated source command: {source_cmd}", level="debug")
-        return source_cmd
-
-    def enter_singularity(self, sif_path: str, shell_path: str) -> str:
-        """Execute commands inside Singularity container"""
-        singularity_commands = [
-            f"echo 'Entering Singularity container: {sif_path}'",
-            f"singularity exec {sif_path} {shell_path}",  # Use shell_path directly
-            f"echo 'SINGULARITY_CONTAINER: {os.getenv('SINGULARITY_CONTAINER', 'Not set')}'"
-        ]
-        self.printlog(f"Generated Singularity commands: {singularity_commands}", level="debug")
-        return singularity_commands
+        try:
+            # Validate paths
+            if not os.path.exists(detector_path):
+                raise FileNotFoundError(f"Detector path not found: {detector_path}")
+            if not os.path.exists(self.sif_path):
+                raise FileNotFoundError(f"Singularity image not found: {self.sif_path}")
+            
+            # Get absolute paths
+            abs_detector_path = os.path.abspath(detector_path)
+            abs_detector_parent = os.path.dirname(abs_detector_path)
+            
+            # Create simulation script that builds detector first
+            if self.reconstruct:
+                script_content = [
+                    "#!/bin/bash",
+                    "set -e",  # Exit on any error
+                    "set -o pipefail",  # Pipe failures are treated as errors
+                    
+                    # Mount all necessary directories with their absolute paths
+                    f"singularity exec --containall \\\n"
+                    f"    --bind {abs_detector_parent}:{abs_detector_parent} \\\n"
+                    f"    --bind {self.execution_path}:{self.execution_path} \\\n"
+                    f"    --bind {self.sim_out_path}:{self.sim_out_path} \\\n"
+                    f"    {self.sif_path} /bin/bash << 'EOF'",
+                    
+                    # Use absolute paths inside container
+                    f"cd {abs_detector_path}",
+                    "mkdir -p build",
+                    "mkdir -p install",
+                    "rm -rf build/*",
+                    "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
+                    "cmake --build build --target install -- -j$(nproc)",
+                    
+                    # Verify shell script exists
+                    "if [ ! -f install/bin/thisepic.sh ]; then",
+                    "    echo 'Error: thisepic.sh not found after build'",
+                    "    exit 1",
+                    "fi",
+                    
+                    # Source environment with absolute path
+                    f"source {abs_detector_path}/install/bin/thisepic.sh",
+                    
+                    # Run simulation with actual paths
+                    f"{sim_cmd}",
+                    
+                    # Run reconstruction
+                    f"echo 'Running reconstruction for {px_key}'",
+                    f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={abs_detector_path}/install/share/epic/{px_key}_recon.root {self.sim_out_path}/{px_key}/output_{px_key}.root",
+                    "EOF"  # Exit singularity
+                ]
+            else:
+                script_content = [
+                    "#!/bin/bash",
+                    "set -e",
+                    "set -o pipefail",
+                    
+                    # Mount all necessary directories with their absolute paths
+                    f"singularity exec --containall \\\n"
+                    f"    --bind {abs_detector_parent}:{abs_detector_parent} \\\n"
+                    f"    --bind {self.execution_path}:{self.execution_path} \\\n"
+                    f"    --bind {self.sim_out_path}:{self.sim_out_path} \\\n"
+                    f"    {self.sif_path} /bin/bash << 'EOF'",
+                    
+                    # Use absolute paths inside container
+                    f"cd {abs_detector_path}",
+                    "mkdir -p build",
+                    "mkdir -p install",
+                    "rm -rf build/*",
+                    "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
+                    "cmake --build build --target install -- -j$(nproc)",
+                    
+                    # Verify shell script exists
+                    "if [ ! -f install/bin/thisepic.sh ]; then",
+                    "    echo 'Error: thisepic.sh not found after build'",
+                    "    exit 1",
+                    "fi",
+                    
+                    # Source environment with absolute path
+                    f"source {abs_detector_path}/install/bin/thisepic.sh",
+                    
+                    # Run simulation with actual paths
+                    f"{sim_cmd}",
+                    
+                    "EOF"  # Exit singularity
+                ]
+                
+            # Write script to temporary file using absolute path
+            script_path = os.path.join(abs_detector_path, f"sim_{os.getpid()}.sh")
+            with open(script_path, 'w') as f:
+                f.write('\n'.join(script_content))
+            os.chmod(script_path, 0o755)
+            
+            # Execute the script
+            subprocess_logger.info(f"Starting simulation with command: {sim_cmd}")
+            process = subprocess.Popen(
+                [script_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+            
+            # Monitor output in real-time
+            for line in iter(process.stdout.readline, ''):
+                subprocess_logger.info(line.strip())
+                
+            # Improved stderr handling with proper message categorization
+            for line in iter(process.stderr.readline, ''):
+                line = line.strip()
+                # Check if the line contains any variation of "info" (case insensitive)
+                if any(info_variant in line.lower() for info_variant in ['info', 'Info', 'INFO']):
+                    subprocess_logger.info(line)
+                else:
+                    subprocess_logger.error(line)
+                
+            process.wait()
+            if process.returncode != 0:
+                raise RuntimeError(f"Simulation failed with return code {process.returncode}")
+            
+            return f"Successfully completed simulation for {px_key}"
+            
+        except Exception as e:
+            subprocess_logger.error(f"Error in simulation: {str(e)}")
+            raise
+        finally:
+            # Clean up script file if it was created
+            if script_path and os.path.exists(script_path):
+                try:
+                    os.remove(script_path)
+                except Exception as e:
+                    subprocess_logger.error(f"Failed to remove script file: {e}")
 
     def setup_subprocess_logger(self, sim_cmd: str, px_key: str) -> Tuple[logging.Logger, str]:
         """
@@ -562,15 +677,14 @@ class HandleSim(object):
         if not logger.hasHandlers():
             logger.setLevel(logging.DEBUG)
             
-            # Create log file in the pixel-specific directory
-            px_path = os.path.join(self.sim_out_path, px_key)
+            # Create log file in the pixel-specific directory within backup_path
+            px_path = os.path.join(self.backup_path, f"{px_key}px")
+            os.makedirs(px_path, exist_ok=True)
+            
             log_file = os.path.join(
                 px_path,
-                f"subprocess_{os.getpid()}.log"
+                f"subprocess_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.getpid()}.log"
             )
-            
-            # Ensure log directory exists
-            os.makedirs(os.path.dirname(log_file), exist_ok=True)
             
             file_handler = logging.FileHandler(log_file)
             file_handler.setFormatter(logging.Formatter(
@@ -586,137 +700,6 @@ class HandleSim(object):
                 logger.addHandler(console_handler)
         
         return logger, log_file
-
-    def run_cmd(self, curr_cmd: Tuple[str, str, str]) -> None:
-        """Run the simulation command in a subprocess with proper container management and compilation."""
-        # Unpack the command tuple
-        if self.reconstruct:
-            sim_cmd, recon_cmd, shell_file_path, det_path = curr_cmd
-        else:
-            sim_cmd, shell_file_path, det_path = curr_cmd
-
-        # Extract pixel key from sim_cmd path
-        px_key = sim_cmd.split(self.sim_out_path)[1].split('/')[1]
-
-        # Setup subprocess-specific logger
-        subprocess_logger, log_file = self.setup_subprocess_logger(sim_cmd, px_key)
-        subprocess_logger.info(f"Starting subprocess for command: {sim_cmd}")
-
-        # Create a temporary script for this simulation
-        script_path = os.path.join(self.sim_out_path, px_key, f"run_simulation_{os.getpid()}.sh")
-        
-        try:
-            # Build command sequence
-            command_script = [
-                "#!/bin/bash",
-                "set -e",  # Exit on any error
-                f"echo 'Starting simulation process for {px_key}'",
-                
-                # Enter Singularity container and execute commands
-                f"singularity exec {self.sif_path} /bin/bash << 'EOF'",
-                
-                # Change to detector directory and recompile
-                f"cd {det_path}",
-                "rm -rf build/*",
-                "cmake -B build -S . -DCMAKE_INSTALL_PREFIX=install",
-                "cmake --build build --target install -- -j$(nproc)",
-                
-                # Source environment and run simulation
-                f"source {shell_file_path}",
-                sim_cmd
-            ]
-
-            # Add reconstruction command if enabled
-            if self.reconstruct:
-                command_script.append(recon_cmd)
-
-            # Close heredoc
-            command_script.append("EOF")
-
-            # Write command script
-            with open(script_path, 'w') as f:
-                f.write('\n'.join(command_script))
-            os.chmod(script_path, 0o755)
-
-            # Execute the script and capture output
-            process = subprocess.Popen(
-                [script_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
-            )
-
-            # Stream output in real-time
-            while True:
-                stdout_line = process.stdout.readline()
-                stderr_line = process.stderr.readline()
-                
-                if stdout_line == '' and stderr_line == '' and process.poll() is not None:
-                    break
-                
-                if stdout_line:
-                    subprocess_logger.info(stdout_line.strip())
-                if stderr_line:
-                    subprocess_logger.error(stderr_line.strip())
-
-            # Wait for process to complete and check return code
-            return_code = process.wait()
-            if return_code != 0:
-                raise subprocess.CalledProcessError(return_code, script_path)
-
-            subprocess_logger.info("Simulation completed successfully")
-
-        except Exception as e:
-            subprocess_logger.error(f"Simulation failed: {str(e)}")
-            raise
-        finally:
-            # Clean up temporary script
-            if os.path.exists(script_path):
-                os.remove(script_path)
-
-    def mk_sim_backup(
-        self
-        ) -> None:
-        """
-        Method to make a backup of simulation files.
-        """
-        self.printlog("Creating simulation backup.", level="info")
-        os.makedirs(self.backup_path, exist_ok=True)
-
-        # regex pattern to match pixel folders
-        px_folder_pattern = re.compile('[0-9]*\.[0-9]*x[0-9]*\.[0-9]*px')
-
-        # move pixel folders to backup (now including their logs)
-        for item in os.listdir(self.sim_out_path):
-            item_path = os.path.join(self.sim_out_path, item)
-            backup_path = os.path.join(self.backup_path, item)
-            
-            # identify folders using regex
-            if os.path.isdir(item_path) and px_folder_pattern.match(item):
-                try:
-                    # If destination exists, remove it first
-                    if os.path.exists(backup_path):
-                        self.printlog(f"Removing existing backup folder: {backup_path}", level="info")
-                        shutil.rmtree(backup_path)
-                    
-                    # Move the entire folder to backup
-                    shutil.move(item_path, self.backup_path)
-                    self.printlog(f"Moved pixel folder {item_path} to backup.", level="info")
-                except Exception as e:
-                    self.printlog(f"Error moving {item_path}: {e}", level="error")
-                    raise
-
-        # Move overview.log to backup directory
-        overview_log = os.path.join(self.execution_path, "overview.log")
-        if os.path.exists(overview_log):
-            backup_log = os.path.join(self.backup_path, "overview.log")
-            shutil.move(overview_log, backup_log)
-            self.printlog(f"Moved overview log to backup directory: {backup_log}", level="info")
-
-        # call function to write the readme file containing the information
-        self.setup_readme()
 
     def get_detector_path(self) -> str:
         """
@@ -891,21 +874,20 @@ if __name__ == "__main__":
     os.chmod(os.getcwd(), 0o777)
     eic_simulation.printlog("Settings, variables, and paths initialized.", level="info")
 
-    # prepare the simulation based on settings
+    # prepare the simulation based on settings (now working directly in backup location)
     eic_simulation.printlog("Preparing simulation based on settings.", level="info")
     eic_simulation.prep_sim()
 
     # execute the simulation in parallel
     eic_simulation.printlog("Executing simulation in parallel.", level="info")
-    eic_simulation.exec_simv2()
+    eic_simulation.exec_sim()
 
     """ Reconstruction """
     if eic_simulation.reconstruct:
         eic_simulation.printlog("Reconstruction is enabled. Merging reconstruction outputs.", level="info")
         eic_simulation.merge_recon_out()
 
-    # make backups after simulations have completed
-    eic_simulation.printlog("Making backups after simulations have completed.", level="info")
-    eic_simulation.mk_sim_backup()
+    # Create README directly instead of calling mk_sim_backup
+    eic_simulation.printlog("Creating README file.", level="info")
+    eic_simulation.setup_readme()
     eic_simulation.printlog("Simulation process completed.", level="info")
-
