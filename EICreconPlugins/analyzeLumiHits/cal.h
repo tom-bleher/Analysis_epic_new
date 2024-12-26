@@ -17,7 +17,7 @@
 #include <edm4hep/RawCalorimeterHit.h>
 
 #include <edm4eic/Cluster.h>
-#include <edm4eic/RawCalorimeterHit.h>
+//#include <edm4eic/RawCalorimeterHit.h>
 #include <edm4eic/ProtoCluster.h>
 
 #include <services/geometry/dd4hep/DD4hep_service.h>
