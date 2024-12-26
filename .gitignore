@@ -1,10 +1,15 @@
+# File types to ignore
 *.png
 *.pdf
 *.root
 *.hepmc
+
+# Folders to ignore
 **/CMakeFiles/**
 **/calibrations/**
 **/fieldmaps/**
+
+# Miscellaneous files
 *.cmake
 *.txt
 *.swp
@@ -46,3 +51,6 @@ Farm_Bash_Scripts/*.txt
 *.exe
 *.out
 *.app
+
+# Specific folder
+EICreconPlugins/gdml
