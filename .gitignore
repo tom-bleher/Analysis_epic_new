@@ -53,4 +53,6 @@ Farm_Bash_Scripts/*.txt
 *.app
 
 # Specific folder
-EICreconPlugins/gdml
+EICreconPlugins/gdml/*
+eventAnalysis/gdml/*
+EICreconPlugins/analyzeLumiHits/build/Makefile
