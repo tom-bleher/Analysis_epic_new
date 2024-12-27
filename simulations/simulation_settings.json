@@ -1,14 +1,15 @@
 {
-  "px_pairs": [[2.0, 0.1], [0.1, 2.0]],
+  "px_pairs": [[2.0,0.1],[1.5,0.1],[1.0,0.1],[0.5,0.1],[0.1,0.1]],
   "num_particles": 1000,
   "eic_shell_path": "/data/tomble/eic",
-  "det_path": "/data/tomble/eic/epic4",
+  "det_path": "/data/tomble/eic/fresh_epic",
   "file_type": "beamEffectsElectrons",
   "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
   "sif_path": "/data/tomble/eic/local/lib/eic_xl-nightly.sif",
-  "reconstruct": false,
+  "plugin_path": "/data/tomble/Analysis_epic_new/EICreconPlugins",
+  "reconstruct": true,
+  "console_logging": true,
   "sim_out_path": "",
   "det_ip6_path": "",
-  "sim_description": "",
-  "console_logging": true
+  "sim_description": "Now running gradual change in dx with automatic reconstruction."
 }
