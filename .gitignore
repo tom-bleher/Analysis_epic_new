@@ -56,3 +56,5 @@ Farm_Bash_Scripts/*.txt
 EICreconPlugins/gdml/*
 eventAnalysis/gdml/*
 EICreconPlugins/analyzeLumiHits/build/*
+simulations/gdml/*
+
