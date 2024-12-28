@@ -1,1 +1,1 @@
-# Analysis software from the UH ePIC group
+# Analysis software from TAU ePIC group
