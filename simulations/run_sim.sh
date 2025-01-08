@@ -75,16 +75,59 @@ set -x
 cd ${DETECTOR_PATH}
 echo "Current working directory: \$(pwd)"
 
-# Source the environment
-source install/bin/thisepic.sh || { echo "Failed to source local environment"; exit 1; }
+# Source the environment with error checking
+if [ ! -f "install/bin/thisepic.sh" ]; then
+    echo "Error: thisepic.sh not found in install/bin/"
+    exit 1
+fi
+
+source install/bin/thisepic.sh || {
+    echo "Failed to source environment"
+    exit 1
+}
+
+# Verify ddsim is available
+if ! command -v ddsim &> /dev/null; then
+    echo "Error: ddsim command not found"
+    echo "PATH=\$PATH"
+    exit 1
+fi
 
 # Show environment for debugging
 echo "PATH=\$PATH"
 echo "LD_LIBRARY_PATH=\$LD_LIBRARY_PATH"
+echo "Which ddsim: \$(which ddsim)"
 
-# Run simulation
-echo "Running simulation command: ${SIM_CMD}"
-${SIM_CMD}
+# Extract simulation output file path and create directory
+SIM_OUTPUT=$(echo "$SIM_CMD" | grep -o '\-\-outputFile [^ ]*' | cut -d' ' -f2)
+mkdir -p "$(dirname "${SIM_OUTPUT}")"
+
+# Run simulation with progress monitoring
+echo "Starting simulation command: ${SIM_CMD}"
+echo "Output will be written to: ${SIM_OUTPUT}"
+cd "$(dirname "${SIM_OUTPUT}")"
+${SIM_CMD} || {
+    echo "Error: Simulation command failed"
+    exit 1
+}
+
+# Verify simulation output
+if [ ! -f "${SIM_OUTPUT}" ]; then
+    echo "Error: Simulation output file not created: ${SIM_OUTPUT}"
+    # Show directory contents for debugging
+    echo "Directory contents:"
+    ls -l "$(dirname "${SIM_OUTPUT}")"
+    exit 1
+fi
+
+# Check file size
+SIM_SIZE=$(stat -f%z "${SIM_OUTPUT}" 2>/dev/null || stat -c%s "${SIM_OUTPUT}")
+if [ "$SIM_SIZE" -lt 1000 ]; then
+    echo "Error: Simulation output file too small: ${SIM_OUTPUT} (${SIM_SIZE} bytes)"
+    exit 1
+fi
+
+echo "Simulation output file created successfully: ${SIM_OUTPUT} (${SIM_SIZE} bytes)"
 
 # Run reconstruction if requested
 if [ "$DO_RECON" == "true" ]; then
@@ -115,8 +158,7 @@ if [ "$DO_RECON" == "true" ]; then
     ls -l "${SIM_OUTPUT}" || echo "Warning: Cannot access simulation output"
     echo "DETECTOR_PATH=${DETECTOR_PATH}"
     
-    # Run reconstruction
-    cd $(dirname "${SIM_OUTPUT}")  # Change to directory containing input file
+    # Run reconstruction and check output
     eicrecon -Pplugins=analyzeLumiHits \
         -Phistsfile="${RECON_OUTPUT}" \
         "${SIM_OUTPUT}" || { 
@@ -126,9 +168,16 @@ if [ "$DO_RECON" == "true" ]; then
             exit 1; 
         }
     
-    # Verify reconstruction output was created
+    # Verify reconstruction output
     if [ ! -f "${RECON_OUTPUT}" ]; then
-        echo "Error: Reconstruction output file was not created"
+        echo "Error: Reconstruction output file not created: ${RECON_OUTPUT}"
+        exit 1
+    fi
+    
+    # Check reconstruction output file size
+    RECON_SIZE=$(stat -f%z "${RECON_OUTPUT}" 2>/dev/null || stat -c%s "${RECON_OUTPUT}")
+    if [ "$RECON_SIZE" -lt 1000 ]; then
+        echo "Error: Reconstruction output file too small: ${RECON_OUTPUT} (${RECON_SIZE} bytes)"
         exit 1
     fi
     
