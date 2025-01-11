@@ -5,7 +5,10 @@ Forked from Dhevan, Aranya and Stephen's [repository](https://github.com/dhevang
 ## Prerequisites
 - Have `eic-shell` singularity container installed and configured
 - Have [`ePIC`](https://github.com/eic/epic) detector installed and configured
-- If using `analyzeSimFiles` `eicrecon` plugin, compile from `EICreconPlugins/analyzeLumiHits`
+- If using `analyzeSimFiles` `eicrecon` plugin, compile from `EICreconPlugins/analyzeLumiHits`. You can manually check correct installation by exporting plugin folder (`export EICrecon_MY=${PWD}/EICrecon_MY` after having the the `analyzeSimFiles.sh` output in `EICrecon_MY` directory) and running `eicrecon -Pplugins=analyzeSimFiles,JTest -Pjana:nevents=10` command as seen in the [tutorial](https://eic.github.io/tutorial-jana2/).
+
+## Running the program
+- While calling the `epic_sim2.py` be **outside** the singularity container.
 
 ## Inputs 
 - JSON configuration file (`simulation_settings.json`) containing simulation parameters
