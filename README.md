@@ -16,7 +16,7 @@ Forked from Dhevan, Aranya and Stephen's [repository](https://github.com/dhevang
     - Enter `eic-shell` singularity container in subprocess
     - Source the according detector configuration file
     - Run ddsim command
-    - Export EICrecon_MY plugin directory 
+    - Export `EICrecon_MY` plugin directory 
     - Run `eicrecon` command [Optional]
 - Optionally runs reconstruction tasks and merges outputs
 
@@ -29,30 +29,30 @@ Forked from Dhevan, Aranya and Stephen's [repository](https://github.com/dhevang
 Output structure:
 ```
 ├── beamEffectsElectrons
-│   ├── 0.1x0.1px
-│   │   ├── epic
-│   │   ├── output_beamEffectsElectrons_20edm4hep.root
+│   ├── 2.0x0.1px
+│   │   ├── epic # modified detector configuration
+│   │   ├── output_beamEffectsElectrons_20edm4hep.root # ddsim output
 │   │   ├── output_beamEffectsElectrons_25edm4hep.root
 │   │   ├── output_beamEffectsElectrons_30edm4hep.root
-│   │   ├── podio_output.root
-│   │   ├── recon
+│   │   ├── podio_output.root # podio output
+│   │   ├── recon # reconstruction output
 │   │   │   ├── recon_output_beamEffectsElectrons_20edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_25edm4hep.root
 │   │   │   └── recon_output_beamEffectsElectrons_30edm4hep.root
-│   │   └── subprocess.log
+│   │   └── subprocess.log # log file for subprocess
 │   ├── 1.0x0.1px
 │   │   ├── epic
 │   │   ├── output_beamEffectsElectrons_20edm4hep.root
 │   │   ├── output_beamEffectsElectrons_25edm4hep.root
 │   │   ├── output_beamEffectsElectrons_30edm4hep.root
 │   │   ├── podio_output.root
-│   │   ├── recon
+│   │   ├── recon # reconstruction output
 │   │   │   ├── recon_output_beamEffectsElectrons_20edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_25edm4hep.root
 │   │   │   └── recon_output_beamEffectsElectrons_30edm4hep.root
 │   │   └── subprocess.log
-│   ├── overview.log
-│   └── README.txt
+│   ├── overview.log # log file for main program
+│   └── README.txt # README file with simulation parameters and settings
 ```
 
 ## Resources
