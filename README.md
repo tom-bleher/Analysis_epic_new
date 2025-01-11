@@ -54,3 +54,7 @@ Output structure:
 │   ├── overview.log
 │   └── README.txt
 ```
+
+## Resources
+- [ePIC Tutorials](https://eic.github.io/documentation/tutorials.html)
+- [EIC Software Tutorial (unofficial)](https://github.com/JeffersonLab/eic-sftware-tutorial)
