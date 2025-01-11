@@ -31,30 +31,22 @@ Output structure:
 ├── beamEffectsElectrons
 │   ├── 0.1x0.1px
 │   │   ├── epic
-│   │   ├── output_beamEffectsElectrons_10edm4hep.root
-│   │   ├── output_beamEffectsElectrons_15edm4hep.root
 │   │   ├── output_beamEffectsElectrons_20edm4hep.root
 │   │   ├── output_beamEffectsElectrons_25edm4hep.root
 │   │   ├── output_beamEffectsElectrons_30edm4hep.root
 │   │   ├── podio_output.root
 │   │   ├── recon
-│   │   │   ├── recon_output_beamEffectsElectrons_10edm4hep.root
-│   │   │   ├── recon_output_beamEffectsElectrons_15edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_20edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_25edm4hep.root
 │   │   │   └── recon_output_beamEffectsElectrons_30edm4hep.root
 │   │   └── subprocess.log
 │   ├── 1.0x0.1px
 │   │   ├── epic
-│   │   ├── output_beamEffectsElectrons_10edm4hep.root
-│   │   ├── output_beamEffectsElectrons_15edm4hep.root
 │   │   ├── output_beamEffectsElectrons_20edm4hep.root
 │   │   ├── output_beamEffectsElectrons_25edm4hep.root
 │   │   ├── output_beamEffectsElectrons_30edm4hep.root
 │   │   ├── podio_output.root
 │   │   ├── recon
-│   │   │   ├── recon_output_beamEffectsElectrons_10edm4hep.root
-│   │   │   ├── recon_output_beamEffectsElectrons_15edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_20edm4hep.root
 │   │   │   ├── recon_output_beamEffectsElectrons_25edm4hep.root
 │   │   │   └── recon_output_beamEffectsElectrons_30edm4hep.root
