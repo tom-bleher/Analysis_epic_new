@@ -68,4 +68,3 @@ Output example (with reconstruction enabled):
 ## More Resources
 - [ePIC Tutorials](https://eic.github.io/documentation/tutorials.html)
 - [EIC Software Tutorial (unofficial)](https://github.com/JeffersonLab/eic-sftware-tutorial)
-- [JANA2 Tutorial](https://eic.github.io/tutorial-jana2/)
