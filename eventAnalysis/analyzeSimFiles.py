@@ -5,8 +5,8 @@ import math
 from pathlib import Path
 import multiprocessing
 
-inDir = "/extra/tomble/Analysis_epic_new/simulations/simEvents"
-outDir = os.path.join(os.getcwd(), os.path.join(*inDir.split('/')[-2:]).replace("/", "_"))
+inDir = "/data/tomble/Analysis_epic_new/simulations/simEvents2/"
+outDir = inDir + "/recon/" #os.path.join(os.getcwd(), os.path.join(*inDir.split('/')[-2:]).replace("/", "_"))
 if len(sys.argv) > 1: 
   inDir = sys.argv[1]   
 if len(sys.argv) > 2: 
