@@ -2,6 +2,11 @@
 ## Program Overview
 Forked from Dhevan, Aranya and Stephen's [repository](https://github.com/dhevang/Analysis_epic), it extends the functionality of the original program to parallelize the ddsim and reconstruction processes for testing different ePIC configurations. The main program is `epic_sim2.py`, which is a modified version of the original `createSimFiles.py`. Before running the program, you need to generate the hepmc files using `createGenFiles.py`.
 
+## Prerequisites
+- Have `eic-shell` singularity container installed and configured
+- Have [`ePIC`](https://github.com/eic/epic) detector installed and configured
+- If using `analyzeSimFiles` `eicrecon` plugin, compile from `EICreconPlugins/analyzeLumiHits`
+
 ## Inputs 
 - JSON configuration file (`simulation_settings.json`) containing simulation parameters
 - ePIC detector configuration files (XML)
@@ -26,7 +31,7 @@ Forked from Dhevan, Aranya and Stephen's [repository](https://github.com/dhevang
 - Log files for each process
 - README file with simulation parameters and settings
 
-Output structure:
+Output example (with reconstruction enabled):
 ```
 ├── beamEffectsElectrons
 │   ├── 2.0x0.1px
