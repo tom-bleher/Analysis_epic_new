@@ -13,6 +13,7 @@ import subprocess
 import logging
 from typing import Dict, List, Tuple
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import time 
 
 class HandleSim(object):
     """
@@ -374,22 +375,19 @@ class HandleSim(object):
                 self.printlog(f"Failed to prepare simulation for {curr_px_dx}x{curr_px_dy}: {e}", level="error")
                 raise
 
-    def create_sim_dict(
-        self, 
-        curr_sim_path: str, 
-        curr_sim_det_path: str, 
-        curr_px_dx: float, 
-        curr_px_dy: float
-        ) -> Dict[str, dict[str, str]]:
+    def create_sim_dict(self, curr_sim_path: str, curr_sim_det_path: str, curr_px_dx: float, curr_px_dy: float) -> Dict[str, dict[str, str]]:
         """
-        Create simulation dictionary holding relavent parameters
+        Create simulation dictionary holding relevant parameters
         """
         self.printlog(f"Creating simulation dictionary for {curr_px_dx}x{curr_px_dy}.", level="info")
-        # initilize dict to hold parameters for one simulation
+        # initialize dict to hold parameters for one simulation
         single_sim_dict = {}
         px_key = f"{curr_px_dx}x{curr_px_dy}"
 
-        # populate dict entry with all simulation-relavent information
+        # Log all energies being processed
+        self.printlog(f"Processing energies: {self.energies}", level="info")
+
+        # populate dict entry with all simulation-relevant information
         single_sim_dict[px_key] = {
             "sim_det_path": curr_sim_det_path,
             "sim_compact_path": curr_sim_det_path + "/install/share/epic/compact",
@@ -403,6 +401,7 @@ class HandleSim(object):
         self.recon_out_paths = [] if self.reconstruct else None
 
         for energy in self.energies:
+            self.printlog(f"Generating command for energy file: {energy}", level="debug")
             ddsim_cmd, output_file = self.get_ddsim_cmd(
                 curr_sim_path, single_sim_dict[px_key]["sim_ip6_path"], energy
             )
@@ -411,16 +410,20 @@ class HandleSim(object):
 
             if self.reconstruct:
                 self.recon_out_paths.append(output_file)
-                recon_cmds.append(self.get_recon_cmd(curr_sim_path, output_file))
+                recon_cmd = self.get_recon_cmd(curr_sim_path, output_file, curr_sim_det_path)
+                recon_cmds.append(recon_cmd)
                 self.printlog(f"Generated recon command for {energy}: {recon_cmds[-1]}", level="debug")
+
+        # Log final command counts
+        self.printlog(f"Generated {len(ddsim_cmds)} ddsim commands", level="info")
+        if self.reconstruct:
+            self.printlog(f"Generated {len(recon_cmds)} reconstruction commands", level="info")
 
         # assign to dictionary
         single_sim_dict[px_key]["ddsim_cmds"] = ddsim_cmds
         if self.reconstruct:
             single_sim_dict[px_key]["recon_cmds"] = recon_cmds
 
-        # return the dict for the sim
-        self.printlog(f"Created simulation dictionary: {json.dumps(single_sim_dict, indent=2)}", level="info")
         return single_sim_dict
 
     def compile_epic(self, detector_path: str) -> None:
@@ -546,25 +549,26 @@ class HandleSim(object):
         self.printlog(f"Generated ddsim command: {cmd}", level="info")
         return cmd, output_file
 
-    def get_recon_cmd(self, curr_sim_path, sim_file) -> str:
+    def get_recon_cmd(self, curr_sim_path: str, sim_file: str, detector_path: str) -> dict:
         """
-        Generate reconstruction command with standardized output naming
+        Generate reconstruction command parameters
         """
-        self.printlog(f"Generating recon command for file {sim_file}.", level="info")
+        self.printlog(f"Generating recon parameters for file {sim_file}.", level="info")
         
         # Get base name of input file
         base_name = os.path.basename(sim_file)
         # Create standardized output name
         output_name = f"recon_{base_name}"
         
-        # Create standardized output path
-        recon_dir = os.path.join(os.path.dirname(sim_file), "recon")
-        os.makedirs(recon_dir, exist_ok=True)
-        output_file = os.path.join(recon_dir, output_name)
+        # Create standardized output path - remove extra recon folder
+        output_file = os.path.join(curr_sim_path, "recon", output_name)
         
-        cmd = f"eicrecon -Pplugins=analyzeLumiHits -Phistsfile={output_file} {sim_file}"
-        self.printlog(f"Generated recon command: {cmd}", level="info")
-        return cmd
+        # Return dictionary with all needed paths
+        return {
+            'input_file': sim_file,
+            'output_file': output_file,
+            'detector_path': detector_path
+        }
 
     def exec_sim(self) -> None:
         """
@@ -621,88 +625,180 @@ class HandleSim(object):
             """
     def exec_simv2(self) -> None:
         """
-        Alternative execution function that uses all available CPU cores.
+        Enhanced parallel execution with better tracking of energy levels.
         """
-        self.printlog("Executing simulations in parallel (all CPUs).", level="info")
-        max_workers = os.cpu_count()  # Use all available cores
-        simulation_tasks = []
-        reconstruction_tasks = []
-
+        self.printlog("Starting enhanced parallel execution.", level="info")
+        max_workers = min(os.cpu_count(), 64)  # limit max workers to prevent overload
+        
+        # Create dictionaries to track task status and results
+        task_status = {}
+        failed_tasks = []
+        completed_sims = set()
+        pending_recon = []
+        
+        # Log all detected energy files at the start
+        self.printlog(f"Found energy files: {self.energies}", level="info")
+        
         try:
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                # Gather all simulation tasks first
+                # First submit and complete all simulation tasks
+                sim_futures = []
+                
+                # Submit all simulation tasks with better tracking
                 for px_key, sim_config in self.sim_dict.items():
                     detector_path = sim_config['sim_det_path']
                     shell_path = sim_config['sim_shell_path']
                     
-                    # Create a task for each ddsim command
+                    self.printlog(f"Processing pixel pair {px_key}", level="info")
+                    self.printlog(f"Number of ddsim commands: {len(sim_config['ddsim_cmds'])}", level="info")
+                    
+                    # Log each command being submitted
                     for sim_cmd in sim_config['ddsim_cmds']:
-                        simulation_tasks.append(
-                            executor.submit(
-                                self.run_single_sim,
-                                sim_cmd=sim_cmd,
-                                detector_path=detector_path,
-                                shell_path=shell_path,
-                                px_key=px_key
-                            )
+                        energy_match = re.search(rf'{self.file_type}_(\d+)', sim_cmd)
+                        if not energy_match:
+                            self.printlog(f"Could not extract energy from command: {sim_cmd}", level="warning")
+                            continue
+                            
+                        energy = energy_match.group(1)
+                        task_id = f"{px_key}_{energy}"
+                        
+                        self.printlog(f"Submitting simulation task for energy {energy}", level="info")
+                        
+                        future = executor.submit(
+                            self.run_single_sim,
+                            sim_cmd=sim_cmd,
+                            detector_path=detector_path,
+                            shell_path=shell_path,
+                            px_key=px_key
                         )
+                        sim_futures.append((future, task_id, px_key, energy))
                 
-                # Wait for all simulations to complete
-                failed_sims = []
-                for future in as_completed(simulation_tasks):
+                # Wait for all simulations to complete before starting reconstructions
+                for future, task_id, px_key, energy in sim_futures:
                     try:
                         result = future.result()
-                        self.printlog(f"Completed simulation: {result}", level="info")
+                        self.printlog(f"Simulation completed: {task_id} - {result}", level="info")
+                        completed_sims.add((px_key, energy))
+                        task_status[task_id] = {'status': 'completed', 'result': result}
+                        
+                        # Add to pending reconstruction queue
+                        if self.reconstruct:
+                            pending_recon.append((px_key, energy))
+                            
                     except Exception as e:
-                        self.printlog(f"Simulation failed: {e}", level="error")
-                        failed_sims.append(str(e))
-
-                if failed_sims:
-                    raise RuntimeError(f"Some simulations failed: {'; '.join(failed_sims)}")
-
-                # If simulations succeeded and reconstruction is enabled, start reconstructions
-                if self.reconstruct:
-                    self.printlog("Starting reconstructions after successful simulations.", level="info")
+                        self.printlog(f"Simulation failed for {task_id}: {str(e)}", level="error")
+                        failed_tasks.append((task_id, str(e)))
+                        task_status[task_id] = {'status': 'failed', 'error': str(e)}
+                
+                # Now process all reconstructions after simulations are complete
+                if self.reconstruct and pending_recon:
+                    recon_futures = []
                     
-                    for px_key, sim_config in self.sim_dict.items():
-                        if 'recon_cmds' in sim_config:
-                            for recon_cmd in sim_config['recon_cmds']:
-                                reconstruction_tasks.append(
-                                    executor.submit(
-                                        self.run_reconstruction,
-                                        recon_cmd=recon_cmd,
-                                        px_key=px_key
-                                    )
-                                )
+                    for px_key, energy in pending_recon:
+                        recon_cmd = self.get_recon_cmd_for_energy(px_key, energy)
+                        if recon_cmd:
+                            self.printlog(f"Starting reconstruction for {px_key} energy {energy}", level="info")
+                            future = executor.submit(
+                                self.run_reconstruction,
+                                recon_cmd=recon_cmd,
+                                px_key=px_key
+                            )
+                            recon_futures.append((future, f"{px_key}_{energy}_recon", px_key, energy))
                     
                     # Wait for all reconstructions to complete
-                    failed_recons = []
-                    for future in as_completed(reconstruction_tasks):
+                    for future, task_id, px_key, energy in recon_futures:
                         try:
                             result = future.result()
-                            self.printlog(f"Completed reconstruction: {result}", level="info")
+                            # Verify the reconstruction output file exists and has content
+                            recon_file = os.path.join(self.backup_path, f"{px_key}px", "recon", 
+                                                    f"recon_output_beamEffectsElectrons_{energy}edm4hep.root")
+                            if not os.path.exists(recon_file) or os.path.getsize(recon_file) < 1000:
+                                raise Exception(f"Reconstruction failed - Invalid or missing output file: {recon_file}")
+                                
+                            self.printlog(f"Reconstruction completed for {task_id}: {result}", level="info")
+                            task_status[task_id] = {'status': 'completed', 'result': result}
                         except Exception as e:
-                            self.printlog(f"Reconstruction failed: {e}", level="error")
-                            failed_recons.append(str(e))
-
-                    if failed_recons:
-                        self.printlog(f"Some reconstructions failed: {'; '.join(failed_recons)}", level="warning")
-
+                            self.printlog(f"Reconstruction failed for {task_id}: {str(e)}", level="error")
+                            failed_tasks.append((task_id, str(e)))
+                            task_status[task_id] = {'status': 'failed', 'error': str(e)}
+        
+        except Exception as e:
+            self.printlog(f"Execution failed with error: {str(e)}", level="error")
+            failed_tasks.append(("global", str(e)))
+            raise
+            
         finally:
-            # Always create README
-            try:
-                self.setup_readme()
-                self.printlog("README file created successfully.", level="info")
-            except Exception as e:
-                self.printlog(f"Failed to create README: {e}", level="error")
+            # Log execution summary
+            self.log_execution_summary(task_status, failed_tasks)
+            self.create_execution_report(task_status)
+            self.printlog("Execution completed.", level="info")
 
-            # Only merge reconstruction outputs if reconstruction was enabled and tasks were created
-            if self.reconstruct and reconstruction_tasks:
-                try:
-                    self.merge_recon_out()
-                    self.printlog("Reconstruction outputs merged successfully.", level="info")
-                except Exception as e:
-                    self.printlog(f"Failed to merge reconstruction outputs: {e}", level="error")
+    def get_recon_cmd_for_energy(self, px_key: str, energy: str) -> dict:
+        """
+        Generate reconstruction command for specific pixel key and energy level.
+        """
+        sim_file = os.path.join(
+            self.backup_path,
+            f"{px_key}px",
+            f"output_{self.file_type}_{energy}edm4hep.root"
+        )
+        
+        # Get the detector path from sim_dict
+        detector_path = self.sim_dict[px_key]['sim_det_path']
+        
+        if os.path.exists(sim_file):
+            return self.get_recon_cmd(
+                curr_sim_path=os.path.dirname(sim_file),
+                sim_file=sim_file,
+                detector_path=detector_path
+            )
+        return None
+
+    def create_execution_report(self, task_status: dict) -> None:
+        """
+        Create a detailed execution report.
+        """
+        report_path = os.path.join(self.backup_path, "execution_report.txt")
+        with open(report_path, 'w') as f:
+            f.write("Execution Report\n")
+            f.write("================\n\n")
+            
+            # Group tasks by pixel pair
+            tasks_by_pixel = {}
+            for task_id, status in task_status.items():
+                px_key = task_id.split('_')[0]
+                if px_key not in tasks_by_pixel:
+                    tasks_by_pixel[px_key] = []
+                tasks_by_pixel[px_key].append((task_id, status))
+            
+            # Write detailed status for each pixel pair
+            for px_key, tasks in tasks_by_pixel.items():
+                f.write(f"\nPixel Pair: {px_key}\n")
+                f.write("-" * (len(px_key) + 12) + "\n")
+                
+                for task_id, status in tasks:
+                    f.write(f"Task: {task_id}\n")
+                    f.write(f"Status: {status['status']}\n")
+                    if 'error' in status:
+                        f.write(f"Error: {status['error']}\n")
+                    f.write("\n")
+
+    def log_execution_summary(self, task_status: dict, failed_tasks: list) -> None:
+        """
+        Log summary of execution results.
+        """
+        total = len(task_status)
+        completed = sum(1 for status in task_status.values() if status['status'] == 'completed')
+        failed = len(failed_tasks)
+        
+        self.printlog(f"""
+        Execution Summary:
+        -----------------
+        Total Tasks: {total}
+        Completed: {completed}
+        Failed: {failed}
+        Success Rate: {(completed/total)*100:.2f}%
+        """, level="info")
 
     def run_single_sim(self, sim_cmd: str, detector_path: str, shell_path: str, px_key: str) -> str:
         """
@@ -810,39 +906,107 @@ class HandleSim(object):
         
         return logger, log_file
 
-    def run_reconstruction(self, recon_cmd: str, px_key: str) -> str:
+    def run_reconstruction(self, recon_cmd: dict, px_key: str) -> str:
         """
-        Execute a single reconstruction command.
+        Execute reconstruction using run_sim.sh script within Singularity container.
         """
-        subprocess_logger, log_file = self.setup_subprocess_logger(recon_cmd, px_key)
+        max_retries = 3
+        retry_count = 0
+        subprocess_logger = logging.getLogger('subprocess')
         
-        try:
-            subprocess_logger.info(f"Starting reconstruction: {recon_cmd}")
-            
-            process = subprocess.Popen(
-                recon_cmd,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
-            )
-            
-            # Monitor output
-            for line in iter(process.stdout.readline, ''):
-                subprocess_logger.info(line.strip())
-            for line in iter(process.stderr.readline, ''):
-                subprocess_logger.error(line.strip())
+        while retry_count < max_retries:
+            try:
+                # Create reconstruction directory if it doesn't exist
+                recon_dir = os.path.dirname(recon_cmd['output_file'])
+                os.makedirs(recon_dir, exist_ok=True)
                 
-            process.wait()
-            if process.returncode != 0:
-                raise RuntimeError(f"Reconstruction failed with return code {process.returncode}")
+                # Get paths
+                detector_path = recon_cmd['detector_path']
+                detector_parent = os.path.dirname(detector_path)
+                
+                # Prepare reconstruction command for run_sim.sh
+                script_path = os.path.join(os.path.dirname(__file__), "run_sim.sh")
+                
+                # Build the eicrecon command that will run inside Singularity
+                eicrecon_cmd = (
+                    f"eicrecon "
+                    f"-Pplugins={self.plugin_path} "
+                    f"-Pdd4hep_dir={detector_path} "
+                    f"{recon_cmd['input_file']} "
+                    f"-o {recon_cmd['output_file']}"
+                )
+                
+                # Full command to run reconstruction in Singularity
+                cmd = [
+                    script_path,
+                    detector_path,
+                    detector_parent,
+                    self.execution_path,
+                    self.sim_out_path,
+                    self.sif_path,
+                    eicrecon_cmd,
+                    "true",  # reconstruction flag
+                    self.plugin_path
+                ]
+                
+                subprocess_logger.info(f"Running reconstruction command: {' '.join(cmd)}")
+                
+                # Execute reconstruction
+                result = subprocess.run(
+                    cmd,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    env=os.environ.copy()
+                )
+                
+                # Log output
+                if result.stdout:
+                    subprocess_logger.info(result.stdout)
+                if result.stderr:
+                    subprocess_logger.error(result.stderr)
+                
+                # Add a delay before checking file
+                time.sleep(2)
+                
+                # Verify output file exists and has content with more detailed logging
+                if not os.path.exists(recon_cmd['output_file']):
+                    raise Exception(f"Output file not created: {recon_cmd['output_file']}")
+                    
+                file_size = os.path.getsize(recon_cmd['output_file'])
+                if file_size < 1000:  # Minimum expected file size in bytes
+                    raise Exception(f"Output file too small ({file_size} bytes): {recon_cmd['output_file']}")
+                    
+                subprocess_logger.info(f"Reconstruction successful - Output file size: {file_size} bytes")
+                subprocess_logger.info(f"Output file details:")
+                subprocess_logger.info(subprocess.check_output(['ls', '-l', recon_cmd['output_file']]).decode())
+                return "Reconstruction completed successfully"
+                
+            except Exception as e:
+                retry_count += 1
+                subprocess_logger.error(f"Error in reconstruction (attempt {retry_count}/{max_retries}): {str(e)}")
+                if retry_count < max_retries:
+                    subprocess_logger.info("Retrying in 5 seconds...")
+                    time.sleep(5)
+                else:
+                    subprocess_logger.error("Maximum retries reached, failing")
+                    raise
+
+    def verify_reconstruction_output(self, output_file: str) -> bool:
+        """
+        Verify that reconstruction output exists and is valid
+        """
+        if not os.path.exists(output_file):
+            self.printlog(f"Reconstruction output file not found: {output_file}", level="error")
+            return False
             
-            return f"Successfully completed reconstruction for {px_key}"
-            
-        except Exception as e:
-            subprocess_logger.error(f"Error in reconstruction: {str(e)}")
-            raise
+        # Check file size
+        file_size = os.path.getsize(output_file)
+        if file_size < 1000:
+            self.printlog(f"Reconstruction output file too small: {output_file} ({file_size} bytes)", level="error")
+            return False
+        
+        return True
 
     def get_detector_path(self) -> str:
         """
@@ -879,11 +1043,11 @@ class HandleSim(object):
             self.printlog(f"Retrieved BH value: {self.BH_val}", level="info")
         
             # get energy levels from file names of genEvents
-            self.photon_energy_vals = [
+            self.energy_vals = [
                 '.'.join(file.split('_')[1].split('.', 2)[:2]) 
                 for file in self.energies 
             ]
-            self.printlog(f"Extracted photon energy levels: {self.photon_energy_vals}", level="info")
+            self.printlog(f"Extracted energy levels: {self.energy_vals}", level="info")
         
             # get DETECTOR_PATH value
             detector_path = self.get_detector_path()
@@ -916,8 +1080,8 @@ class HandleSim(object):
                 file.write(f"BH: {self.BH_val}\n")
                 self.printlog(f"Added BH: {self.BH_val}", level="info")
                 
-                file.write(f"Energy Levels: {self.photon_energy_vals}\n")
-                self.printlog(f"Added photon energy levels: {self.photon_energy_vals}", level="info")
+                file.write(f"Energy Levels: {self.energy_vals}\n")
+                self.printlog(f"Added energy levels: {self.energy_vals}", level="info")
 
                 file.write(f"DETECTOR_PATH: {detector_path}\n")
                 self.printlog(f"Added DETECTOR_PATH: {detector_path}", level="info")
@@ -1067,8 +1231,7 @@ if __name__ == "__main__":
     eic_simulation.printlog("Preparing simulation based on settings.", level="info")
     eic_simulation.prep_sim()
 
-    # execute the simulation and reconstruction in parallel
-    eic_simulation.printlog("Executing simulation and reconstruction in parallel.", level="info")
+    # execute the simulation and reconstruction in parallel    eic_simulation.printlog("Executing simulation and reconstruction in parallel.", level="info")
     eic_simulation.exec_simv2()  # Use the new execution function
 
     # Only merge if reconstruction was successful
