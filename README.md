@@ -1,5 +1,5 @@
 ## Program Overview
-This project is forked from Dhevan, Aranya, and Stephen's [repository](https://github.com/dhevang/Analysis_epic), and extends the original program's functionality by parallelizing the `ddsim` and reconstruction processes to test different ePIC configurations. The main program is `epic_sim2.py`, which is a modified version of the original `createSimFiles.py`. Before running the program, ensure you generate the `.hepmc` files using `createGenFiles.py`.
+This project is forked from Dhevan, Aranya, and Stephen's [repository](https://github.com/dhevang/Analysis_epic), and extends the original program's functionality by parallelizing the `ddsim` and reconstruction processes to test different ePIC configurations. The main program is `epic_sim2.py`, which is a modified version of the original `createSimFiles.py`.
 
 ## Prerequisites
 - The `eic-shell` Singularity container must be installed and configured.
@@ -7,6 +7,7 @@ This project is forked from Dhevan, Aranya, and Stephen's [repository](https://g
 - If using the `analyzeSimFiles` plugin from `eicrecon`, compile it from the `EICreconPlugins/analyzeLumiHits` directory. To compile, run `cmake .. && make -j$(nproc)`. You can manually verify the installation by exporting the plugin folder (`export EICrecon_MY=${PWD}/EICrecon_MY`), ensuring that the `analyzeSimFiles.sh` file is located in the `EICrecon_MY/plugins` directory. If it's missing, copy the `analyzeLumiHits.so` file from the `EICreconPlugins/analyzeLumiHits/build` directory to `EICrecon_MY/plugins`. Finally, run the `eicrecon -Pplugins=analyzeSimFiles,JTest -Pjana:nevents=10` test command as described in the [tutorial](https://eic.github.io/tutorial-jana2/).
 
 ## Running the Program
+- Before running the program, ensure you generate the `.hepmc` files using `createGenFiles.py`.
 - Run `epic_sim2.py` **outside** the Singularity container.
 
 ## Inputs
