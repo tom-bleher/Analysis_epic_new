@@ -106,28 +106,63 @@ mkdir -p "$(dirname "${SIM_OUTPUT}")"
 echo "Starting simulation command: ${SIM_CMD}"
 echo "Output will be written to: ${SIM_OUTPUT}"
 cd "$(dirname "${SIM_OUTPUT}")"
-${SIM_CMD} || {
+
+# Create temporary files for output capture
+ERROR_LOG=$(mktemp)
+STDOUT_LOG=$(mktemp)
+
+# Add --runType batch and verbose logging if not already present
+if [[ ! "${SIM_CMD}" =~ "--runType" ]]; then
+    SIM_CMD="${SIM_CMD} --runType batch"
+fi
+if [[ ! "${SIM_CMD}" =~ "-v" ]] && [[ ! "${SIM_CMD}" =~ "--printLevel" ]]; then
+    SIM_CMD="${SIM_CMD} -v DEBUG"
+fi
+
+echo "Modified simulation command: ${SIM_CMD}"
+
+# Run the simulation with output capture
+if ! ${SIM_CMD} > >(tee "${STDOUT_LOG}") 2> >(tee "${ERROR_LOG}" >&2); then
     echo "Error: Simulation command failed"
+    echo "Environment:"
+    env | grep -E "^(LD_LIBRARY_PATH|PATH|DD4HEP)"
+    echo "Current directory: $(pwd)"
+    echo "Directory contents:"
+    ls -la
+    echo "Last 50 lines of stdout:"
+    tail -n 50 "${STDOUT_LOG}"
+    echo "Error log:"
+    cat "${ERROR_LOG}"
+    rm -f "${ERROR_LOG}" "${STDOUT_LOG}"
     exit 1
-}
+fi
 
 # Verify simulation output
 if [ ! -f "${SIM_OUTPUT}" ]; then
     echo "Error: Simulation output file not created: ${SIM_OUTPUT}"
-    # Show directory contents for debugging
     echo "Directory contents:"
-    ls -l "$(dirname "${SIM_OUTPUT}")"
+    ls -la "$(dirname "${SIM_OUTPUT}")"
+    echo "Last 50 lines of simulation output:"
+    tail -n 50 "${STDOUT_LOG}"
+    rm -f "${ERROR_LOG}" "${STDOUT_LOG}"
     exit 1
 fi
 
-# Check file size
+# Check file size with more detailed error
 SIM_SIZE=$(stat -f%z "${SIM_OUTPUT}" 2>/dev/null || stat -c%s "${SIM_OUTPUT}")
 if [ "$SIM_SIZE" -lt 1000 ]; then
     echo "Error: Simulation output file too small: ${SIM_OUTPUT} (${SIM_SIZE} bytes)"
+    echo "This usually indicates a simulation failure. Checking logs:"
+    echo "Last 50 lines of stdout:"
+    tail -n 50 "${STDOUT_LOG}"
+    echo "Error log:"
+    cat "${ERROR_LOG}"
+    rm -f "${ERROR_LOG}" "${STDOUT_LOG}"
     exit 1
 fi
 
-echo "Simulation output file created successfully: ${SIM_OUTPUT} (${SIM_SIZE} bytes)"
+# Cleanup
+rm -f "${ERROR_LOG}" "${STDOUT_LOG}"
 
 # Run reconstruction if requested
 if [ "$DO_RECON" == "true" ]; then
@@ -165,7 +200,7 @@ if [ "$DO_RECON" == "true" ]; then
             echo "Reconstruction failed"
             echo "Contents of recon directory:"
             ls -l "${RECON_DIR}"
-            exit 1; 
+            exit 1
         }
     
     # Verify reconstruction output
