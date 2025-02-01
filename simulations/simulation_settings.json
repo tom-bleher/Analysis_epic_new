@@ -1,23 +1,23 @@
 {
-    "px_pairs": [[1.0,0.1],[2.0,0.1]],
-    "num_particles": 1,
-
+    "pixel_pairs": [[1.0,0.1], [2.0,0.1], [0.1,0.1]],
+    "particle_count": 100000,
+    "simulation_types": ["idealElectrons", "beamEffectsElectrons"],
+    "energy_levels": [10, 15, 20, 25, 30],
+    
+    "detector_path": "/data/tomble/eic/epic",
+    "recompilation": "normal",
+    "hepmc_input_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
+    "singularity_image_path": "/data/tomble/eic/local/lib/eic_xl-nightly.sif",
+    "eicrecon_plugin_path": "/data/tomble/Analysis_epic_new/EICreconPlugins",
+    
+    "enable_reconstruction": true,
+    "enable_console_logging": true,
+    "simulation_output_path": "",
+    "det_ip6_path": "",
+    "sim_description": "Rerunning 100k simulation for Igor.",
+    
     "BH": 0,
     "location": "POS.ConvMiddle",
-    "file_types": ["idealElectrons", "beamEffectsElectrons"],
-    "energies": [20,30],
-
-    "eic_shell_path": "/data/tomble/eic",
-    "det_path": "/data/tomble/eic/epic",
-    "hepmc_path": "/data/tomble/Analysis_epic_new/simulations/genEvents/results",
-    "sif_path": "/data/tomble/eic/local/lib/eic_xl-nightly.sif",
-    "plugin_path": "/data/tomble/Analysis_epic_new/EICreconPlugins",
-
-    "reconstruct": true,
-    "console_logging": true,
-
-    "sim_out_path": "",
-    "det_ip6_path": "",
-    "sim_description": ""
-  }
+    "eic_shell_path": "/data/tomble/eic"
+}
   
