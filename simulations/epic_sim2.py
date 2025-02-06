@@ -469,10 +469,15 @@ class HandleSim(object):
             curr_sim_path = os.path.join(self.backup_path, f"{px_key}px")
             
             try:
-                # Setup detector for this pixel pair
+                # 1. Copy detector
                 os.makedirs(curr_sim_path, exist_ok=True)
                 curr_sim_det_path = self.copy_epic(curr_sim_path)
+                
+                # 2. Modify detector settings for this pixel pair
                 self.mod_detector_settings(curr_sim_det_path, curr_px_dx, curr_px_dy)
+                
+                # 3. Compile detector after modifications
+                self.compile_epic(curr_sim_det_path)
                 
                 # Secondary loop: file types
                 for file_type in self.simulation_types:
@@ -485,7 +490,7 @@ class HandleSim(object):
                             file_type,
                             energy
                         )
-                    
+                
             except Exception as e:
                 self.printlog(f"Failed to prepare simulation for {px_key}: {e}", level="error")
                 raise
@@ -606,10 +611,17 @@ class HandleSim(object):
 
     def copy_epic(self, curr_sim_path: str) -> str:
         """
-        Copy and compile detector to simulation directory.
+        Copy detector to simulation directory.
+        
+        Args:
+            curr_sim_path (str): Path to current simulation directory
+            
+        Returns:
+            str: Path to the copied detector
         """
         self.printlog(f"Copying epic detector to {curr_sim_path}.", level="info")
         try:
+            # Copy detector
             det_name = os.path.basename(self.detector_path)
             dest_path = os.path.join(curr_sim_path, det_name)
             
@@ -617,15 +629,12 @@ class HandleSim(object):
             if os.path.exists(dest_path):
                 shutil.rmtree(dest_path)
             shutil.copytree(self.detector_path, dest_path, symlinks=True)
+            self.printlog(f"Successfully copied detector to {dest_path}", level="info")
             
-            # Compile the copied detector
-            self.compile_epic(dest_path)
-            
-            self.printlog(f"Successfully copied and compiled detector at {dest_path}", level="info")
             return dest_path
                 
         except Exception as e:
-            self.printlog(f"Failed to copy/compile detector: {e}", level="error")
+            self.printlog(f"Failed to copy detector: {e}", level="error")
             raise
 
     def mod_detector_settings(
