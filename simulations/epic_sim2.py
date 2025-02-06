@@ -978,33 +978,35 @@ class HandleSim(object):
 
     def create_execution_report(self, task_status: dict) -> None:
         """
-        Create a detailed execution report with enhanced information.
+        Create a concise execution report summarizing simulation and reconstruction results.
         """
         report_path = os.path.join(self.backup_path, "execution_report.txt")
         with open(report_path, 'w') as f:
-            f.write("EPIC Simulation Execution Report\n")
-            f.write("==============================\n")
+            # Header
+            f.write("EPIC Simulation Report\n")
+            f.write("====================\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             
-            # Write simulation settings
-            f.write("Simulation Settings\n")
-            f.write("-----------------\n")
-            f.write(f"Number of particles: {self.particle_count}\n")
-            f.write(f"File types: {', '.join(self.simulation_types)}\n")
-            f.write(f"Energies: {', '.join(map(str, self.energy_levels))}\n")
-            f.write(f"Reconstruction enabled: {self.enable_reconstruction}\n\n")
+            # Configuration Summary
+            f.write("Configuration\n")
+            f.write("-------------\n")
+            f.write(f"Particles: {self.particle_count:,}\n")
+            f.write(f"File Types: {', '.join(self.simulation_types)}\n")
+            f.write(f"Energies (GeV): {', '.join(map(str, self.energy_levels))}\n")
+            f.write(f"Reconstruction: {'Enabled' if self.enable_reconstruction else 'Disabled'}\n\n")
             
-            # Summary statistics
+            # Overall Statistics
             total = len(task_status)
             completed = sum(1 for status in task_status.values() if status['status'] == 'completed')
             failed = sum(1 for status in task_status.values() if status['status'] == 'failed')
             
-            f.write("Overall Statistics\n")
-            f.write("-----------------\n")
-            f.write(f"Total tasks: {total}\n")
-            f.write(f"Completed tasks: {completed}\n")
-            f.write(f"Failed tasks: {failed}\n")
-            f.write(f"Success rate: {(completed/total)*100:.2f}%\n\n")
+            f.write("Execution Summary\n")
+            f.write("----------------\n")
+            f.write(f"Total Tasks: {total}\n")
+            f.write(f"Success Rate: {(completed/total)*100:.1f}% ({completed}/{total})\n")
+            if failed > 0:
+                f.write(f"Failed Tasks: {failed}\n")
+            f.write("\n")
             
             # Group tasks by pixel pair
             tasks_by_pixel = {}
@@ -1018,12 +1020,11 @@ class HandleSim(object):
                         'recon': {'completed': [], 'failed': []}
                     }
                 
-                # Determine if this is a ddsim or reconstruction task
+                # Determine task type and extract info
                 is_recon = 'recon' in task_id
                 task_type = 'recon' if is_recon else 'ddsim'
                 task_status = status['status']
                 
-                # Extract file type and energy
                 if len(parts) >= 4:
                     file_type = parts[2]
                     energy = parts[3]
@@ -1032,50 +1033,59 @@ class HandleSim(object):
                         'energy': energy,
                         'error': status.get('error', None)
                     }
-                    if task_status == 'completed':
-                        tasks_by_pixel[px_key][task_type]['completed'].append(task_info)
-                    else:
-                        tasks_by_pixel[px_key][task_type]['failed'].append(task_info)
+                    tasks_by_pixel[px_key][task_type][task_status == 'completed' and 'completed' or 'failed'].append(task_info)
             
-            # Write detailed status for each pixel pair
-            f.write("\nDetailed Task Status by Pixel Pair\n")
-            f.write("================================\n")
+            # Write detailed status by pixel pair
+            f.write("Status by Configuration\n")
+            f.write("----------------------\n")
             
             for px_key, tasks in tasks_by_pixel.items():
-                f.write(f"\nPixel Pair: {px_key}\n")
-                f.write("-" * (len(px_key) + 12) + "\n")
+                f.write(f"\n[{px_key}]\n")
                 
-                # Write ddsim tasks
-                f.write("\nSimulation Tasks:\n")
-                if tasks['ddsim']['completed']:
-                    f.write("  Completed:\n")
-                    for task in tasks['ddsim']['completed']:
-                        f.write(f"    - {task['file_type']} at {task['energy']} GeV\n")
-                if tasks['ddsim']['failed']:
-                    f.write("  Failed:\n")
-                    for task in tasks['ddsim']['failed']:
-                        f.write(f"    - {task['file_type']} at {task['energy']} GeV\n")
-                        if task['error']:
-                            f.write(f"      Error: {task['error']}\n")
+                # Simulation status
+                sim_completed = len(tasks['ddsim']['completed'])
+                sim_failed = len(tasks['ddsim']['failed'])
+                sim_total = sim_completed + sim_failed
                 
-                # Write reconstruction tasks
-                if self.enable_reconstruction:
-                    f.write("\nReconstruction Tasks:\n")
-                    if tasks['recon']['completed']:
-                        f.write("  Completed:\n")
-                        for task in tasks['recon']['completed']:
-                            f.write(f"    - {task['file_type']} at {task['energy']} GeV\n")
-                    if tasks['recon']['failed']:
+                if sim_total > 0:
+                    f.write(f"Simulation: {sim_completed}/{sim_total} completed")
+                    if sim_failed > 0:
+                        f.write(f" ({sim_failed} failed)")
+                    f.write("\n")
+                    
+                    # List failed simulations with errors
+                    if sim_failed > 0:
                         f.write("  Failed:\n")
-                        for task in tasks['recon']['failed']:
-                            f.write(f"    - {task['file_type']} at {task['energy']} GeV\n")
+                        for task in tasks['ddsim']['failed']:
+                            f.write(f"  - {task['file_type']} @ {task['energy']} GeV")
                             if task['error']:
-                                f.write(f"      Error: {task['error']}\n")
+                                f.write(f"\n    Error: {task['error']}")
+                            f.write("\n")
                 
-                f.write("\n" + "="*50 + "\n")
-
-            # Write timestamp
-            f.write(f"\nReport generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                # Reconstruction status (if enabled)
+                if self.enable_reconstruction:
+                    recon_completed = len(tasks['recon']['completed'])
+                    recon_failed = len(tasks['recon']['failed'])
+                    recon_total = recon_completed + recon_failed
+                    
+                    if recon_total > 0:
+                        f.write(f"Reconstruction: {recon_completed}/{recon_total} completed")
+                        if recon_failed > 0:
+                            f.write(f" ({recon_failed} failed)")
+                        f.write("\n")
+                        
+                        # List failed reconstructions with errors
+                        if recon_failed > 0:
+                            f.write("  Failed:\n")
+                            for task in tasks['recon']['failed']:
+                                f.write(f"  - {task['file_type']} @ {task['energy']} GeV")
+                                if task['error']:
+                                    f.write(f"\n    Error: {task['error']}")
+                                f.write("\n")
+                
+            # Footer
+            f.write("\n" + "="*50 + "\n")
+            f.write(f"Report generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
     def get_simulation_tasks(self) -> List[dict]:
         """
