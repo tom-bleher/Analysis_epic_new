@@ -344,47 +344,132 @@ class HandleSim(object):
 
     def create_hepmc(self, missing_files: List[Tuple[int, str]]) -> None:
         """
-        Create missing hepmc files following createGenFiles2.py workflow exactly.
+        Create missing hepmc files following createGenFiles.py workflow exactly.
+        Executes root commands inside singularity container.
         """
         self.printlog("Creating missing hepmc files...", level="info")
         
         # Get location from settings
         location = self.settings_dict.get('location', 'POS.ConvMiddle')
         
-        # Validate required paths exist
-        macro_dir = os.path.dirname(__file__)
-        if not os.path.exists(os.path.join(macro_dir, "lumi_particles.cxx")):
-            raise FileNotFoundError("lumi_particles.cxx not found in scripts directory")
-        if not os.path.exists(os.path.join(macro_dir, "PropagateAndConvert.cxx")):
-            raise FileNotFoundError("PropagateAndConvert.cxx not found in scripts directory")
+        # Create results directory if it doesn't exist
+        os.makedirs(self.hepmc_input_path, exist_ok=True)
+        
+        # Get the directory containing the macro files
+        macro_dir = os.path.dirname(os.path.abspath(__file__))
+        # Get the project root directory (parent of simulations)
+        project_root = os.path.dirname(macro_dir)
+        utilities_dir = os.path.join(project_root, "utilities")
+        
+        # Validate required macro files exist
+        required_files = ["lumi_particles.cxx", "PropagateAndConvert.cxx"]
+        for file in required_files:
+            if not os.path.exists(os.path.join(macro_dir, file)):
+                raise FileNotFoundError(f"{file} not found in scripts directory: {macro_dir}")
+        
+        # Validate constants.h exists
+        if not os.path.exists(os.path.join(utilities_dir, "constants.h")):
+            raise FileNotFoundError(f"constants.h not found in utilities directory: {utilities_dir}")
         
         # Process each missing energy/type combination
         for energy, _ in set(missing_files):  # Use set to process each energy once
             try:
-                self.printlog(f"Processing energy level: {energy} GeV", level="info")
+                self.printlog(f"\nProcessing energy level: {energy} GeV", level="info")
                 
                 # Step 1: Create ideal photons
                 ideal_photons_file = os.path.join(self.hepmc_input_path, f"idealPhotonsAtIP_{energy}.hepmc")
                 if not os.path.exists(ideal_photons_file):
-                    cmd = f'root -q \'lumi_particles.cxx(1e4,true,false,false,{energy},{energy},"{ideal_photons_file}")\')'
-                    self.printlog(f"Generating ideal photons with command: {cmd}", level="debug")
-                    self._run_command_in_singularity(cmd, macro_dir)
+                    self.printlog("Generating ideal photons...", level="info")
+                    
+                    # Create the command to run inside singularity - match createGenFiles.py exactly
+                    root_cmd = f"cd {macro_dir} && root -b -q 'lumi_particles.cxx({self.particle_count},true,false,false,{energy},{energy},\"{ideal_photons_file}\")'"
+                    
+                    # Run command in singularity
+                    cmd = [
+                        "singularity", "exec", "--containall",
+                        "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                        "--bind", f"{macro_dir}:{macro_dir}",
+                        "--bind", f"{project_root}:{project_root}",
+                        "--bind", f"{self.detector_path}:{self.detector_path}",
+                        self.singularity_image_path,
+                        "/bin/bash", "-c", root_cmd
+                    ]
+                    
+                    result = subprocess.run(cmd, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        raise RuntimeError(f"Failed to generate ideal photons: {result.stderr}")
+                    
+                    if not os.path.exists(ideal_photons_file):
+                        raise RuntimeError(f"Ideal photons file not created: {ideal_photons_file}")
+                    
+                    self.printlog(f"Generated ideal photons for {energy} GeV", level="info")
+                else:
+                    self.printlog(f"Using existing ideal photons file for {energy} GeV", level="info")
                 
                 # Step 2: Create beam effects version
                 beam_effects_file = os.path.join(self.hepmc_input_path, f"beamEffectsPhotonsAtIP_{energy}.hepmc")
                 if not os.path.exists(beam_effects_file):
-                    cmd = f"abconv {ideal_photons_file} --plot-off -o {os.path.splitext(beam_effects_file)[0]}"
-                    self.printlog(f"Generating beam effects photons with command: {cmd}", level="debug")
-                    self._run_command_in_singularity(cmd, macro_dir)
+                    self.printlog("Generating beam effects photons...", level="info")
+                    
+                    # Create the command to run inside singularity - match createGenFiles.py exactly
+                    abconv_cmd = f"cd {macro_dir} && abconv {ideal_photons_file} --plot-off -o {os.path.splitext(beam_effects_file)[0]}"
+                    
+                    # Run command in singularity
+                    cmd = [
+                        "singularity", "exec", "--containall",
+                        "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                        "--bind", f"{macro_dir}:{macro_dir}",
+                        "--bind", f"{project_root}:{project_root}",
+                        "--bind", f"{self.detector_path}:{self.detector_path}",
+                        self.singularity_image_path,
+                        "/bin/bash", "-c", abconv_cmd
+                    ]
+                    
+                    result = subprocess.run(cmd, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        raise RuntimeError(f"Failed to generate beam effects photons: {result.stderr}")
+                    
+                    if not os.path.exists(beam_effects_file):
+                        raise RuntimeError(f"Beam effects file not created: {beam_effects_file}")
+                    
+                    self.printlog(f"Generated beam effects photons for {energy} GeV", level="info")
+                else:
+                    self.printlog(f"Using existing beam effects file for {energy} GeV", level="info")
                 
                 # Step 3: Propagate both versions to electrons
                 for photon_type in ["ideal", "beamEffects"]:
                     input_file = os.path.join(self.hepmc_input_path, f"{photon_type}PhotonsAtIP_{energy}.hepmc")
                     output_file = os.path.join(self.hepmc_input_path, f"{photon_type}Electrons_{energy}.hepmc")
+                    
                     if not os.path.exists(output_file):
-                        cmd = f'root -b \'PropagateAndConvert.cxx("{input_file}","{output_file}","{location}")\''
-                        self.printlog(f"Propagating {photon_type} photons to electrons with command: {cmd}", level="debug")
-                        self._run_command_in_singularity(cmd, macro_dir)
+                        self.printlog(f"Propagating {photon_type} photons to electrons...", level="info")
+                        
+                        # Create the command to run inside singularity - match createGenFiles.py exactly
+                        prop_cmd = f"cd {macro_dir} && root -b -q 'PropagateAndConvert.cxx(\"{input_file}\",\"{output_file}\",{location})'"
+                        
+                        # Run command in singularity
+                        cmd = [
+                            "singularity", "exec", "--containall",
+                            "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                            "--bind", f"{macro_dir}:{macro_dir}",
+                            "--bind", f"{project_root}:{project_root}",
+                            "--bind", f"{self.detector_path}:{self.detector_path}",
+                            self.singularity_image_path,
+                            "/bin/bash", "-c", prop_cmd
+                        ]
+                        
+                        result = subprocess.run(cmd, capture_output=True, text=True)
+                        if result.returncode != 0:
+                            raise RuntimeError(f"Failed to propagate {photon_type} photons: {result.stderr}")
+                        
+                        if not os.path.exists(output_file):
+                            raise RuntimeError(f"Electron file not created: {output_file}")
+                        
+                        self.printlog(f"Generated {photon_type} electrons for {energy} GeV", level="info")
+                    else:
+                        self.printlog(f"Using existing {photon_type} electrons file for {energy} GeV", level="info")
+                
+                self.printlog(f"Successfully processed energy level {energy} GeV", level="info")
                 
             except Exception as e:
                 self.printlog(f"Error processing energy {energy}: {str(e)}", level="error")
