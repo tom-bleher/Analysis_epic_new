@@ -8,7 +8,6 @@ This project is forked from Dhevan, Aranya, and Stephen's [repository](https://g
 
 ## Running the Program
 - Configure the `simulation_settings.json` file with the correct paths and desired parameters.
-- Run `epic_sim2.py` **outside** the Singularity container.
 
 ## Inputs
 - A JSON configuration file (`simulation_settings.json`) containing simulation parameters.
