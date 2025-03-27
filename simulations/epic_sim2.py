@@ -56,15 +56,22 @@ class HandleSim(object):
         self.sif_path: str = ""  # Initialize sif_path
         self.plugin_path: str = ""  # Initialize plugin_path
         
+        # Check if running inside Singularity container
+        self.inside_singularity = self.is_inside_singularity()
+        self.eic_shell_path = ""  # Path to EIC shell script, used when inside Singularity
+        
         # Set up logger first without using printlog
         self.logger = None  # Initialize logger as None
         
         # Add validation for required paths
         self.required_paths = [
             'detector_path',
-            'hepmc_input_path',
-            'singularity_image_path'  # Add explicit check for singularity_image_path
+            'hepmc_input_path'
         ]
+        
+        # Only require singularity_image_path if not inside Singularity
+        if not self.inside_singularity:
+            self.required_paths.append('singularity_image_path')
         
         # Add explicit validation for simulation settings
         self.required_simulation_settings = [
@@ -72,9 +79,12 @@ class HandleSim(object):
             'particle_count',
             'detector_path',
             'simulation_types',
-            'hepmc_input_path',
-            'singularity_image_path'
+            'hepmc_input_path'
         ]
+        
+        # Only require singularity_image_path if not inside Singularity
+        if not self.inside_singularity:
+            self.required_simulation_settings.append('singularity_image_path')
         
         # Add validation for required paths when reconstruction is enabled
         self.reconstruct_required_paths = [
@@ -87,8 +97,50 @@ class HandleSim(object):
         # Now initialize logging after settings are loaded
         self.init_logger()
         
-        # Log initialization complete
-        self.printlog("Initialized HandleSim class.", level="info")
+        # Log initialization complete and Singularity status
+        self.printlog(f"Initialized HandleSim class. Running inside Singularity: {self.inside_singularity}", level="info")
+        
+        # If inside Singularity, we need to find the EIC shell script
+        if self.inside_singularity:
+            self.setup_singularity_environment()
+            
+    def is_inside_singularity(self) -> bool:
+        """
+        Check if the script is running inside a Singularity container.
+        
+        Returns:
+            bool: True if inside Singularity, False otherwise
+        """
+        # Check for Singularity-specific environment variables
+        return any(var in os.environ for var in ['SINGULARITY_CONTAINER', 'SINGULARITY_NAME', 'SINGULARITY_ENVIRONMENT'])
+    
+    def setup_singularity_environment(self) -> None:
+        """
+        Setup environment variables and paths when running inside Singularity.
+        """
+        # Try to locate EIC shell script
+        # First check if eic_shell_path is in settings
+        if hasattr(self, 'eic_shell_path') and os.path.exists(self.eic_shell_path):
+            shell_script = os.path.join(self.eic_shell_path, 'setup.sh')
+            if os.path.exists(shell_script):
+                self.eic_shell_path = shell_script
+                self.printlog(f"Found EIC shell script at {self.eic_shell_path}", level="info")
+                return
+                
+        # Common locations for EIC shell script
+        common_locations = [
+            '/opt/local/bin/eic-shell',
+            '/usr/local/bin/eic-shell',
+            '/bin/eic-shell'
+        ]
+        
+        for loc in common_locations:
+            if os.path.exists(loc):
+                self.eic_shell_path = loc
+                self.printlog(f"Found EIC shell script at {self.eic_shell_path}", level="info")
+                return
+                
+        self.printlog("Warning: Could not find EIC shell script. Some functionality may be limited.", level="warning")
 
     def init_logger(self) -> None:
         """
@@ -145,7 +197,12 @@ class HandleSim(object):
                 if setting not in self.settings_dict
             ]
             if (missing_settings):
-                raise ValueError(f"Missing required settings: {', '.join(missing_settings)}")
+                # Don't require singularity_image_path when inside Singularity
+                if self.inside_singularity and 'singularity_image_path' in missing_settings:
+                    missing_settings.remove('singularity_image_path')
+                
+                if missing_settings:
+                    raise ValueError(f"Missing required settings: {', '.join(missing_settings)}")
 
             # Validate pixel_pairs format
             if not isinstance(self.settings_dict['pixel_pairs'], list) or \
@@ -178,10 +235,12 @@ class HandleSim(object):
                 path_value = self.settings_dict.get(path_key)
                 if not path_value or not os.path.exists(path_value):
                     raise ValueError(f"Required path '{path_key}' is missing or invalid: {path_value}")
-            # Validate singularity_image_path
-            self.singularity_image_path = self.settings_dict.get("singularity_image_path")
-            if not self.singularity_image_path or not os.path.exists(self.singularity_image_path):
-                raise ValueError(f"Singularity image path 'singularity_image_path' is missing or invalid: {self.singularity_image_path}")
+                    
+            # Only validate singularity_image_path if not inside Singularity
+            if not self.inside_singularity:
+                self.singularity_image_path = self.settings_dict.get("singularity_image_path")
+                if not self.singularity_image_path or not os.path.exists(self.singularity_image_path):
+                    raise ValueError(f"Singularity image path 'singularity_image_path' is missing or invalid: {self.singularity_image_path}")
 
             # Add eicrecon_plugin_path to required settings if reconstruction is enabled
             if self.settings_dict.get("enable_reconstruction", False):
@@ -381,19 +440,22 @@ class HandleSim(object):
                 if not os.path.exists(ideal_photons_file):
                     self.printlog("Generating ideal photons...", level="info")
                     
-                    # Create the command to run inside singularity - match createGenFiles.py exactly
                     root_cmd = f"cd {macro_dir} && root -b -q 'lumi_particles.cxx({self.particle_count},true,false,false,{energy},{energy},\"{ideal_photons_file}\")'"
                     
-                    # Run command in singularity
-                    cmd = [
-                        "singularity", "exec", "--containall",
-                        "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
-                        "--bind", f"{macro_dir}:{macro_dir}",
-                        "--bind", f"{project_root}:{project_root}",
-                        "--bind", f"{self.detector_path}:{self.detector_path}",
-                        self.singularity_image_path,
-                        "/bin/bash", "-c", root_cmd
-                    ]
+                    if self.inside_singularity:
+                        # Direct execution when inside Singularity
+                        cmd = ["/bin/bash", "-c", root_cmd]
+                    else:
+                        # Execution using Singularity when outside
+                        cmd = [
+                            "singularity", "exec", "--containall",
+                            "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                            "--bind", f"{macro_dir}:{macro_dir}",
+                            "--bind", f"{project_root}:{project_root}",
+                            "--bind", f"{self.detector_path}:{self.detector_path}",
+                            self.singularity_image_path,
+                            "/bin/bash", "-c", root_cmd
+                        ]
                     
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode != 0:
@@ -414,16 +476,20 @@ class HandleSim(object):
                     # Create the command to run inside singularity - match createGenFiles.py exactly
                     abconv_cmd = f"cd {macro_dir} && abconv {ideal_photons_file} --plot-off -o {os.path.splitext(beam_effects_file)[0]}"
                     
-                    # Run command in singularity
-                    cmd = [
-                        "singularity", "exec", "--containall",
-                        "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
-                        "--bind", f"{macro_dir}:{macro_dir}",
-                        "--bind", f"{project_root}:{project_root}",
-                        "--bind", f"{self.detector_path}:{self.detector_path}",
-                        self.singularity_image_path,
-                        "/bin/bash", "-c", abconv_cmd
-                    ]
+                    if self.inside_singularity:
+                        # Direct execution when inside Singularity
+                        cmd = ["/bin/bash", "-c", abconv_cmd]
+                    else:
+                        # Execution using Singularity when outside
+                        cmd = [
+                            "singularity", "exec", "--containall",
+                            "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                            "--bind", f"{macro_dir}:{macro_dir}",
+                            "--bind", f"{project_root}:{project_root}",
+                            "--bind", f"{self.detector_path}:{self.detector_path}",
+                            self.singularity_image_path,
+                            "/bin/bash", "-c", abconv_cmd
+                        ]
                     
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode != 0:
@@ -447,16 +513,20 @@ class HandleSim(object):
                         # Create the command to run inside singularity - match createGenFiles.py exactly
                         prop_cmd = f"cd {macro_dir} && root -b -q 'PropagateAndConvert.cxx(\"{input_file}\",\"{output_file}\",{location})'"
                         
-                        # Run command in singularity
-                        cmd = [
-                            "singularity", "exec", "--containall",
-                            "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
-                            "--bind", f"{macro_dir}:{macro_dir}",
-                            "--bind", f"{project_root}:{project_root}",
-                            "--bind", f"{self.detector_path}:{self.detector_path}",
-                            self.singularity_image_path,
-                            "/bin/bash", "-c", prop_cmd
-                        ]
+                        if self.inside_singularity:
+                            # Direct execution when inside Singularity
+                            cmd = ["/bin/bash", "-c", prop_cmd]
+                        else:
+                            # Execution using Singularity when outside
+                            cmd = [
+                                "singularity", "exec", "--containall",
+                                "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                                "--bind", f"{macro_dir}:{macro_dir}",
+                                "--bind", f"{project_root}:{project_root}",
+                                "--bind", f"{self.detector_path}:{self.detector_path}",
+                                self.singularity_image_path,
+                                "/bin/bash", "-c", prop_cmd
+                            ]
                         
                         result = subprocess.run(cmd, capture_output=True, text=True)
                         if result.returncode != 0:
@@ -664,19 +734,35 @@ class HandleSim(object):
                 shutil.rmtree(build_path)
             os.makedirs(build_path)
             
-            # Run compilation inside Singularity
-            cmd = [
-                "singularity", "exec", "--containall",
-                "--bind", f"{os.path.dirname(detector_path)}:{os.path.dirname(detector_path)}",
-                self.singularity_image_path,
-                "/bin/bash", "-c", f"""
-                    set -e
-                    cd {detector_path}
-                    mkdir -p build && cd build
-                    cmake -DCMAKE_INSTALL_PREFIX=../install ..
-                    make -j$(nproc) install
-                """
-            ]
+            # Different compilation approach based on environment
+            if self.inside_singularity:
+                # Direct compilation when inside Singularity
+                cmd = [
+                    "/bin/bash", "-c", f"""
+                        set -e
+                        cd {detector_path}
+                        mkdir -p build && cd build
+                        cmake -DCMAKE_INSTALL_PREFIX=../install ..
+                        make -j$(nproc) install
+                    """
+                ]
+                
+                self.printlog("Running compilation directly (inside Singularity)", level="info")
+            else:
+                # Compilation using Singularity when outside
+                cmd = [
+                    "singularity", "exec", "--containall",
+                    "--bind", f"{os.path.dirname(detector_path)}:{os.path.dirname(detector_path)}",
+                    self.singularity_image_path,
+                    "/bin/bash", "-c", f"""
+                        set -e
+                        cd {detector_path}
+                        mkdir -p build && cd build
+                        cmake -DCMAKE_INSTALL_PREFIX=../install ..
+                        make -j$(nproc) install
+                    """
+                ]
+                self.printlog("Running compilation in Singularity container", level="info")
             
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             self.printlog(f"Compilation output: {result.stdout}", level="debug")
@@ -775,17 +861,6 @@ class HandleSim(object):
         logger.info(f"Command: {cmd}")
         
         try:
-            # Build singularity command with proper bindings
-            singularity_cmd = [
-                "singularity", "exec", "--containall",
-                "--bind", f"{self.detector_path}:{self.detector_path}",
-                "--bind", f"{self.execution_path}:{self.execution_path}",
-                "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
-                "--bind", f"{self.eicrecon_plugin_path}:{self.eicrecon_plugin_path}",
-                self.singularity_image_path,
-                "/bin/bash", "-c"
-            ]
-
             # Add source commands for environment setup
             if task_type == 'sim':
                 source_cmd = f"source {task['shell_path']} && "
@@ -800,8 +875,24 @@ class HandleSim(object):
                 logger.info(f"EICrecon_MY: {self.eicrecon_plugin_path}/EICrecon_MY")
                 logger.info(f"DETECTOR_PATH: {os.path.dirname(task['shell_path'])}")
             
-            # Combine commands
-            full_cmd = singularity_cmd + [f"{source_cmd}{task['cmd']}"]
+            # Choose execution method based on environment
+            if self.inside_singularity:
+                # Direct execution when inside Singularity
+                full_cmd = ["/bin/bash", "-c", f"{source_cmd}{task['cmd']}"]
+                logger.info("Executing command directly (inside Singularity)")
+            else:
+                # Execution using Singularity when outside
+                singularity_cmd = [
+                    "singularity", "exec", "--containall",
+                    "--bind", f"{self.detector_path}:{self.detector_path}",
+                    "--bind", f"{self.execution_path}:{self.execution_path}",
+                    "--bind", f"{self.hepmc_input_path}:{self.hepmc_input_path}",
+                    "--bind", f"{self.eicrecon_plugin_path}:{self.eicrecon_plugin_path}",
+                    self.singularity_image_path,
+                    "/bin/bash", "-c", f"{source_cmd}{task['cmd']}"
+                ]
+                full_cmd = singularity_cmd
+                logger.info("Executing command in Singularity container")
             
             # Execute with output capture
             logger.info(f"Executing {task_type} command...")
@@ -1253,6 +1344,29 @@ class HandleSim(object):
         
         self.printlog(f"Singularity check - In container: {in_singularity}, Path: {sif_path}", level="debug")
         return in_singularity, sif_path
+
+    # Add this utility function to check if sourcing eic-shell is needed
+    def run_with_eic_env(self, cmd_list, source_env=True):
+        """
+        Run a command with the EIC environment sourced if necessary
+        """
+        if source_env and self.inside_singularity and self.eic_shell_path:
+            # Create a script that sources the environment and runs the command
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
+                f.write("#!/bin/bash\n")
+                f.write(f"source {self.eic_shell_path}\n")
+                f.write(' '.join(cmd_list) + "\n")
+                temp_script = f.name
+
+            os.chmod(temp_script, 0o755)
+            try:
+                result = subprocess.run(['/bin/bash', temp_script], check=True, capture_output=True, text=True)
+            finally:
+                os.unlink(temp_script)
+            return result
+        else:
+            # Run the command directly
+            return subprocess.run(cmd_list, check=True, capture_output=True, text=True)
 
 if __name__ == "__main__":
 
